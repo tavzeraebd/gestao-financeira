@@ -1,0 +1,17 @@
+# ADR-0020 — Dashboard: módulo `reports`, agregação por funções `security invoker` compartilhadas com os relatórios
+
+Status: aceita (2026-10-24, Etapa 4) · Escopo: `/inicio`, `src/modules/reports`, funções SQL de leitura · Refina ADR-0004, ADR-0015 e `financial-definitions.md` D3/D4
+
+**Contexto.** A spec §7.2 pede saldo consolidado, receitas, despesas e resultado do período, variação sobre o período anterior, despesas por categoria, fluxo de caixa mensal, próximos vencimentos, últimas transações, progresso das metas e atividade recente, com filtros (mês atual, mês anterior, intervalo personalizado). A §7.11 exige que os relatórios usem os **mesmos serviços de cálculo** do dashboard. A §14 proíbe carregar todas as transações para calcular totais. A Etapa 3 já entregou `period_summary` (D4) e `account_balances` (D1), ambas `security invoker`. A `audit_events` só é legível por owner/admin (`permissions.md`, aprovada).
+
+**Decisão.**
+1. `src/modules/reports/` é o **único** lugar dos cálculos de dashboard e relatório. A Etapa 7 acrescenta consultas a esse módulo, não cria outro. Cada regra fica uma vez só: a soma no SQL e a composição (variação, agrupamento, percentual) em `reports/domain/*.ts`, em TS puro e testado.
+2. Duas funções novas, `public.monthly_cash_flow(p_from, p_to)` e `public.category_totals(p_from, p_to, p_type)`, seguem o padrão da Etapa 3: `security invoker`, `stable`, `search_path = ''`, montantes em `text`, sem parâmetro de família. Elas também filtram `family_id = private.current_family_id()` para usar índice; a RLS continua sendo a garantia. Intervalos têm teto (24 meses no fluxo; 366 dias no filtro do app).
+3. Período: `mes_atual` (padrão), `mes_anterior` e `personalizado` (`de`/`ate`, até 366 dias) na URL. O período anterior segue a regra D4. O fluxo de caixa mostra sempre os 6 meses civis que terminam no mês de `ate`.
+4. Variação do saldo consolidado (D3): `account_balances(p_as_of)` fica como está. Numa data anterior ao `opening_balance_date`, a conta já soma o saldo inicial (o app não conhece o saldo de antes do registro), de modo que a variação mede só as movimentações efetivadas entre as duas datas. Nenhuma mudança no banco.
+5. **Atividade recente da família sai do dashboard e vai para a tela de atividade da Etapa 7** (spec §11 põe "auditoria" na Etapa 7; o mockup, tela 2, não tem o bloco). O dashboard não lê `audit_events`. Fecha a pendência 6 do roadmap: member não vê a auditoria, como manda a matriz aprovada.
+6. "Próximos vencimentos" aparece na Etapa 4 como bloco com estado vazio honesto, sem consulta e sem número. A Etapa 5 liga o bloco aos compromissos. "Metas" segue igual até a Etapa 6.
+
+**Alternativas.** Calcular no TS a partir das transações: viola a §14 e escala com o volume. Tabela de resumo materializada: é um cache com invalidação a manter, contra a ADR-0004 e a ADR-0015. View `security_invoker`: não recebe parâmetros de período, e a função deixa validar e limitar a entrada. Atividade recente para owner/admin no dashboard: os eventos da Etapa 3 não incluem a criação de lançamentos, então o bloco sairia enganoso, e a tela própria da Etapa 7 é o lugar certo.
+
+**Consequências.** O dashboard faz um conjunto fixo de consultas em paralelo (cerca de 10, sem N+1) e nenhuma carrega mais que 5 lançamentos. Os relatórios da Etapa 7 reutilizam `getPeriodSummary`, `monthly_cash_flow`, `category_totals` e o domínio de `reports`. `period_summary` não ganha o filtro por `current_family_id()`: fica fora do escopo e será medido na Etapa 9.
