@@ -15,6 +15,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   VOLUME_LIMIT_REACHED:
     "Sua família atingiu o limite de registros desta lista. Exclua registros que não usa mais.",
   REAUTH_REQUIRED: "Confirme sua senha para continuar.",
+  ACCOUNT_ERASURE_UNAVAILABLE:
+    "Não foi possível excluir a conta agora e nada foi alterado. Tente novamente mais tarde ou fale com o suporte.",
   INVALID_CREDENTIALS:
     "E-mail ou senha incorretos. Confira os dados ou redefina sua senha.",
   EMAIL_NOT_CONFIRMED:

@@ -115,6 +115,12 @@ describe("proxy", () => {
       expect(seenIp()).toBeNull();
     });
 
+    it("x-forwarded-for de loopback (o Next o preenche com o socket quando não há proxy) não vira IP", async () => {
+      mockSession(null);
+      await proxy(req("/login", { headers: { "x-forwarded-for": "::1" } }));
+      expect(seenIp()).toBeNull();
+    });
+
     it("TRUSTED_PROXY_HOPS=0 desativa e =2 usa a penúltima entrada", async () => {
       mockSession(null);
       const headers = { "x-forwarded-for": "9.9.9.9, 203.0.113.7, 10.0.0.1" };

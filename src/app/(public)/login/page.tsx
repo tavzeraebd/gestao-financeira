@@ -1,4 +1,4 @@
-import { AlertCircleIcon, ClockIcon } from "lucide-react";
+import { AlertCircleIcon, ClockIcon, InfoIcon } from "lucide-react";
 import type { Metadata } from "next";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -22,6 +22,8 @@ export default async function LoginPage({
   const erro = first(params.erro);
   const motivo = first(params.motivo);
   const next = first(params.next);
+  // Só o valor conhecido mostra o aviso; qualquer outro é ignorado.
+  const contaExcluida = first(params.conta) === "excluida";
 
   return (
     <Card className="[--card-spacing:--spacing(6)]">
@@ -45,6 +47,15 @@ export default async function LoginPage({
             <ClockIcon aria-hidden="true" />
             <AlertDescription>
               Sua sessão expirou. Entre novamente para continuar.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {contaExcluida ? (
+          <Alert>
+            <InfoIcon aria-hidden="true" />
+            <AlertDescription>
+              Sua conta foi excluída. Para usar o app de novo, crie uma conta
+              nova.
             </AlertDescription>
           </Alert>
         ) : null}

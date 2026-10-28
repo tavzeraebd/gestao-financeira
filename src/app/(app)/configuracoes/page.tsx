@@ -9,22 +9,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SignOutButton } from "@/modules/auth/components/sign-out-button";
+import { DeleteAccountSection } from "@/modules/profile/components/delete-account-section";
 import { ThemeOptions } from "@/modules/profile/components/theme-options";
 import { UpdateProfileForm } from "@/modules/profile/components/update-profile-form";
-import { getMyProfile } from "@/modules/profile/queries";
+import {
+  getAccountDeletionPreview,
+  getMyProfile,
+} from "@/modules/profile/queries";
 import { requireMembership } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Configurações" };
 
 export default async function SettingsPage() {
   await requireMembership();
-  const profile = await getMyProfile();
+  const [profile, deletionPreview] = await Promise.all([
+    getMyProfile(),
+    getAccountDeletionPreview(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Configurações"
-        description="Seu perfil, a aparência do app e a sessão."
+        description="Seu perfil, a aparência do app, a sessão e a exclusão da conta."
       />
 
       <Card className="[--card-spacing:--spacing(5)]">
@@ -65,6 +72,8 @@ export default async function SettingsPage() {
           <SignOutButton />
         </CardContent>
       </Card>
+
+      <DeleteAccountSection preview={deletionPreview} />
     </div>
   );
 }
