@@ -3,11 +3,49 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+const ROTULO_PADRAO = "Tabela com rolagem horizontal";
+
+/**
+ * Contêiner da tabela. Quando o conteúdo é mais largo que a área (celular), vira uma região
+ * focável com nome (WCAG 2.1.1, axe `scrollable-region-focusable`): quem usa teclado alcança a
+ * rolagem com Tab e as setas. Sem rolagem, não entra na ordem de Tab. O nome vem de `rotulo`,
+ * da `caption` da tabela ou do padrão.
+ */
+function Table({
+  className,
+  rotulo,
+  ...props
+}: React.ComponentProps<"table"> & { rotulo?: string }) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [nome, setNome] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const medir = () => {
+      const rolavel = el.scrollWidth > el.clientWidth;
+      const legenda = el.querySelector("caption")?.textContent?.trim();
+      setNome(rolavel ? (rotulo ?? (legenda || ROTULO_PADRAO)) : null);
+    };
+    medir();
+    if (typeof ResizeObserver === "undefined") return;
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    const tabela = el.querySelector("table");
+    if (tabela) observador.observe(tabela);
+    return () => observador.disconnect();
+  }, [rotulo]);
+
   return (
     <div
+      ref={containerRef}
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className={cn(
+        "relative w-full overflow-x-auto",
+        nome &&
+          "focus-visible:outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2",
+      )}
+      {...(nome ? { role: "region", tabIndex: 0, "aria-label": nome } : {})}
     >
       <table
         data-slot="table"

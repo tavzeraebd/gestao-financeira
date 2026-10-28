@@ -58,7 +58,7 @@ export function GoalsCard({ goals, canManage }: GoalsCardProps) {
                     <GoalIcon icon={goal.icon} size="sm" />
                     <Link
                       href={`/metas/${goal.id}`}
-                      className="min-w-0 flex-1 truncate text-sm font-medium hover:underline"
+                      className="-my-2.5 min-w-0 flex-1 truncate py-2.5 text-sm font-medium hover:underline"
                     >
                       {goal.name}
                     </Link>

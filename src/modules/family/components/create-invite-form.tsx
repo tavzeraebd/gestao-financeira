@@ -177,7 +177,7 @@ export function CreateInviteForm({
                         checked={field.value === option.value}
                         onChange={() => field.onChange(option.value)}
                         onBlur={field.onBlur}
-                        className="accent-primary-text mt-1 size-4 shrink-0"
+                        className="before:border-input checked:before:border-primary-text checked:before:bg-primary-text before:bg-card -mx-3 -mt-2 -mb-3 grid size-10 shrink-0 appearance-none place-content-center before:size-4 before:rounded-full before:border before:content-[''] checked:before:shadow-[inset_0_0_0_3px_var(--color-primary-soft)]"
                       />
                       <span className="flex flex-col">
                         <span className="font-medium">{option.label}</span>

@@ -45,46 +45,117 @@ export async function elementosForaDaViewport(page: Page): Promise<string[]> {
   });
 }
 
-/** Controles interativos visíveis que se sobrepõem parcialmente (nenhum contém o outro). */
+/**
+ * Controles interativos visíveis que se sobrepõem parcialmente (nenhum contém o outro).
+ *
+ * Barras fixas (`position: fixed|sticky`, ex.: BottomNav e cabeçalho) flutuam por cima do
+ * conteúdo que rola por baixo delas; isso é desenho, não defeito, e sobrepor o conteúdo que
+ * está fora do repouso da rolagem não pode reprovar a tela (falso positivo da CI 40656905334:
+ * 113 casos, todos contra a BottomNav, sempre em controles abaixo da dobra). O que a barra NÃO
+ * pode é cobrir conteúdo em repouso. Por isso o par barra x conteúdo é avaliado só onde a
+ * barra deve estar livre: barra ancorada no topo, com a página no topo; barra ancorada na
+ * base, com a página rolada até o fim (o conteúdo precisa ter folga para ela, ex.: `pb-28`).
+ * Os demais pares (conteúdo x conteúdo, barra x barra) são avaliados com a página no topo,
+ * como antes, e qualquer sobreposição visível entre conteúdos continua reprovando.
+ */
 export async function controlesSobrepostos(page: Page): Promise<string[]> {
   return page.evaluate(() => {
+    const SELETOR =
+      "a[href], button, input:not([type=hidden]), select, textarea, [role=button]";
     const nome = (e: Element) =>
       `${e.tagName.toLowerCase()}[${(e.getAttribute("aria-label") ?? e.textContent ?? e.getAttribute("name") ?? "").trim().slice(0, 25)}]`;
-    const itens = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        "a[href], button, input:not([type=hidden]), select, textarea, [role=button]",
-      ),
-    )
-      .map((el) => ({ el, r: el.getBoundingClientRect() }))
-      .filter(({ el, r }) => {
-        const cs = getComputedStyle(el);
-        return (
-          r.width > 1 &&
-          r.height > 1 &&
-          cs.visibility !== "hidden" &&
-          cs.display !== "none"
-        );
-      });
-    const problemas: string[] = [];
-    for (let i = 0; i < itens.length; i++) {
-      for (let j = i + 1; j < itens.length; j++) {
-        const a = itens[i]!;
-        const b = itens[j]!;
-        if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
-        // Botão embutido no campo (ex.: mostrar senha): irmãos no mesmo invólucro, por desenho.
-        const campoEBotao =
-          (a.el.tagName === "INPUT" && b.el.tagName === "BUTTON") ||
-          (b.el.tagName === "INPUT" && a.el.tagName === "BUTTON");
-        if (campoEBotao && a.el.parentElement === b.el.parentElement) continue;
-        const w = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
-        const h = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
-        if (w > 2 && h > 2)
-          problemas.push(
-            `${nome(a.el)} x ${nome(b.el)} (${Math.round(w)}x${Math.round(h)})`,
+
+    const barraDe = (el: HTMLElement): HTMLElement | null => {
+      for (
+        let p: HTMLElement | null = el;
+        p && p !== document.body;
+        p = p.parentElement
+      ) {
+        const pos = getComputedStyle(p).position;
+        if (pos === "fixed" || pos === "sticky") return p;
+      }
+      return null;
+    };
+
+    type Item = {
+      el: HTMLElement;
+      r: DOMRect;
+      barra: HTMLElement | null;
+      ancora: "topo" | "base" | null;
+    };
+    const medir = (): Item[] =>
+      Array.from(document.querySelectorAll<HTMLElement>(SELETOR))
+        .map((el) => ({ el, r: el.getBoundingClientRect() }))
+        .filter(({ el, r }) => {
+          const cs = getComputedStyle(el);
+          return (
+            r.width > 1 &&
+            r.height > 1 &&
+            cs.visibility !== "hidden" &&
+            cs.display !== "none"
           );
+        })
+        .map(({ el, r }) => {
+          const barra = barraDe(el);
+          const rb = barra?.getBoundingClientRect();
+          return {
+            el,
+            r,
+            barra,
+            ancora: rb
+              ? rb.top + rb.height / 2 < window.innerHeight / 2
+                ? ("topo" as const)
+                : ("base" as const)
+              : null,
+          };
+        });
+
+    const rolarPara = (y: number) => {
+      window.scrollTo({ top: y, left: 0, behavior: "instant" });
+    };
+    const sobrepoe = (a: Item, b: Item): string | null => {
+      if (a.el.contains(b.el) || b.el.contains(a.el)) return null;
+      // Botão embutido no campo (ex.: mostrar senha): irmãos no mesmo invólucro, por desenho.
+      const campoEBotao =
+        (a.el.tagName === "INPUT" && b.el.tagName === "BUTTON") ||
+        (b.el.tagName === "INPUT" && a.el.tagName === "BUTTON");
+      if (campoEBotao && a.el.parentElement === b.el.parentElement) return null;
+      const w = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
+      const h = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
+      return w > 2 && h > 2
+        ? `${nome(a.el)} x ${nome(b.el)} (${Math.round(w)}x${Math.round(h)})`
+        : null;
+    };
+
+    const problemas: string[] = [];
+    const inicio = window.scrollY;
+
+    // Passo 1: página no topo. Barra x conteúdo só conta para barra ancorada no topo.
+    rolarPara(0);
+    const noTopo = medir();
+    for (let i = 0; i < noTopo.length; i++) {
+      for (let j = i + 1; j < noTopo.length; j++) {
+        const a = noTopo[i]!;
+        const b = noTopo[j]!;
+        const umaBarraSo = (a.barra === null) !== (b.barra === null);
+        if (umaBarraSo && (a.ancora ?? b.ancora) === "base") continue;
+        const achado = sobrepoe(a, b);
+        if (achado) problemas.push(achado);
       }
     }
-    return problemas.slice(0, 10);
+
+    // Passo 2: página rolada até o fim. Conteúdo x barra ancorada na base não pode se tocar.
+    rolarPara(document.documentElement.scrollHeight);
+    const noFim = medir();
+    for (const barraItem of noFim.filter((i) => i.ancora === "base")) {
+      for (const conteudo of noFim.filter((i) => i.barra === null)) {
+        const achado = sobrepoe(conteudo, barraItem);
+        if (achado) problemas.push(`${achado} [no fim da rolagem]`);
+      }
+    }
+
+    rolarPara(inicio);
+    return problemas.slice(0, 20);
   });
 }
 

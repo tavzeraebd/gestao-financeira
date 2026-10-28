@@ -85,25 +85,41 @@ test.describe("@docker navegação por breakpoint (CA-E8-42)", () => {
     const nav = page.getByRole("navigation", { name: "Navegação principal" });
     await expect(nav).toBeVisible();
     await expect(nav.getByRole("button", { name: /Mais/ })).toBeVisible();
+    // O sino é um link (vai a /notificacoes), no cabeçalho; abaixo de md a sidebar não existe.
     await expect(
-      page.getByRole("button", { name: /Notificações/ }),
+      page
+        .locator("header")
+        .first()
+        .getByRole("link", { name: /Notificações/ }),
     ).toBeVisible();
   });
 
   test("md: sidebar em ícones com gatilho; lg+: expandida", async ({
     page,
   }) => {
+    // A sidebar é uma lista rotulada "Navegação principal" (não um landmark <nav>: o <nav>
+    // com esse nome é só o da BottomNav, abaixo de md); localiza-se pelo slot da sidebar.
+    const sidebar = page.locator('[data-slot="sidebar"]');
     await page.setViewportSize(VIEWPORTS.v768);
     await page.goto("/inicio");
     await expect(
       page.getByRole("button", { name: "Recolher ou expandir o menu" }),
     ).toBeVisible();
+    await expect(sidebar).toHaveAttribute("data-state", "collapsed");
+    await expect(
+      sidebar.getByRole("link", { name: "Início", exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByRole("navigation", { name: "Navegação principal" }),
-    ).toBeVisible();
+    ).toBeHidden();
     await page.setViewportSize(VIEWPORTS.v1280);
+    await expect(sidebar).toHaveAttribute("data-state", "expanded");
+    // Com a sidebar aberta o item "Notificações" do menu também é link: o sino é o do cabeçalho.
     await expect(
-      page.getByRole("button", { name: /Notificações/ }),
+      page
+        .locator("header")
+        .first()
+        .getByRole("link", { name: /Notificações/ }),
     ).toBeVisible();
   });
 });
@@ -124,10 +140,21 @@ test.describe("@docker diálogos na área útil (CA-E8-43)", () => {
         .click();
       const dialogo = page.getByRole("dialog");
       await expect(dialogo).toBeVisible();
-      const caixa = await dialogo.boundingBox();
-      expect(caixa).not.toBeNull();
-      expect(caixa!.y).toBeGreaterThanOrEqual(0);
-      expect(caixa!.y + caixa!.height).toBeLessThanOrEqual(tamanho.height + 1);
+      // O Sheet entra com deslizamento de 200 ms (translate-y); a caixa só vale depois de
+      // assentar, então se espera (poll) até caber na área útil. Se nunca couber, falha.
+      await expect
+        .poll(
+          async () => {
+            const caixa = await dialogo.boundingBox();
+            if (!caixa) return "sem caixa";
+            if (caixa.y < -1) return `topo cortado (${Math.round(caixa.y)})`;
+            if (caixa.y + caixa.height > tamanho.height + 1)
+              return `base cortada (${Math.round(caixa.y + caixa.height)})`;
+            return "dentro da área útil";
+          },
+          { message: "menu 'Mais' dentro da área útil (CA-E8-43)" },
+        )
+        .toBe("dentro da área útil");
       await page.keyboard.press("Escape");
       await expect(dialogo).toHaveCount(0);
     });

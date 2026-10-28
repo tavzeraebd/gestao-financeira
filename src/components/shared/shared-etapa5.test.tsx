@@ -159,10 +159,11 @@ describe("Switch", () => {
     expect(sw).toHaveAttribute("aria-checked", "false");
   });
 
-  it("área de toque ≥ 40px (pseudo-elemento) e disabled", () => {
+  it("caixa do próprio controle com 40px de altura (WCAG 2.5.8) e disabled", () => {
     render(<Switch disabled aria-label="x" />);
     const sw = screen.getByRole("switch");
-    expect(sw.className).toContain("after:-inset-y-3");
+    expect(sw.className).toContain("data-[size=default]:h-10");
+    expect(sw.className).toContain("before:h-[18.4px]");
     expect(sw).toHaveAttribute("data-disabled");
   });
 });

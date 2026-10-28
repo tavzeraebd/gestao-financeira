@@ -63,6 +63,14 @@ Fonte: `pnpm test:e2e:publico` (build de produção, porta 3300, sem Docker), 20
 
 Não verificado: CA-E8-33 (leitor de tela), contraste nas telas autenticadas, foco obscurecido por `BottomNav`/cabeçalho (só existe com sessão), todos os `E-docker`. Falsos positivos de contraste do axe na primeira execução vinham do botão de envio animando ao hidratar; `auditar` agora espera a página estabilizar (`estabilizar` em `e2e/helpers/a11y.ts`), sem enfraquecer regra.
 
+### Correções da auditoria CI (run 40656905334, a11y-telas) — design-system
+
+- `scrollable-region-focusable` (/relatorios/categorias|contas|integrantes|orcamentos): `ui/table.tsx` torna o contêiner região focável nomeada quando rolável.
+- `color-contrast` (/contas, /categorias, incl. vazio): aba inativa de `ui/tabs.tsx` (`text-foreground/60` = 4,50:1 sobre `muted`) passa a `text-muted-foreground` (7,03:1). Token existente; nenhum token novo foi necessário.
+- Alvos < 24px: link da meta em `goals-card` (/inicio), `Switch` (/compromissos/novo), `Checkbox` (/divisao/[id]) e rádio nativo (/familia) agora medem 40px de altura no próprio elemento.
+- Não verificado (sem Docker/Playwright): reexecução do E2E; só tsc, eslint e vitest.
+
+
 ## Próximas etapas
 
 _(vazio por ora)_
