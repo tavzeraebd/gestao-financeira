@@ -7,7 +7,7 @@ test.describe("Atividade da família (dono)", () => {
 
   test("CA-E7-56: dono abre a atividade, filtra por grupo e a URL guarda o filtro", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.goto("/familia");
     await page.getByRole("link", { name: "Ver atividade" }).click();
     await expect(page).toHaveURL(/\/familia\/atividade$/);
@@ -16,7 +16,17 @@ test.describe("Atividade da família (dono)", () => {
     ).toBeVisible();
 
     await page.goto("/familia/atividade?grupo=metas");
+    // No celular os filtros ficam na folha "Filtros (n)" (FiltersPanel); a folha aberta isola o
+    // resto da página para a árvore de acessibilidade, então é fechada antes da lista.
+    const mobile = testInfo.project.name === "mobile";
+    if (mobile) {
+      await page.getByRole("button", { name: /^Filtros/ }).click();
+    }
     await expect(page.getByLabel("Grupo")).toContainText("Metas");
+    if (mobile) {
+      await page.getByRole("button", { name: "Ver resultados" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
     await expect(
       page
         .getByRole("heading", { name: "Nenhuma atividade registrada" })

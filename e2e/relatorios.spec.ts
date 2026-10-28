@@ -161,33 +161,29 @@ test("CA-E7-52: contas com os valores de R20 e a nota; integrantes com Total = d
   await cenarioR1(`r52-${testInfo.project.name}`, page);
 
   await page.goto("/relatorios/contas");
-  const corrente = page
-    .getByTestId("linha-conta")
-    .filter({ hasText: "Corrente" });
+  const corrente = tid(page, "linha-conta").filter({ hasText: "Corrente" });
   // Corrente: 1000 + 500 − 200 − 100 = 1.200; entradas 500, saídas 300 (inclui a transferência).
   await expect(corrente).toContainText(reais("1.000,00"));
   await expect(corrente).toContainText(reais("500,00"));
   await expect(corrente).toContainText(reais("300,00"));
   await expect(corrente).toContainText(reais("1.200,00"));
   await expect(
-    page.getByTestId("linha-conta").filter({ hasText: "Poupança" }),
+    tid(page, "linha-conta").filter({ hasText: "Poupança" }),
   ).toContainText(reais("100,00"));
-  await expect(page.getByTestId("nota-transferencias")).toHaveText(
+  await expect(tid(page, "nota-transferencias")).toHaveText(
     "Transferências entre contas aparecem aqui. No saldo total elas se anulam.",
   );
   // Variação do saldo total = receitas − despesas (a transferência se anula).
-  await expect(page.getByTestId("variacao-saldo-total")).toContainText(
+  await expect(tid(page, "variacao-saldo-total")).toContainText(
     reais("300,00"),
   );
 
   await page.goto("/relatorios/integrantes");
-  await expect(page.getByTestId("total-integrantes")).toContainText(
-    reais("200,00"),
-  );
-  await expect(page.getByTestId("linha-integrante").first()).toContainText(
+  await expect(tid(page, "total-integrantes")).toContainText(reais("200,00"));
+  await expect(tid(page, "linha-integrante").first()).toContainText(
     /Família \(sem responsável\)|Ana Souza/,
   );
-  await expect(page.getByTestId("nota-integrantes")).toContainText(
+  await expect(tid(page, "nota-integrantes")).toContainText(
     "Despesas divididas entram pela parte de cada um",
   );
 });
@@ -198,16 +194,14 @@ test("categorias: despesas e receitas por ?tipo=, com variação em texto", asyn
   await cenarioR1(`rcat-${testInfo.project.name}`, page);
   await page.goto("/relatorios/categorias");
   await expect(page.getByRole("radio", { name: "Despesas" })).toBeChecked();
-  const mercado = page
-    .getByTestId("linha-categoria")
-    .filter({ hasText: "Mercado" });
+  const mercado = tid(page, "linha-categoria").filter({ hasText: "Mercado" });
   await expect(mercado).toContainText(reais("200,00"));
   await expect(mercado).toContainText("Sem base de comparação");
 
   await page.getByRole("radio", { name: "Receitas" }).click();
   await expect(page).toHaveURL(/tipo=receitas/);
   await expect(
-    page.getByTestId("linha-categoria").filter({ hasText: "Salário" }),
+    tid(page, "linha-categoria").filter({ hasText: "Salário" }),
   ).toContainText(reais("500,00"));
   await page.reload();
   await expect(page.getByRole("radio", { name: "Receitas" })).toBeChecked();
