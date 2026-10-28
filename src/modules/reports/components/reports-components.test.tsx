@@ -475,10 +475,10 @@ describe("Próximos vencimentos e Metas (CA-E5-58)", () => {
     expect(
       screen.getByRole("progressbar", { name: "Progresso da meta Viagem" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ver todas" })).toHaveAttribute(
-      "href",
-      "/metas",
-    );
+    const verTodas = screen.getByRole("link", { name: "Ver todas" });
+    expect(verTodas).toHaveAttribute("href", "/metas");
+    // Alvo de toque de 40px sem alterar o espaço ocupado (margem -2px em cima e embaixo).
+    expect(verTodas).toHaveClass("min-h-10", "-my-0.5");
   });
 });
 

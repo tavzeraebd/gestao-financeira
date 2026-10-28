@@ -23,7 +23,7 @@ export function GoalsCard({ goals, canManage }: GoalsCardProps) {
         {goals.length > 0 ? (
           <Link
             href="/metas"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={`${buttonVariants({ variant: "ghost", size: "sm" })} -my-0.5 min-h-10`}
           >
             Ver todas
           </Link>
