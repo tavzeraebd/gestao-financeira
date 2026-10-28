@@ -52,7 +52,12 @@ export async function semearDadosDasRotas(
   const admin = adminClient();
 
   mkdirSync(AUTH_DIR, { recursive: true });
-  const contexto = await browser.newContext({ baseURL });
+  // `storageState: undefined` explícito: o Playwright aplica aos novos contextos do worker o
+  // `test.use({ storageState })` dos specs (caminho que só existe depois deste seed).
+  const contexto = await browser.newContext({
+    baseURL,
+    storageState: undefined,
+  });
   try {
     const pagina = await contexto.newPage();
     await pagina.goto("/login");

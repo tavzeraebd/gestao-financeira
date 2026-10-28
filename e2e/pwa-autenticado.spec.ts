@@ -75,7 +75,7 @@ test("@docker cache sem dados de (app) após navegar, sair e entrar com outro us
   }
   await conferirInvariante(page, "dono");
 
-  await page.getByRole("button", { name: /^Menu de / }).click();
+  await page.getByRole("button", { name: /, menu de / }).click();
   await page.getByRole("menuitem", { name: /Sair/ }).click();
   await expect(page).toHaveURL(/\/login/);
 
