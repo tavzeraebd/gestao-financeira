@@ -4,8 +4,12 @@ import {
   countOtherActiveMembers,
   findProfile,
   hasPasswordIdentity,
+  listOwnSecurityEvents,
 } from "@/modules/profile/repository";
-import type { AccountDeletionPreview } from "@/modules/profile/types";
+import type {
+  AccountDeletionPreview,
+  SecurityEvent,
+} from "@/modules/profile/types";
 import { findActiveMembership } from "@/modules/family/repository";
 import { requireUser } from "@/server/auth";
 import { AppError } from "@/server/errors";
@@ -21,6 +25,15 @@ export async function getMyProfile(): Promise<{
   const profile = await findProfile(supabase, user.id);
   if (!profile) throw new AppError("NOT_FOUND");
   return { ...profile, email: user.email };
+}
+
+const SECURITY_EVENTS_LIMIT = 10;
+
+/** Os 10 últimos eventos de segurança do próprio usuário, mais recentes primeiro (RLS; CA-E9-43). */
+export async function listSecurityEvents(): Promise<SecurityEvent[]> {
+  const user = await requireUser();
+  const supabase = await createClient();
+  return listOwnSecurityEvents(supabase, user.id, SECURITY_EVENTS_LIMIT);
 }
 
 /**

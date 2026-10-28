@@ -28,6 +28,33 @@ export async function findProfile(
   };
 }
 
+export type SecurityEventRow = {
+  id: string;
+  action: "password.changed";
+  createdAt: string;
+};
+
+/** Os últimos eventos de segurança do próprio usuário (a RLS já restringe; o filtro por user_id usa o índice). */
+export async function listOwnSecurityEvents(
+  supabase: Client,
+  userId: string,
+  limit: number,
+): Promise<SecurityEventRow[]> {
+  const { data, error } = await supabase
+    .from("security_events")
+    .select("id, action, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  // O CHECK do banco só admite 'password.changed'; ação desconhecida é descartada em vez de exibida crua.
+  return data.flatMap((row) =>
+    row.action === "password.changed"
+      ? [{ id: row.id, action: row.action, createdAt: row.created_at }]
+      : [],
+  );
+}
+
 /** Quantos OUTROS integrantes ativos a família tem (só a contagem; a RLS já limita às próprias famílias). */
 export async function countOtherActiveMembers(
   supabase: Client,

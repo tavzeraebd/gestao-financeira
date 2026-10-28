@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/validation/zod-jitless";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import type { ComponentProps } from "react";
 

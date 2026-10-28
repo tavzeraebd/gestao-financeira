@@ -16,6 +16,15 @@ const securityHeaders = [
   },
 ];
 
+// /offline é estática (ADR-0031) e sai do matcher do proxy: CSP fixa, sem nonce (ADR-0037 §4).
+const offlineHeaders = [
+  {
+    key: "Content-Security-Policy",
+    value:
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  },
+];
+
 const noReferrerHeaders = [{ key: "Referrer-Policy", value: "no-referrer" }];
 
 const serviceWorkerHeaders = [
@@ -53,6 +62,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      { source: "/offline", headers: offlineHeaders },
       { source: "/convite/:path*", headers: noReferrerHeaders },
       { source: "/auth/:path*", headers: noReferrerHeaders },
       { source: "/sw.js", headers: serviceWorkerHeaders },

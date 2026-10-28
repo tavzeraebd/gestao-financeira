@@ -80,7 +80,12 @@ test.describe("zoom de 200% (1.4.4)", () => {
 test.describe("espaçamento de texto (1.4.12)", () => {
   for (const largura of [VIEWPORT_REFLOW.width, 1280]) {
     test.describe(`${largura}px`, () => {
-      test.use({ viewport: { width: largura, height: 800 } });
+      // `addStyleTag` injeta <style> sem nonce, o que a CSP (ADR-0037) bloqueia; este teste mede
+      // espaçamento de texto, não CSP (coberta em csp.spec.ts).
+      test.use({
+        viewport: { width: largura, height: 800 },
+        bypassCSP: true,
+      });
       for (const rota of [...ALVOS]) {
         test(`${rota}: nada cortado nem com rolagem horizontal`, async ({
           page,

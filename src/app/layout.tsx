@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -26,9 +27,11 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Nonce da CSP (ADR-0037): gerado pelo proxy em cada requisição; ler os cabeçalhos torna a rota dinâmica.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="pt-BR"
@@ -36,7 +39,7 @@ export default function RootLayout({
       className={cn("font-sans", fontSans.variable)}
     >
       <body className="bg-background text-foreground min-h-dvh antialiased">
-        <ThemeProvider>
+        <ThemeProvider nonce={nonce}>
           <TooltipProvider>{children}</TooltipProvider>
           <Toaster />
           <ServiceWorkerRegister />

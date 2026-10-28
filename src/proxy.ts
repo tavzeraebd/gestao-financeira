@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveClientIp } from "@/lib/client-ip";
+import { buildCsp, generateNonce } from "@/lib/csp";
 import { serverEnv } from "@/lib/env/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
@@ -16,6 +17,9 @@ const PRIVATE_PREFIXES = [
   "/divisao",
   "/relatorios",
   "/notificacoes",
+  "/compromissos",
+  "/recorrencias",
+  "/orcamentos",
 ];
 const GUEST_ONLY = ["/login", "/cadastro", "/recuperar-senha"];
 
@@ -37,9 +41,24 @@ function stampClientIp(request: NextRequest): void {
   if (ip) request.headers.set("x-client-ip", ip);
 }
 
+/**
+ * Nonce e CSP por requisição (ADR-0037). Valores vindos do cliente são descartados; o Next extrai o
+ * nonce do `Content-Security-Policy` da requisição e o layout lê `x-nonce`.
+ */
+function stampCsp(request: NextRequest): void {
+  const nonce = generateNonce();
+  request.headers.delete("x-nonce");
+  request.headers.set("x-nonce", nonce);
+  request.headers.set(
+    "content-security-policy",
+    buildCsp({ nonce, isDev: process.env.NODE_ENV !== "production" }),
+  );
+}
+
 // O proxy não é fronteira de autorização: layouts (requireUser/requireMembership) e RLS decidem.
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   stampClientIp(request);
+  stampCsp(request);
   const { response, userId, requestId } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
 
@@ -94,6 +113,6 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|woff|woff2|webmanifest)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|offline$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|woff|woff2|webmanifest)$).*)",
   ],
 };

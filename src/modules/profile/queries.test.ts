@@ -6,8 +6,14 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const FAMILY_ID = "22222222-2222-4222-8222-222222222222";
 
 const getUserIdentities = vi.fn();
+const eventsResult = vi.fn();
+const eq = vi.fn();
+const order = vi.fn();
+const limit = vi.fn();
+const select = vi.fn();
+const from = vi.fn();
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { getUserIdentities } }),
+  createClient: async () => ({ auth: { getUserIdentities }, from }),
 }));
 vi.mock("@/server/auth", () => ({
   requireUser: async () => ({ id: USER_ID, email: "ana@example.test" }),
@@ -23,7 +29,10 @@ vi.mock("@/modules/profile/repository", async (importOriginal) => ({
     countOtherActiveMembers(...args),
 }));
 
-import { getAccountDeletionPreview } from "@/modules/profile/queries";
+import {
+  getAccountDeletionPreview,
+  listSecurityEvents,
+} from "@/modules/profile/queries";
 
 const membership = (role: "owner" | "admin" | "member") => ({
   userId: USER_ID,
@@ -40,6 +49,81 @@ beforeEach(() => {
   });
   findActiveMembership.mockReset();
   countOtherActiveMembers.mockReset().mockResolvedValue(0);
+  eventsResult.mockReset().mockResolvedValue({ data: [], error: null });
+  limit.mockReset().mockImplementation(() => eventsResult());
+  order.mockReset().mockReturnValue({ limit });
+  eq.mockReset().mockReturnValue({ order });
+  select.mockReset().mockReturnValue({ eq });
+  from.mockReset().mockReturnValue({ select });
+});
+
+describe("listSecurityEvents (CA-E9-43)", () => {
+  it("consulta só security_events do próprio usuário, 10 mais recentes, sem service role nem family_id", async () => {
+    eventsResult.mockResolvedValue({
+      data: [
+        {
+          id: "e2",
+          action: "password.changed",
+          created_at: "2026-10-28T12:00:00Z",
+        },
+        {
+          id: "e1",
+          action: "password.changed",
+          created_at: "2026-10-27T09:00:00Z",
+        },
+      ],
+      error: null,
+    });
+    expect(await listSecurityEvents()).toEqual([
+      {
+        id: "e2",
+        action: "password.changed",
+        createdAt: "2026-10-28T12:00:00Z",
+      },
+      {
+        id: "e1",
+        action: "password.changed",
+        createdAt: "2026-10-27T09:00:00Z",
+      },
+    ]);
+    expect(from).toHaveBeenCalledWith("security_events");
+    expect(select).toHaveBeenCalledWith("id, action, created_at");
+    expect(eq).toHaveBeenCalledWith("user_id", USER_ID);
+    expect(order).toHaveBeenCalledWith("created_at", { ascending: false });
+    expect(limit).toHaveBeenCalledWith(10);
+  });
+
+  it("não expõe metadata nem user_id e descarta ação desconhecida", async () => {
+    eventsResult.mockResolvedValue({
+      data: [
+        {
+          id: "e1",
+          action: "password.changed",
+          created_at: "2026-10-28T12:00:00Z",
+          metadata: { ip: "1.2.3.4" },
+          user_id: USER_ID,
+        },
+        { id: "e2", action: "outra.coisa", created_at: "2026-10-28T11:00:00Z" },
+      ],
+      error: null,
+    });
+    const result = await listSecurityEvents();
+    expect(result).toHaveLength(1);
+    expect(Object.keys(result[0]!).sort()).toEqual([
+      "action",
+      "createdAt",
+      "id",
+    ]);
+  });
+
+  it("lista vazia quando não há eventos", async () => {
+    expect(await listSecurityEvents()).toEqual([]);
+  });
+
+  it("erro do banco sobe", async () => {
+    eventsResult.mockResolvedValue({ data: null, error: new Error("db") });
+    await expect(listSecurityEvents()).rejects.toThrow("db");
+  });
 });
 
 describe("getAccountDeletionPreview (CA-E9-42)", () => {

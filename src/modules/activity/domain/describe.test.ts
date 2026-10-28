@@ -132,6 +132,7 @@ describe("describeAuditEvent", () => {
 describe("grupos de atividade", () => {
   it("actionsOfGroup expande prefixos sobre o catálogo fechado", () => {
     expect(actionsOfGroup("familia")).toContain("member.removed");
+    expect(actionsOfGroup("familia")).toContain("member.action_denied");
     expect(actionsOfGroup("familia")).not.toContain("goal.updated");
     expect(actionsOfGroup("compromissos")).toEqual(
       expect.arrayContaining([

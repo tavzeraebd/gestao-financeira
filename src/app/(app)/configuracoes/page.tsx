@@ -10,11 +10,13 @@ import {
 } from "@/components/ui/card";
 import { SignOutButton } from "@/modules/auth/components/sign-out-button";
 import { DeleteAccountSection } from "@/modules/profile/components/delete-account-section";
+import { SecurityActivitySection } from "@/modules/profile/components/security-activity-section";
 import { ThemeOptions } from "@/modules/profile/components/theme-options";
 import { UpdateProfileForm } from "@/modules/profile/components/update-profile-form";
 import {
   getAccountDeletionPreview,
   getMyProfile,
+  listSecurityEvents,
 } from "@/modules/profile/queries";
 import { requireMembership } from "@/server/auth";
 
@@ -22,9 +24,11 @@ export const metadata: Metadata = { title: "Configurações" };
 
 export default async function SettingsPage() {
   await requireMembership();
-  const [profile, deletionPreview] = await Promise.all([
+  const [profile, deletionPreview, securityEvents] = await Promise.all([
     getMyProfile(),
     getAccountDeletionPreview(),
+    // Bloco secundário: falha aqui não derruba a página; a seção mostra o aviso.
+    listSecurityEvents().catch(() => null),
   ]);
 
   return (
@@ -72,6 +76,8 @@ export default async function SettingsPage() {
           <SignOutButton />
         </CardContent>
       </Card>
+
+      <SecurityActivitySection events={securityEvents} />
 
       <DeleteAccountSection preview={deletionPreview} />
     </div>

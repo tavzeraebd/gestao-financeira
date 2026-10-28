@@ -14,9 +14,15 @@ export async function updateSession(
   // Sempre gerado aqui: nunca confiar em x-request-id vindo do cliente.
   const requestId = crypto.randomUUID();
 
+  // x-client-ip, x-nonce e Content-Security-Policy já foram definidos no proxy sobre `request.headers`;
+  // são relidos a cada forward() para não se perderem quando a sessão é renovada.
   const forward = () => {
     const headers = new Headers(request.headers);
     headers.set("x-request-id", requestId);
+    for (const name of ["x-client-ip", "x-nonce", "content-security-policy"]) {
+      const value = request.headers.get(name);
+      if (value !== null) headers.set(name, value);
+    }
     return NextResponse.next({ request: { headers } });
   };
 
@@ -53,5 +59,7 @@ export async function updateSession(
   const userId = data?.claims?.sub ?? null;
 
   response.headers.set("x-request-id", requestId);
+  const csp = request.headers.get("content-security-policy");
+  if (csp) response.headers.set("Content-Security-Policy", csp);
   return { response, userId, requestId };
 }

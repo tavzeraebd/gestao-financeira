@@ -89,6 +89,55 @@ describe("proxy", () => {
     expect(res.headers.get("location")).toContain("/inicio");
   });
 
+  describe("nonce e CSP (CA-E9-50..52)", () => {
+    const seenHeader = (name: string) =>
+      vi.mocked(updateSession).mock.calls[0]?.[0].headers.get(name) ?? null;
+
+    it("descarta o x-nonce do cliente e grava um nonce novo, o mesmo da CSP repassada", async () => {
+      mockSession(null);
+      await proxy(
+        req("/login", {
+          headers: {
+            "x-nonce": "nonce-forjado",
+            "content-security-policy": "script-src 'unsafe-inline'",
+          },
+        }),
+      );
+      const nonce = seenHeader("x-nonce");
+      expect(nonce).toBeTruthy();
+      expect(nonce).not.toBe("nonce-forjado");
+      const csp = seenHeader("content-security-policy");
+      expect(csp).toContain(`'nonce-${nonce}'`);
+      expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+      expect(csp).toMatch(/script-src [^;]*'strict-dynamic'/);
+    });
+
+    it("o nonce muda a cada requisição", async () => {
+      mockSession(null);
+      await proxy(req("/login"));
+      const primeiro = seenHeader("x-nonce");
+      vi.clearAllMocks();
+      mockSession(null);
+      await proxy(req("/login"));
+      expect(seenHeader("x-nonce")).not.toBe(primeiro);
+    });
+
+    it("redirect preserva a CSP colocada por updateSession no response", async () => {
+      const response = NextResponse.next();
+      response.headers.set("Content-Security-Policy", "default-src 'self'");
+      vi.mocked(updateSession).mockResolvedValue({
+        response,
+        userId: null,
+        requestId: "rid-1",
+      });
+      const res = await proxy(req("/inicio"));
+      expect(res.status).toBe(307);
+      expect(res.headers.get("content-security-policy")).toBe(
+        "default-src 'self'",
+      );
+    });
+  });
+
   describe("x-client-ip (CA-E9-31)", () => {
     afterEach(() => vi.unstubAllEnvs());
 
