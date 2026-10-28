@@ -400,6 +400,78 @@ Verificação: **U** unit (Vitest) · **I** integração (Vitest + Supabase loca
 | CA-E7-71 | RTL: `HorizontalBarChart` monta com dados, com negativos e com lista vazia; sem animação com `prefers-reduced-motion`; disponível só por `LazyHorizontalBarChart` | U |
 | CA-E7-72 | Nenhum hex; `recharts` só em `src/components/charts/`; `docs/design-system.md` documenta o `HorizontalBarChart` e o padrão de notificação não lida | G + inspeção |
 
+## Etapa 8 — PWA, acessibilidade e responsividade (contrato `contracts/etapa-8.md`; ADR-0031, ADR-0032)
+
+Verificação adicional: **E-pub** = Playwright sem banco (`playwright.publico.config.ts`, `e2e/publico/**`) · **E-docker** = Playwright com Supabase local (tag `@docker`; escrito na etapa e executado quando houver Docker) · **L** = Lighthouse (`pnpm dlx lighthouse`). Nenhum critério de banco: pgTAP e integração não mudam. Inventário de rotas: `contracts/etapa-8.md` §3.3.
+
+### E8-PWA — manifest, ícones, service worker, offline
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E8-01 | `GET /manifest.webmanifest` sem cookie → 200, JSON com `name` "Núcleo", `short_name`, `id` `/`, `start_url` `/inicio`, `scope` `/`, `display` `standalone`, `lang` `pt-BR`, **sem** `orientation`; ícones 192 e 512 (`any`) e 512 (`maskable`); cada `src` responde 200 `image/png` com a dimensão declarada; `apple-icon.png` 180x180 | U + E-pub |
+| CA-E8-02 | `theme_color`/`background_color` do manifest e o `themeColor` por esquema (claro/escuro) do `viewport` iguais a `--primary`/`--background` (claro) e `--background` (escuro) lidos de `src/app/globals.css`; nenhum hex em `*.tsx` novo (hex só em `manifest.ts`/`viewport`, com o teste de igualdade) | U + G |
+| CA-E8-03 | `<head>` de `/login`: `link rel="manifest"`, duas `meta theme-color` com `media`, `meta viewport` com `viewport-fit=cover` e **sem** `maximum-scale` nem `user-scalable=no`, `link rel="apple-touch-icon"` | E-pub |
+| CA-E8-04 | `buildServiceWorkerSource` executado em sandbox: `GET /_next/static/a.js`, `/icons/icon-192.png` e `/favicon.ico` → cache-first e guardados; `GET navigate /inicio` online → passa, **nada guardado**; navegação com falha de rede → `/offline` do cache; `POST`, `Next-Action`, `?_rsc=`, cabeçalho `RSC`, `/_next/image`, `/_next/data`, `/auth/confirm`, `/sw.js`, `/manifest.webmanifest`, `Range` e outra origem → o worker **não chama** `respondWith` | U |
+| CA-E8-05 | Invariante (teste de propriedade): para qualquer URL do inventário de rotas e URLs aleatórias, `cache.put`/`add`/`addAll` só recebe URL da lista fechada ou `/offline`; resposta que não seja 200 `basic`, ou com `Cache-Control` `no-store`/`private`, nunca é guardada; resposta HTTP 401/302/500 de navegação passa intacta (não vira `/offline`) | U |
+| CA-E8-06 | `GET /sw.js` → 200, `Content-Type` `application/javascript; charset=utf-8`, `Cache-Control: no-cache, no-store, must-revalidate`, CSP `default-src 'self'; script-src 'self'; frame-ancestors 'none'`, e o corpo contém a versão do build; versões diferentes geram textos diferentes | U + E-pub |
+| CA-E8-07 | Registro: com `NODE_ENV=production` chama `register("/sw.js", { scope: "/", updateViaCache: "none" })` depois de `load`; em desenvolvimento e em navegador sem `serviceWorker` não registra; exceção no registro não quebra a página nem aparece ao usuário; `registration.update()` ao voltar ao primeiro plano, no máximo 1 por hora | U (RTL) |
+| CA-E8-08 | Offline (Chromium, `serviceWorkers: "allow"`): visitar `/login` online → worker ativo; `context.setOffline(true)` → navegar a `/login` e a `/inicio` mostra `/offline` ("Você está sem conexão", sem dado nenhum, nunca conteúdo anterior); com a rede de volta, "Tentar novamente" recarrega a URL | E-pub |
+| CA-E8-09 | Invariante de cache real: depois de navegar por `/login`, `/cadastro` e `/offline`, `caches.keys()` = apenas `nucleo-static-<versão>` e toda requisição guardada casa com a lista fechada ou é `/offline`. **Com sessão** (E-docker): depois de `/inicio`, `/transacoes`, `/relatorios`, `/familia`, logout e login de outro usuário no mesmo navegador, a mesma afirmação vale e nenhuma URL de `(app)` foi guardada (AB-117) | E-pub + E-docker |
+| CA-E8-10 | Atualização: `activate` da nova versão apaga todo `nucleo-static-*` diferente do atual e chama `clients.claim()`; `install` chama `skipWaiting()`; falha ao buscar `/offline` na instalação rejeita a instalação; falha de um ativo referenciado não rejeita | U |
+| CA-E8-11 | `/offline`: estática (sem `cookies()`/`headers()`, sem Supabase), 1 `main`, 1 `h1`, `noindex`, fora de `PRIVATE_PREFIXES`, igual com e sem sessão; `src/proxy.ts` não executa em `/manifest.webmanifest` (extensão no `matcher`) | U + E-pub |
+| CA-E8-12 | Instalabilidade: `Page.getInstallabilityErrors` (CDP, Chromium, `localhost`) devolve lista vazia em `/login` com o worker ativo; sem erro de manifest no DevTools/Lighthouse | E-pub + L |
+| CA-E8-13 | `package.json` sem `workbox`, `serwist`, `next-pwa` nem outra biblioteca de PWA; nenhum `.js`/`.mjs` de aplicação novo (o texto do worker é gerado); `grep -rn "use cache\|unstable_cache" src` continua vazio (ADR-0015); `next.config.ts` mantém os cabeçalhos de segurança existentes | G |
+
+### E8-A11Y — acessibilidade (WCAG 2.2 AA)
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E8-20 | Pular para o conteúdo (2.4.1): primeiro `Tab` em toda tela com `main` foca "Pular para o conteúdo", visível só com foco; `Enter` leva o foco a `main#conteudo` (`tabindex="-1"`); vale nos layouts `(app)`, `(public)`, `onboarding` e em `/offline` | U (RTL) + E-pub + E-docker |
+| CA-E8-21 | axe (ADR-0032 §4) sem violação `serious`/`critical` nem de nome/rótulo/papel/landmark em `/login`, `/cadastro`, `/recuperar-senha`, `/redefinir-senha`, `/offline` e 404, em 360 e 1280, tema claro e escuro; Lighthouse acessibilidade = 100 nas mesmas URLs (auditoria reprovada → log com decisão) | E-pub + L |
+| CA-E8-22 | axe em todas as rotas do inventário, claro e escuro, estado vazio e com dados (`e2e/helpers/cenario.ts`), com as mesmas regras; inclui um diálogo/menu/sheet aberto por tela que o tenha | E-docker |
+| CA-E8-23 | Componentes: Vitest + Testing Library + axe-core (sem `color-contrast`) em todo componente de `src/components/{shared,layout,charts}` e nos diálogos, menus e abas de `src/modules/*/components`, nos estados padrão e vazio/erro | U |
+| CA-E8-24 | Teclado (2.1.1, 2.1.2, 2.4.3): sem armadilha; ordem de foco = ordem visual; `Esc` fecha `Dialog`, `AlertDialog`, `Sheet`, `DropdownMenu` e calendário e devolve o foco ao gatilho; fluxos só com teclado: login, cadastro, nova transação, pagar compromisso, aporte em meta, filtros, menu de ações de integrante, troca de tema, menu "Mais", abas de relatório e de notificação | E-pub (auth) + E-docker |
+| CA-E8-25 | Foco visível e não obscurecido (2.4.7, 2.4.11): percorrendo com `Tab` em 360 e 1280, o anel do elemento focado tem contraste ≥ 3:1 e o ponto central dele (`elementFromPoint`) pertence a ele — nunca coberto por cabeçalho, `BottomNav` ou `Toaster`; `html` tem `scroll-padding-top` e `scroll-padding-bottom` que cobrem cabeçalho e `BottomNav` com a safe area | E-pub + E-docker |
+| CA-E8-26 | Alvo (2.5.8): todo controle interativo de `main`, cabeçalho, sidebar e `BottomNav` mede ≥ 24x24px ou tem espaçamento equivalente; controles principais continuam ≥ 40px (CA-E2-59, estendido a todas as rotas); `Button` `xs`/`icon-xs`/`icon-sm` não é a única ação de uma tela | E-pub + E-docker + G |
+| CA-E8-27 | Contraste (1.4.3, 1.4.11): `docs/design-system.md` mede, nos dois temas, todo par novo ou alterado nesta etapa (skip link, foco, página offline) e resolve ou justifica cada linha "Reprovado" existente (`chart-1`/`chart-3`, ícone sobre fundo tingido, claro; ícone de categoria é decorativo e o nome vem ao lado, ADR-0019); nenhum texto informativo abaixo de 4,5:1 e nenhum limite de controle abaixo de 3:1 | G + inspeção |
+| CA-E8-28 | `prefers-reduced-motion: reduce` (CA-E1-14, CA-E4-74): sem transição nem animação de entrada/saída (`tw-animate-css` em `Dialog`, `Sheet`, `Dropdown`, `Popover`, `Sonner`), sem `scroll-behavior: smooth`, sem `animate-pulse`; o `animate-spin` de carregamento permanece, sempre com texto (`Button.loading`); regra global em `globals.css`, não por componente | E-pub (`emulateMedia`) + U |
+| CA-E8-29 | Dados e gráficos: todo gráfico com `role="img"` + `aria-label`, título, período, legenda em texto e "Ver tabela" (CA-E7-51); tooltip nunca é o único meio de ler um valor (1.4.13, 2.5.1); tabelas com `caption` (`sr-only`) e `th scope`; `ResponsiveList` esconde a versão não usada com `hidden`; região com rolagem interna é focável e nomeada | U + E-docker |
+| CA-E8-30 | Formulários (1.3.5, 3.3.1, 3.3.3, 3.3.7, 3.3.8, 4.1.3): todo campo com `label` e `autocomplete` correto (`email`, `current-password`, `new-password`, `name`); colar permitido em e-mail e senha; erro ligado por `aria-describedby`/`aria-invalid` e foco no primeiro erro; resultado de ação assíncrona (sucesso, falha, "Marcar todas como lidas", toast) anunciado em região `status`/`alert`; dado já informado não é pedido de novo no mesmo fluxo | E-pub (auth) + E-docker + U |
+| CA-E8-31 | Estrutura: `lang="pt-BR"`, `title` único por rota (`%s · Núcleo`; toda `page.tsx` exceto `/` tem `metadata`), 1 `main`, 1 `h1`, títulos sem salto, `nav`/`aside` com nome, `aria-current="page"` na navegação, sino anunciado ("Notificações, 3 não lidas") | E-pub + E-docker + U |
+| CA-E8-32 | Reflow e zoom: a 320px de largura (1.4.10) e a 200% de zoom não há rolagem horizontal da página (exceto região de dados nomeada) nem perda de conteúdo; com o espaçamento de texto de 1.4.12 (`line-height` 1,5; `letter-spacing` .12em; `word-spacing` .16em; parágrafo 2em) nada é cortado ou sobreposto nas rotas públicas e em `/inicio` | E-pub + E-docker |
+| CA-E8-33 | Inspeção manual declarada (não substitui o automático): NVDA ou VoiceOver nas jornadas login, nova transação, pagar compromisso e notificações, com leitor e versão em `docs/log-execucao.md`. Sem leitor disponível, o item fica **"não verificado"** e não é declarado verde | inspeção |
+
+### E8-RESP — responsividade (360, 390, 768, 1280; reflow 320)
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E8-40 | Rotas públicas e `/offline` em 360x780, 390x844, 768x1024 e 1280x800: sem rolagem horizontal da página (`scrollWidth <= clientWidth`), `h1` visível, nada cortado ou sobreposto | E-pub |
+| CA-E8-41 | O mesmo para todas as rotas autenticadas do inventário com dados, claro e escuro; lista/tabela em cartões abaixo de `md`; em 768 (sidebar recolhida) tabelas sem estourar a página | E-docker |
+| CA-E8-42 | Navegação: < `md` `BottomNav` + "Mais"; `md`–`lg` sidebar em ícones com `SidebarTrigger`; ≥ `lg` expandida; sino sempre visível; nenhuma função essencial só em hover ou só no desktop | E-pub (públicas) + E-docker |
+| CA-E8-43 | `Dialog`, `Sheet`, `Popover` e calendário ficam dentro da área útil (altura `dvh`, rolagem interna, ação principal alcançável) em 360x640 e com altura de 360x400 (teclado virtual simulado) | E-docker + U |
+| CA-E8-44 | Campos de texto, número e seleção com `font-size` computado ≥ 16px abaixo de `md` (iOS não dá zoom ao focar); `MoneyInput` com `inputMode="decimal"` | E-pub + E-docker |
+| CA-E8-45 | Safe areas (viewport `cover`): cabeçalho, `BottomNav`, sheets e rodapés de formulário usam `env(safe-area-inset-*)` (topo, base, laterais) | U + inspeção |
+| CA-E8-46 | Modo instalado (`display: standalone`, sem botão do navegador): toda rota que não é raiz de módulo tem caminho de volta na própria tela (breadcrumb, "Voltar" ou "Cancelar"); o logo leva a `/inicio` | inspeção + E-docker |
+| CA-E8-47 | Gráficos legíveis em 360 (rótulos do eixo sem sobreposição, legenda quebra linha); `SubNav` rola dentro do trilho com foco visível e sem rolagem da página | E-docker |
+
+### E8-QA — verificação sem banco
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E8-60 | `pnpm test:e2e:publico` (novo): build de produção com variáveis públicas fictícias, `playwright.publico.config.ts` sem `globalSetup`, projetos `v360`, `v390`, `v768`, `v1280`, `serviceWorkers: "block"` por padrão e liberado só em `pwa.spec.ts`; passa sem Docker | E-pub |
+| CA-E8-61 | `playwright.config.ts` ignora `e2e/publico/**` e usa `serviceWorkers: "block"` (os E2E existentes não passam a depender do worker); `e2e/{a11y-telas,responsivo-telas,pwa-autenticado}.spec.ts` (`@docker`) existem, compilam e cobrem todo o inventário; ficam como **pendentes de Docker** no roadmap até rodarem | G + E-docker |
+| CA-E8-62 | Lighthouse (acessibilidade e boas práticas), móvel e desktop, em `/login`, `/cadastro`, `/recuperar-senha` e `/offline`: acessibilidade 100; pontuação e auditorias reprovadas gravadas em `docs/log-execucao.md`. Não substitui axe nem os testes de teclado | L |
+| CA-E8-63 | Só `@axe-core/playwright` e `axe-core` entram em `devDependencies`, na última estável; `pnpm outdated` vazio, `pnpm audit` limpo | G |
+
+### E8-DS — design-system
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E8-70 | `SkipLink` (`src/components/shared/skip-link.tsx`): tokens, sem hex, foco `ring`, visível só com foco, alvo ≥ 40px; teste RTL; documentado em `docs/design-system.md` | U + inspeção |
+| CA-E8-71 | `globals.css`: `scroll-padding` (topo e base) e regra global de `prefers-reduced-motion`; **nenhum token, fonte ou cor novos** | G + inspeção |
+| CA-E8-72 | `public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` e `src/app/apple-icon.png`: marca do `Logo` em `--primary-foreground` sobre `--primary`; maskable com a marca dentro da zona segura (círculo central de 80% do lado); procedência registrada em `docs/design-system.md` | inspeção |
+| CA-E8-73 | Correções de componente que a auditoria apontar (rótulo, alvo, foco, movimento) feitas em `ui/` e `shared/` sem mudar contrato público, cada uma com teste de regressão | U |
+
 ## Cenários ponta a ponta da spec §12 (por etapa de conclusão)
 
 | Cenário | Critérios verificáveis | Etapa |
@@ -409,7 +481,7 @@ Verificação: **U** unit (Vitest) · **I** integração (Vitest + Supabase loca
 | **C — Receitas e despesas** | regressão R1: receitas 500,00, despesas 200,00, resultado 300,00, consolidado 1.300,00; transferência de 100,00 não altera receitas/despesas/consolidado; comparação mês atual × anterior conforme D4 (anterior 0 → "sem base de comparação"; CA-E4-34/51/52/53) | E3 (serviço) + E4 (tela) |
 | **D — Edição e exclusão** | R7: editar 200,00→250,00 muda despesas e saldo para o novo valor e registra `transaction.updated` com old/new; R8: exclusão lógica zera o efeito e mantém a linha com `deleted_at`; estorno R2 | E3 |
 | **E — Colaboração** | integrante consulta dados da família (CA-E2-08/55); sem vínculo não acessa (CA-E2-07/56); verificado no banco (pgTAP) **e** no servidor (I); Etapa 3 repete para `accounts`/`categories`/`transactions` incluindo FK composta (AB-13/14); Etapa 7: membros, papéis e saída (CA-E7-02..06, CA-E7-55..59) | E2 + E3 + E7 |
-| **F — Responsividade** | login, dashboard, formulário de transação por toque, listagem como cartões, metas (CA-E6-58) e relatórios (CA-E7-60) em 390px sem rolagem horizontal; bottom nav; modais dentro da área útil; sem dependência de hover | E2 (parcial CA-E2-59), E6/E7 (parcial), completo E8 |
+| **F — Responsividade** | login, dashboard, formulário de transação por toque, listagem como cartões, metas (CA-E6-58) e relatórios (CA-E7-60) em 390px sem rolagem horizontal; bottom nav; modais dentro da área útil; sem dependência de hover | E2 (parcial CA-E2-59), E6/E7 (parcial), completo E8 (CA-E8-40..47) |
 | **G — Temas** | claro com `#84CC16`; escuro com Rocket exato; troca não altera dados; persiste após reload; contraste documentado | E1 (CA-E1-04/06/07) + E2 (CA-E2-58) |
 
 ## Regra de conclusão

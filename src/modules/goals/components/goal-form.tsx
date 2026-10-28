@@ -186,7 +186,7 @@ export function GoalForm({ mode, today, goalId, initial }: GoalFormProps) {
                 key={icon}
                 value={icon}
                 aria-label={GOAL_ICON_LABELS[icon]}
-                className="focus-visible:ring-ring/50 hover:bg-muted data-checked:border-primary data-checked:bg-primary/5 flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-sm transition-colors outline-none focus-visible:ring-3"
+                className="focus-visible:ring-ring hover:bg-muted data-checked:border-primary data-checked:bg-primary/5 flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-sm transition-colors outline-none focus-visible:ring-3"
               >
                 <GoalIcon icon={icon} size="sm" />
                 <span className="min-w-0 leading-tight">

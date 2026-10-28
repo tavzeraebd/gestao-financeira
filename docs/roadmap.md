@@ -2,7 +2,7 @@
 
 Versão 1.0 (Etapa 0). Etapas da spec §11. Prioridade: P0 = bloqueia a etapa; P1 = necessário para a
 saída da etapa; P2 = desejável na etapa. Critérios: `acceptance-criteria.md`. Contratos: `contracts/etapas-1-2.md` v1.1
-(Etapas 1–2, com emendas), `contracts/etapa-3.md` (Etapa 3), `contracts/etapa-4.md` (Etapa 4), `contracts/etapa-5.md` (Etapa 5), `contracts/etapa-6.md` (Etapa 6) e `contracts/etapa-7.md` (Etapa 7). Fases do mockup (MVP; Organização e Insights; Planejamento e
+(Etapas 1–2, com emendas), `contracts/etapa-3.md` (Etapa 3), `contracts/etapa-4.md` (Etapa 4), `contracts/etapa-5.md` (Etapa 5), `contracts/etapa-6.md` (Etapa 6), `contracts/etapa-7.md` (Etapa 7) e `contracts/etapa-8.md` (Etapa 8). Fases do mockup (MVP; Organização e Insights; Planejamento e
 Futuro; Experiência e Comunidade) mapeiam para Etapas 1–5, 4–7, 6, 8+ respectivamente; itens da fase 4 do
 mockup sem requisito na spec (importação bancária, gamificação, comunidade) **não** estão no backlog.
 
@@ -123,9 +123,15 @@ Pendências (não mudam o código entregue):
 | E6-06 | `/metas` (lista, nova, detalhe com estimativa e histórico, editar, status), `/divisao` (lista, dividir, acertos), `/planejamento` (6 cenários), card Metas no `/inicio`, navegação | frontend | P0 | E6-04, E6-05 |
 | E6-07 | E2E desktop/mobile; regressão R15–R19 pelos services | frontend / backend | P0 | E6-06 |
 
-## Etapa 7 — Relatórios, notificações e família (contrato `contracts/etapa-7.md`; ADR-0028, ADR-0029, ADR-0030)
+## Etapa 7 — Relatórios, notificações e família (contrato `contracts/etapa-7.md`; ADR-0028, ADR-0029, ADR-0030) — **concluída em produção (2026-10-28)**
 
 Começa depois da Etapa 6 integrada (A-db pode adiantar). Dependências novas: nenhuma.
+
+Estado: banco (4 migrations), servidor e telas entregues e em produção (Render + Supabase hospedado); `tsc`, `eslint`, 770 testes unitários, `pnpm build` e security gate `PASSA`.
+Pendências (não mudam o código entregue; a Etapa 7 só vira "concluída" definitivamente depois delas):
+- **pgTAP** (010, 100–560), **testes de integração** e **E2E** (incluindo `relatorios`, `notificacoes`, `atividade`, `divisao` e os 6 de link de e-mail) aguardam o Docker Desktop.
+- `/convite/[token]`: botão "Agora não" (CA-E7-61) não foi entregue.
+- Revisão de segurança aprovada com ressalva: SEC-26 (média, decidir se exige trilha de acessos negados), SEC-27 e SEC-28 (baixas); SEC-24 e SEC-28 (volume) adiados para a Etapa 9 (`.claude/factory/project-memory/security/achados.md`).
 
 | Id | Item | Dono | P | Depende |
 |---|---|---|---|---|
@@ -140,10 +146,24 @@ Começa depois da Etapa 6 integrada (A-db pode adiantar). Dependências novas: n
 Fora das Etapas 6–7 (registrado): aporte ligado a transferência (ADR-0025), notificação "convite recebido", e-mail e push (ADR-0029; Etapa 9 com SMTP),
 exportação de relatório, evolução do patrimônio mês a mês, excluir família.
 
-## Etapa 8 — PWA, acessibilidade e responsividade
+## Etapa 8 — PWA, acessibilidade e responsividade (contrato `contracts/etapa-8.md`; ADR-0031, ADR-0032) — **em andamento (2026-10-28)**
 
-Manifest + service worker sem cache de dados financeiros entre sessões/famílias; auditoria a11y (teclado,
-leitores de tela, alternativas textuais de gráficos, reduced motion); revisão mobile de todas as telas.
+Manifest + service worker sem cache de dados financeiros entre sessões/famílias; auditoria WCAG 2.2 AA (teclado,
+leitores de tela, alternativas textuais de gráficos, reduced motion); revisão mobile de todas as telas (360, 390, 768, 1280).
+Dependências novas: só `devDependencies` de teste (`@axe-core/playwright`, `axe-core`); nada em produção. Sem mudança de banco.
+Verificação em duas camadas (ADR-0032): **sem Docker** (build local sem banco, Vitest com axe, Playwright em telas públicas e `/offline`, Lighthouse) e **com Docker** (specs `@docker` escritos agora, executados depois).
+
+| Id | Item | Dono | P | Depende |
+|---|---|---|---|---|
+| E8-01 | `SkipLink`; `globals.css` (`scroll-padding`, reduced-motion global); ícones PNG (192, 512, maskable, apple-icon); `docs/design-system.md` | design-system | P0 | — |
+| E8-02 | `src/lib/pwa/**` (constantes, `buildServiceWorkerSource`, registro) + testes em sandbox; `sw.js/route.ts`; `manifest.ts`; `/offline`; `viewport`; `ServiceWorkerRegister`; cabeçalhos e `SW_VERSION` em `next.config.ts`; `matcher` do proxy; skip link e `id="conteudo"` nos layouts | frontend | P0 | E8-01 (ícones) |
+| E8-03 | `@axe-core/playwright` + `axe-core`; `playwright.publico.config.ts`, `e2e/publico/**` (PWA offline, axe, teclado, foco, reflow, viewports); helpers; scripts; Lighthouse | qa | P0 | E8-02 |
+| E8-04 | Testes de componente com axe (`shared`, `layout`, `charts`, diálogos, menus) e lista de achados em `docs/log-execucao.md` | qa | P0 | — |
+| E8-05 | Correções dos achados (componentes `ui/`/`shared/`/`charts/` e telas/módulos), cada uma com teste de regressão | design-system / frontend | P0 | E8-03, E8-04 |
+| E8-06 | Specs `@docker`: `a11y-telas`, `responsivo-telas`, `pwa-autenticado` (todas as rotas do inventário, claro e escuro, vazio e com dados) | qa | P1 | E8-02 |
+| E8-07 | Integração, security gate, revisão (reviewer + security, `structural`) | orchestrator | P0 | todos |
+
+Pendência da etapa: **E8-06 só roda com Docker** (critérios `E-docker` de `acceptance-criteria.md`), junto com o pgTAP/integração/E2E da Etapa 7. Leitor de tela (CA-E8-33) sem leitor disponível fica "não verificado".
 
 ## Incremento planejado — OAuth Google
 

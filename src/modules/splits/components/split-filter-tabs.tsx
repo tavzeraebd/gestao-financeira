@@ -25,7 +25,7 @@ export function SplitFilterTabs({ active }: { active: SplitFilter }) {
                 }
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "focus-visible:ring-ring/50 focus-visible:border-ring flex min-h-10 items-center justify-center rounded-md border border-transparent px-3 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-3",
+                  "focus-visible:ring-ring focus-visible:border-ring flex min-h-10 items-center justify-center rounded-md border border-transparent px-3 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-3",
                   isActive
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",

@@ -21,7 +21,7 @@ function ResourceLink({ item }: { item: ActivityItem }) {
     <Link
       href={item.href}
       aria-label={`Abrir: ${item.title}`}
-      className="text-primary-text focus-visible:ring-ring/50 inline-flex min-h-10 items-center gap-1 rounded-md text-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-3"
+      className="text-primary-text focus-visible:ring-ring inline-flex min-h-10 items-center gap-1 rounded-md text-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-3"
     >
       Abrir
       <ArrowUpRightIcon aria-hidden="true" className="size-4" />

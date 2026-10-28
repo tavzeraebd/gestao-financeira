@@ -203,12 +203,39 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground antialiased;
   }
   html {
     @apply font-sans;
+    /* Foco não obscurecido (WCAG 2.4.11): cabeçalho fixo h-16 (4rem) no topo. */
+    scroll-padding-top: 4rem;
+  }
+  /* Abaixo de md a BottomNav fixa (min-h-14 + borda 1px) cobre a base, mais a safe area. */
+  @media (max-width: 47.9988rem) {
+    html {
+      scroll-padding-bottom: calc(3.5rem + 1px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+/* Movimento reduzido (WCAG 2.3.3, CA-E8-28): zera animação, transição e rolagem suave,
+   inclusive tw-animate-css de Dialog/Sheet/Dropdown/Popover/Sonner. Exceção: o indicador
+   de carregamento (animate-spin), que sempre vem com texto. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
   }
 }

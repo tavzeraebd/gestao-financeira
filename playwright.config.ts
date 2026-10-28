@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Camada 1 (sem banco) tem config própria: playwright.publico.config.ts (ADR-0032).
+  testIgnore: ["**/publico/**"],
   globalSetup: "./e2e/global-setup.ts",
   timeout: 60_000,
   expect: { timeout: 10_000 },
@@ -13,6 +15,8 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
+    // O service worker só é exercitado em e2e/publico/pwa.spec.ts (CA-E8-61).
+    serviceWorkers: "block",
   },
   projects: [
     {

@@ -7,7 +7,7 @@ import { MobileMoreSheet } from "@/components/layout/mobile-more-sheet";
 import { isNavItemActive, navItems } from "@/config/navigation";
 
 const itemClass =
-  "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:text-primary-text";
+  "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:text-primary-text";
 
 export function BottomNav() {
   const pathname = usePathname();

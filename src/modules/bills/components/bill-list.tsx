@@ -81,7 +81,7 @@ export function BillList({ items, accounts, today }: BillListProps) {
           cell: (item) => (
             <Link
               href={hrefOf(item)}
-              className="focus-visible:ring-ring/50 -my-2 flex min-h-10 items-center gap-3 rounded-md py-2 outline-none hover:underline focus-visible:ring-3"
+              className="focus-visible:ring-ring -my-2 flex min-h-10 items-center gap-3 rounded-md py-2 outline-none hover:underline focus-visible:ring-3"
             >
               <CategoryIcon
                 icon={item.category.icon}
@@ -136,7 +136,7 @@ export function BillList({ items, accounts, today }: BillListProps) {
         <div className="flex flex-col gap-3">
           <Link
             href={hrefOf(item)}
-            className="focus-visible:ring-ring/50 -m-4 flex min-h-14 items-center gap-3 rounded-xl p-4 outline-none focus-visible:ring-3"
+            className="focus-visible:ring-ring -m-4 flex min-h-14 items-center gap-3 rounded-xl p-4 outline-none focus-visible:ring-3"
           >
             <CategoryIcon
               icon={item.category.icon}

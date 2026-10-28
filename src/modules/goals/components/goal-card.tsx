@@ -33,7 +33,7 @@ export function GoalCard({ goal }: { goal: GoalView }) {
             <h2 className="truncate text-base font-semibold">
               <Link
                 href={`/metas/${goal.id}`}
-                className="outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
+                className="outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-3 focus-visible:after:ring-ring"
               >
                 {goal.name}
               </Link>

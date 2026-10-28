@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { signOut } from "@/modules/auth/actions";
 
 const itemClass =
-  "flex h-12 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50";
+  "flex h-12 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring";
 
 export function MobileMoreSheet({
   triggerClassName,

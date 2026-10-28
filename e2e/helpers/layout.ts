@@ -1,0 +1,130 @@
+import type { Page } from "@playwright/test";
+
+/** Medições de layout feitas dentro da página (sem dependência de componente). */
+
+export const temRolagemHorizontal = (page: Page) =>
+  page.evaluate(
+    () =>
+      document.documentElement.scrollWidth >
+      document.documentElement.clientWidth,
+  );
+
+/** Elementos visíveis cuja borda direita ou esquerda sai da viewport (conteúdo cortado). */
+export async function elementosForaDaViewport(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const largura = document.documentElement.clientWidth;
+    const fora: string[] = [];
+    for (const el of Array.from(
+      document.body.querySelectorAll<HTMLElement>("*"),
+    )) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden") continue;
+      const r = el.getBoundingClientRect();
+      if (r.width <= 1 || r.height <= 1) continue; // sr-only e vazios
+      // Região com rolagem interna ou ancestral que recorta é responsável por si mesma.
+      let recortado = false;
+      for (
+        let p = el.parentElement;
+        p && p !== document.body;
+        p = p.parentElement
+      ) {
+        const o = getComputedStyle(p);
+        if (/(auto|scroll|hidden|clip)/.test(o.overflowX)) {
+          recortado = true;
+          break;
+        }
+      }
+      if (recortado) continue;
+      if (r.right > largura + 1 || r.left < -1) {
+        fora.push(
+          `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""} "${(el.textContent ?? "").trim().slice(0, 30)}" [${Math.round(r.left)}..${Math.round(r.right)}] > ${largura}`,
+        );
+      }
+    }
+    return fora.slice(0, 10);
+  });
+}
+
+/** Controles interativos visíveis que se sobrepõem parcialmente (nenhum contém o outro). */
+export async function controlesSobrepostos(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const nome = (e: Element) =>
+      `${e.tagName.toLowerCase()}[${(e.getAttribute("aria-label") ?? e.textContent ?? e.getAttribute("name") ?? "").trim().slice(0, 25)}]`;
+    const itens = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        "a[href], button, input:not([type=hidden]), select, textarea, [role=button]",
+      ),
+    )
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ el, r }) => {
+        const cs = getComputedStyle(el);
+        return (
+          r.width > 1 &&
+          r.height > 1 &&
+          cs.visibility !== "hidden" &&
+          cs.display !== "none"
+        );
+      });
+    const problemas: string[] = [];
+    for (let i = 0; i < itens.length; i++) {
+      for (let j = i + 1; j < itens.length; j++) {
+        const a = itens[i]!;
+        const b = itens[j]!;
+        if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+        // Botão embutido no campo (ex.: mostrar senha): irmãos no mesmo invólucro, por desenho.
+        const campoEBotao =
+          (a.el.tagName === "INPUT" && b.el.tagName === "BUTTON") ||
+          (b.el.tagName === "INPUT" && a.el.tagName === "BUTTON");
+        if (campoEBotao && a.el.parentElement === b.el.parentElement) continue;
+        const w = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
+        const h = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
+        if (w > 2 && h > 2)
+          problemas.push(
+            `${nome(a.el)} x ${nome(b.el)} (${Math.round(w)}x${Math.round(h)})`,
+          );
+      }
+    }
+    return problemas.slice(0, 10);
+  });
+}
+
+export type MedidaDeAlvo = {
+  alvo: string;
+  largura: number;
+  altura: number;
+  principal: boolean;
+};
+
+/**
+ * Tamanho dos controles interativos visíveis. `principal` = campo, botão ou link em bloco dentro
+ * de `main` (o piso do projeto é 40px; o de WCAG 2.5.8 é 24px). Links dentro de texto corrido
+ * (inline em parágrafo) são exceção do próprio critério.
+ */
+export async function medirAlvos(page: Page): Promise<MedidaDeAlvo[]> {
+  return page.evaluate(() => {
+    const itens = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        "a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=menuitem], [role=checkbox], [role=switch], [role=tab]",
+      ),
+    );
+    const saida: MedidaDeAlvo[] = [];
+    for (const el of itens) {
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      if (r.width <= 1 || r.height <= 1) continue; // sr-only (ex.: skip link sem foco)
+      if (cs.visibility === "hidden" || cs.display === "none") continue;
+      const noTextoCorrido =
+        el.tagName === "A" &&
+        cs.display === "inline" &&
+        !!el.closest("p, li, span, small");
+      if (noTextoCorrido) continue;
+      saida.push({
+        alvo: `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") ?? el.textContent ?? el.getAttribute("name") ?? "").trim().slice(0, 30)}"`,
+        largura: Math.round(r.width),
+        altura: Math.round(r.height),
+        principal: !!el.closest("main"),
+      });
+    }
+    return saida;
+  });
+}

@@ -59,7 +59,7 @@ export function RecentTransactionsCard({
               <li key={item.id} className="border-b last:border-b-0">
                 <Link
                   href={`/transacoes/${item.id}`}
-                  className="focus-visible:ring-ring/50 flex min-h-14 items-center gap-3 rounded-md py-2 outline-none hover:underline focus-visible:ring-3"
+                  className="focus-visible:ring-ring flex min-h-14 items-center gap-3 rounded-md py-2 outline-none hover:underline focus-visible:ring-3"
                 >
                   {item.category ? (
                     <CategoryIcon

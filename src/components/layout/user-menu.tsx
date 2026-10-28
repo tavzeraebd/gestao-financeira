@@ -36,7 +36,7 @@ export function UserMenu({ displayName, email, avatarUrl }: UserMenuProps) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`Menu de ${displayName}`}
-        className="focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-full outline-none focus-visible:ring-3"
+        className="focus-visible:ring-ring flex size-10 items-center justify-center rounded-full outline-none focus-visible:ring-3"
       >
         <Avatar>
           {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}

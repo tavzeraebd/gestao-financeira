@@ -1,6 +1,7 @@
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { SkipLink } from "@/components/shared/skip-link";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getUnreadNotificationCount } from "@/modules/notifications/queries";
 import { getMyProfile } from "@/modules/profile/queries";
@@ -18,8 +19,13 @@ export default async function AppLayout({
 
   return (
     <SidebarProvider>
+      <SkipLink />
       <AppSidebar familyName={membership.familyName} />
-      <SidebarInset className="min-w-0">
+      <SidebarInset
+        id="conteudo"
+        tabIndex={-1}
+        className="min-w-0 outline-none"
+      >
         <AppHeader
           displayName={profile.displayName}
           email={profile.email}

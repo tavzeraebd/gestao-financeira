@@ -44,7 +44,7 @@ export function UpcomingBillsCard({ items }: { items: BillListItem[] }) {
               <li key={item.id}>
                 <Link
                   href={`/compromissos/${item.id}`}
-                  className="focus-visible:ring-ring/50 flex min-h-14 items-center gap-3 rounded-md py-2 outline-none hover:underline focus-visible:ring-3"
+                  className="focus-visible:ring-ring flex min-h-14 items-center gap-3 rounded-md py-2 outline-none hover:underline focus-visible:ring-3"
                 >
                   <CategoryIcon
                     icon={item.category.icon}

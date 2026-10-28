@@ -74,7 +74,7 @@ export function TransactionList({ items }: { items: TransactionListItem[] }) {
           cell: (item) => (
             <Link
               href={`/transacoes/${item.id}`}
-              className="focus-visible:ring-ring/50 -my-2 flex min-h-10 items-center gap-3 rounded-md py-2 outline-none hover:underline focus-visible:ring-3"
+              className="focus-visible:ring-ring -my-2 flex min-h-10 items-center gap-3 rounded-md py-2 outline-none hover:underline focus-visible:ring-3"
             >
               <Leading item={item} />
               <span className="flex min-w-0 flex-col">
@@ -109,7 +109,7 @@ export function TransactionList({ items }: { items: TransactionListItem[] }) {
       renderCard={(item) => (
         <Link
           href={`/transacoes/${item.id}`}
-          className="focus-visible:ring-ring/50 -m-4 flex min-h-14 items-center gap-3 rounded-xl p-4 outline-none focus-visible:ring-3"
+          className="focus-visible:ring-ring -m-4 flex min-h-14 items-center gap-3 rounded-xl p-4 outline-none focus-visible:ring-3"
         >
           <Leading item={item} />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">

@@ -65,7 +65,7 @@ export function SegmentedControl<T extends string>({
             value={option.value}
             data-slot="segmented-item"
             className={cn(
-              "group/segment text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 focus-visible:border-ring flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border border-transparent px-3 text-sm font-medium transition-colors outline-none focus-visible:ring-3 disabled:cursor-not-allowed data-checked:cursor-default",
+              "group/segment text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:border-ring flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border border-transparent px-3 text-sm font-medium transition-colors outline-none focus-visible:ring-3 disabled:cursor-not-allowed data-checked:cursor-default",
               CHECKED_TONE[tone],
             )}
           >

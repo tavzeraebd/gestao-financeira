@@ -19,6 +19,8 @@ A referência dizia que o DS pode ajustar neutros para cumprir contraste. Três 
 | `--input` (claro) | `#A1A1AA` | `#85858E` | borda de controle sobre `card` = 2,56:1 (mínimo 3:1) |
 | `--input` (escuro) | `#29292E` | `#7C7C8A` | borda de controle sobre `card` = 1,12:1; `#7C7C8A` é Rocket |
 
+**Regra de foco (A-1, Etapa 8).** O indicador de foco usa o anel `--ring` **pleno**: `focus-visible:ring-ring` (e `outline-ring` na base de `globals.css`), nunca com opacidade (`ring-ring/50`). A 50% o anel media 2,04:1 no tema claro, abaixo do mínimo de 3:1 (WCAG 2.4.7 e 1.4.11). Razões medidas com o anel pleno: claro `#4D7C0F` sobre `background` `#FAFAFA` = 4,78:1 e sobre `card` = 4,99:1; escuro `#00F593` sobre `background` `#121214` = 12,90:1 e sobre `card` = 11,20:1. Espessura (`ring-3`), offset e `border-ring` de apoio não mudam. Sem token novo. Teste de regressão: `ui/foco-pleno.test.ts`.
+
 `#84CC16` segue como `--primary` (fundo de ação, com texto `#1A2E05`) e `--sidebar-primary`. Não use Lime 500 como cor de texto nem de ícone informativo sobre fundo claro: use `primary-text`.
 
 ## Contraste medido
@@ -117,6 +119,23 @@ Calculado por script (luminância relativa WCAG 2.x; `color-mix()` resolvido em 
 | Escuro | chart-1..6 / card (gráfico) | ver linhas "(ícone)" acima | `#202024` | 3.95 a 11.20 | 3 | Aprovado |
 
 Medição dos gráficos (Etapa 4, mesmo método; script fora do repositório): os oito tokens `chart-*` passam em 3:1 como componente gráfico sobre `card` nos dois temas; o menor é `chart-1` no claro (3.09) e `chart-5` no escuro (3.95). Nenhuma exceção. Mesmo assim, no tema escuro `chart-1` e `chart-income` têm o mesmo valor (`#00b37e`), assim como `chart-6` e `chart-expense` (`#f75a68`): a cor sozinha não identifica a série, por isso todo gráfico leva legenda em texto e a alternativa em tabela (ver "Gráficos").
+
+### Medição da Etapa 8 (mesmo método; script fora do repositório)
+
+| Tema | Par (frente / fundo) | Frente | Fundo | Razão | Mínimo | Resultado |
+|---|---|---|---|---|---|---|
+| Claro | SkipLink: foreground / background | `#18181b` | `#fafafa` | 16.97 | 4.5 | Aprovado |
+| Escuro | SkipLink: foreground / background | `#e1e1e6` | `#121214` | 14.36 | 4.5 | Aprovado |
+| Claro | SkipLink: anel `ring` / background | `#4d7c0f` | `#fafafa` | 4.78 | 3 | Aprovado |
+| Escuro | SkipLink: anel `ring` / background | `#00f593` | `#121214` | 12.90 | 3 | Aprovado |
+| Claro | Ícone do app: marca (`primary-foreground`) / `primary` | `#1a2e05` | `#84cc16` | 7.40 | 3 | Aprovado |
+| Claro | Ícone do app: folha direita a 75% / `primary` | `#355609` | `#84cc16` | 4.31 | 3 | Aprovado |
+| Claro | `chart-1` (ícone) / `chart-1/15` sobre card (reprovado, reavaliado) | `#65a30d` | `#e8f1db` | 2.66 | 3 | Reprovado, aceito (decorativo) |
+| Claro | `chart-3` (ícone) / `chart-3/15` sobre card (reprovado, reavaliado) | `#ea580c` | `#fce6db` | 2.96 | 3 | Reprovado, aceito (decorativo) |
+
+A página `/offline` e o texto do `SkipLink` usam só pares já medidos acima (`foreground`/`background`, `muted-foreground`/`background`, `primary-foreground`/`primary` do `Button`). Nada novo a medir no escuro para o ícone: o PNG é fixo, no tema claro, como o `theme_color` do manifest.
+
+**Decisão sobre os dois "Reprovado" (CA-E8-27).** Mantidos e justificados, sem mudar token: o `CategoryIcon` é decorativo (`aria-hidden`), o nome da categoria vem sempre ao lado (ADR-0019) e WCAG 1.4.11 não exige contraste de elemento puramente decorativo; o mesmo ícone passa 3:1 sobre `card` (3.09 e 3.56) e a informação nunca depende só da cor. A única correção possível sem token novo (trocar a cor do ícone de `chart-1`/`chart-3` por `primary-text`/`warning`) chega a 4.29 e 4.18, mas descaracteriza as cores de categoria (ADR-0019): é mudança de contrato visual, não feita sem pedido do usuário. Nenhum pedido de mudança aberto. As razões de 2,65/2,96 da tabela acima e 2.66/2.96 desta medição diferem só no arredondamento do fundo tingido.
 
 Observações de uso derivadas da medição:
 - `Badge` `success`/`warning`/`danger` usam fundo sólido do token com `*-foreground` (texto), nunca texto colorido sobre `*-soft` (`danger` sobre `danger-soft` não atinge 4,5:1).
@@ -250,6 +269,16 @@ Acessibilidade e comportamento (padrão para todo gráfico):
 
 Breakpoints Tailwind padrão. Mobile é abaixo de `md` (menu "Mais" em `Sheet`); entre `md` e `lg` a sidebar fica recolhida em ícones; a partir de `lg`, expandida.
 
+## Acessibilidade global (Etapa 8, ADR-0032; WCAG 2.2 AA)
+
+Nenhum token, fonte ou cor novos.
+
+- **`SkipLink`** (`shared/skip-link.tsx`, CA-E8-70). `<SkipLink targetId="conteudo" />` renderiza `<a href="#conteudo">Pular para o conteúdo</a>`. Deve ser o primeiro filho do layout; o destino é o `main` com `id="conteudo"` e `tabIndex={-1}` (ligação feita pelo frontend nos layouts `(app)`, `(public)`, `onboarding` e `/offline`). Visual: `sr-only` até `focus-visible`; então `fixed top-2 left-2 z-50`, `bg-background text-foreground`, `min-h-10` (alvo de 40px), `rounded-lg` e anel `ring`. Estados: default oculto; foco visível; hover, disabled, erro e loading não se aplicam (é âncora de navegação). Usar em toda tela com `main`; não usar mais de um por página. Teste: `shared/skip-link.test.tsx`.
+- **`scroll-padding`** (`globals.css`, 2.4.11). `html { scroll-padding-top: 4rem }` (cabeçalho `h-16`); abaixo de `md`, `scroll-padding-bottom: calc(3.5rem + 1px + env(safe-area-inset-bottom))` (`BottomNav` `min-h-14` + borda). Se a altura do cabeçalho ou da `BottomNav` mudar, atualize os dois valores.
+- **Movimento reduzido** (`globals.css`, CA-E8-28). Em `prefers-reduced-motion: reduce`, regra global zera `animation-*`, `transition-*` e `scroll-behavior` em todos os elementos e pseudo-elementos, o que cobre as entradas e saídas de `tw-animate-css` (`Dialog`, `Sheet`, `Dropdown`, `Popover`, `Sonner`) e `animate-pulse`, sem classe por componente. Exceção: elementos com `.animate-spin` (indicador de carregamento, sempre acompanhado de texto). Observação: `Button.loading` usa `motion-safe:animate-spin`, então com movimento reduzido o ícone do botão já fica parado e o texto "carregando" segue visível; não alterado nesta tarefa.
+- **Ícones do app** (CA-E8-72). `public/icons/icon-192.png`, `icon-512.png` (marca a 70% do lado, fundo `primary` cheio), `icon-maskable-512.png` (marca a 58% do lado, dentro do círculo central de 80%; fundo cheio até a borda) e `src/app/apple-icon.png` (180x180, 70%, fundo cheio sem transparência). Procedência: marca do `Logo` (mesmos três `path`, viewBox recortado ao desenho) em `--primary-foreground` (`#1a2e05`) sobre `--primary` (`#84cc16`), tema claro; gerados em 2026-10-28 por rota temporária com `ImageResponse` de `next/og` (Next 16.4.3, `next dev`), sem dependência nova, e a rota foi apagada. Para regenerar, recriar a rota temporária com os mesmos valores. Os hex só existiam nessa rota descartável, não em tela.
+
 ## Pendências conhecidas
 
 - `Button` `xs`/`icon-xs`/`icon-sm` do shadcn têm alvo menor que 40px; não use como ação principal.
+- `chart-1`/`chart-3` (claro) sobre o próprio fundo `/15` ficam abaixo de 3:1; aceito e justificado (ícone decorativo) em "Medição da Etapa 8".

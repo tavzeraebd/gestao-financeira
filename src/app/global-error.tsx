@@ -26,7 +26,7 @@ export default function GlobalError({
           <button
             type="button"
             onClick={reset}
-            className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-ring/50 inline-flex h-10 items-center rounded-lg px-4 text-sm font-medium focus-visible:ring-3 focus-visible:outline-none"
+            className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-ring inline-flex h-10 items-center rounded-lg px-4 text-sm font-medium focus-visible:ring-3 focus-visible:outline-none"
           >
             Tentar novamente
           </button>

@@ -168,7 +168,7 @@ export function CreateInviteForm({
                   {ROLE_OPTIONS.map((option) => (
                     <label
                       key={option.value}
-                      className="border-input has-checked:border-primary-text has-checked:bg-primary-soft has-focus-visible:ring-ring/50 flex min-h-14 cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm has-focus-visible:ring-3"
+                      className="border-input has-checked:border-primary-text has-checked:bg-primary-soft has-focus-visible:ring-ring flex min-h-14 cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm has-focus-visible:ring-3"
                     >
                       <input
                         type="radio"

@@ -67,7 +67,7 @@ const SWATCH: Record<CategoryColor, string> = {
 const FIELDS = ["name", "type", "color", "icon", "parentId"] as const;
 
 const choiceClass =
-  "focus-visible:ring-ring/50 data-checked:ring-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg border border-transparent outline-none transition-colors focus-visible:ring-3 data-checked:ring-2";
+  "focus-visible:ring-ring data-checked:ring-foreground flex size-10 cursor-pointer items-center justify-center rounded-lg border border-transparent outline-none transition-colors focus-visible:ring-3 data-checked:ring-2";
 
 type CategoryFormDialogProps = {
   open: boolean;
