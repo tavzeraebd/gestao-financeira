@@ -50,4 +50,30 @@ describe("serverEnv", () => {
     vi.stubEnv("APP_URL", "http://localhost:3000/");
     expect(serverEnv.APP_URL).toBe("http://localhost:3000");
   });
+
+  it("TRUSTED_PROXY_HOPS: padrão 1, aceita 0..5 e rejeita o resto", async () => {
+    vi.doMock("server-only", () => ({}));
+    const { serverEnv } = await import("./server");
+    vi.stubEnv("TRUSTED_PROXY_HOPS", "");
+    expect(serverEnv.TRUSTED_PROXY_HOPS).toBe(1);
+    vi.stubEnv("TRUSTED_PROXY_HOPS", "0");
+    expect(serverEnv.TRUSTED_PROXY_HOPS).toBe(0);
+    vi.stubEnv("TRUSTED_PROXY_HOPS", "5");
+    expect(serverEnv.TRUSTED_PROXY_HOPS).toBe(5);
+    for (const bad of ["6", "-1", "1.5", "um", "NaN"]) {
+      vi.stubEnv("TRUSTED_PROXY_HOPS", bad);
+      expect(() => serverEnv.TRUSTED_PROXY_HOPS).toThrow(/TRUSTED_PROXY_HOPS/);
+    }
+  });
+
+  it("LOG_HMAC_KEY: opcional, mínimo de 32 caracteres", async () => {
+    vi.doMock("server-only", () => ({}));
+    const { serverEnv } = await import("./server");
+    vi.stubEnv("LOG_HMAC_KEY", "");
+    expect(serverEnv.LOG_HMAC_KEY).toBeUndefined();
+    vi.stubEnv("LOG_HMAC_KEY", "k".repeat(32));
+    expect(serverEnv.LOG_HMAC_KEY).toBe("k".repeat(32));
+    vi.stubEnv("LOG_HMAC_KEY", "curta");
+    expect(() => serverEnv.LOG_HMAC_KEY).toThrow(/LOG_HMAC_KEY/);
+  });
 });

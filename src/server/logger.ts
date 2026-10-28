@@ -1,4 +1,5 @@
 import "server-only";
+import { isIP } from "node:net";
 import { serverEnv } from "@/lib/env/server";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
@@ -15,6 +16,12 @@ export type LogFields = {
   durationMs?: number;
   userId?: string;
   familyId?: string;
+  /** IPv4/IPv6 do cliente. Só em linhas warn/error (ADR-0035 §2). */
+  ip?: string;
+  /** HMAC-SHA256 com chave do e-mail (16 hex), de `emailHmac()`; nunca o e-mail. */
+  emailHmac?: string;
+  /** Id (uuid) do convite; nunca o token. */
+  inviteId?: string;
 };
 
 const ORDER: Record<LogLevel, number> = {
@@ -24,6 +31,7 @@ const ORDER: Record<LogLevel, number> = {
   error: 40,
 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const HMAC16 = /^[0-9a-f]{16}$/;
 const LABEL = /^[A-Za-z0-9_.-]{1,64}$/;
 
 function sanitize(fields: LogFields): Record<string, string | number> {
@@ -40,6 +48,17 @@ function sanitize(fields: LogFields): Record<string, string | number> {
   pick("code", LABEL);
   pick("userId", UUID);
   pick("familyId", UUID);
+  pick("emailHmac", HMAC16);
+  pick("inviteId", UUID);
+  const ip = raw.ip;
+  if (
+    typeof ip === "string" &&
+    ip.length <= 45 &&
+    !ip.includes("%") &&
+    isIP(ip) !== 0
+  ) {
+    out.ip = ip;
+  }
   const d = raw.durationMs;
   if (typeof d === "number" && Number.isFinite(d))
     out.durationMs = Math.round(d);

@@ -14,9 +14,50 @@ import {
   updatePasswordSchema,
 } from "@/modules/auth/schemas";
 import { runAction, type ActionResult } from "@/server/action";
-import { toAppError } from "@/server/errors";
+import { AppError, toAppError } from "@/server/errors";
+import { emailHmac } from "@/server/log-identity";
 import { logger } from "@/server/logger";
+import {
+  emailRateKey,
+  hitIpRateLimit,
+  hitRateLimit,
+  isIpRateLimited,
+} from "@/server/rate-limit";
 import { getRequestId } from "@/server/request-id";
+
+const identity = (data: { email: string }) => ({ email: data.email });
+
+/**
+ * Baldes de envio de e-mail (cadastro, reenvio, recuperação): por IP e por e-mail. Os dois são
+ * contados sempre. `false` = acima do limite: a ação NÃO chama o Auth e responde o mesmo sucesso
+ * neutro de sempre (anti-enumeração); só o log diz o motivo (ADR-0034 §4).
+ */
+function emailSendAllowed(
+  email: string,
+  ip: string | null,
+  requestId: string,
+): boolean {
+  const byIp = hitIpRateLimit("auth_email_ip", ip, requestId);
+  const byTarget = hitRateLimit("auth_email_target", emailRateKey(email));
+  return byIp.allowed && byTarget.allowed;
+}
+
+/** Linha `warn` de uma ação neutra: o motivo real fica só aqui, com IP e e-mail pseudonimizado. */
+function warnNeutral(
+  operation: string,
+  code: string,
+  ctx: { requestId: string; ip: string | null },
+  email: string,
+): void {
+  logger.warn({
+    requestId: ctx.requestId,
+    module: "auth",
+    operation,
+    code,
+    ip: ctx.ip ?? undefined,
+    emailHmac: emailHmac(email),
+  });
+}
 
 export async function signUp(
   input: z.input<typeof signUpSchema>,
@@ -27,7 +68,12 @@ export async function signUp(
     schema: signUpSchema,
     input,
     auth: "none",
-    handler: async (data, { supabase, requestId }) => {
+    identity,
+    handler: async (data, { supabase, requestId, ip }) => {
+      if (!emailSendAllowed(data.email, ip, requestId)) {
+        warnNeutral("signUp", "RATE_LIMITED", { requestId, ip }, data.email);
+        return { email: data.email };
+      }
       // Destino pós-confirmação (ex.: convite): só vai ao metadata se for um destino válido.
       const nextPath = safeNextPath(data.next, "");
       const { error } = await supabase.auth.signUp({
@@ -49,12 +95,7 @@ export async function signUp(
         // Rate limit também é neutro (SEC-13): um segundo cadastro do mesmo e-mail não pode
         // revelar que a conta existe. O motivo fica só no log.
         if (toAppError(error).code !== "RATE_LIMITED") throw error;
-        logger.warn({
-          requestId,
-          module: "auth",
-          operation: "signUp",
-          code: "RATE_LIMITED",
-        });
+        warnNeutral("signUp", "RATE_LIMITED", { requestId, ip }, data.email);
       }
       return { email: data.email };
     },
@@ -70,12 +111,26 @@ export async function signIn(
     schema: signInSchema,
     input,
     auth: "none",
-    handler: async (data, { supabase }) => {
+    identity,
+    handler: async (data, { supabase, requestId, ip }) => {
+      // Estourou = RATE_LIMITED sem chamar o Auth, igual para e-mail existente ou não.
+      const emailKey = emailRateKey(data.email);
+      const attempts = hitIpRateLimit("auth_ip", ip, requestId);
+      const failures = isIpRateLimited("auth_failure", ip, requestId, emailKey);
+      if (!attempts.allowed || !failures.allowed) {
+        throw new AppError("RATE_LIMITED");
+      }
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
-      if (error) throw error;
+      if (error) {
+        // Só falha de credencial conta no par IP + e-mail (não penaliza erro do servidor).
+        if (toAppError(error).code === "INVALID_CREDENTIALS") {
+          hitIpRateLimit("auth_failure", ip, requestId, emailKey);
+        }
+        throw error;
+      }
       redirect(safeNextPath(data.next));
     },
   });
@@ -104,18 +159,28 @@ export async function requestPasswordReset(
     schema: requestPasswordResetSchema,
     input,
     auth: "none",
-    handler: async (data, { supabase, requestId }) => {
+    identity,
+    handler: async (data, { supabase, requestId, ip }) => {
+      if (!emailSendAllowed(data.email, ip, requestId)) {
+        warnNeutral(
+          "requestPasswordReset",
+          "RATE_LIMITED",
+          { requestId, ip },
+          data.email,
+        );
+        return null;
+      }
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: `${serverEnv.APP_URL}/auth/confirm?next=/redefinir-senha`,
       });
       if (error) {
         // Resposta sempre neutra (anti-enumeração, inclusive em rate limit); o motivo fica só no log.
-        logger.warn({
-          requestId,
-          module: "auth",
-          operation: "requestPasswordReset",
-          code: toAppError(error).code,
-        });
+        warnNeutral(
+          "requestPasswordReset",
+          toAppError(error).code,
+          { requestId, ip },
+          data.email,
+        );
       }
       return null;
     },
@@ -131,19 +196,29 @@ export async function resendConfirmation(
     schema: resendConfirmationSchema,
     input,
     auth: "none",
-    handler: async (data, { supabase, requestId }) => {
+    identity,
+    handler: async (data, { supabase, requestId, ip }) => {
+      if (!emailSendAllowed(data.email, ip, requestId)) {
+        warnNeutral(
+          "resendConfirmation",
+          "RATE_LIMITED",
+          { requestId, ip },
+          data.email,
+        );
+        return null;
+      }
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: data.email,
       });
       if (error) {
         // Sempre neutro, inclusive em rate limit; o código real fica só no log.
-        logger.warn({
-          requestId,
-          module: "auth",
-          operation: "resendConfirmation",
-          code: toAppError(error).code,
-        });
+        warnNeutral(
+          "resendConfirmation",
+          toAppError(error).code,
+          { requestId, ip },
+          data.email,
+        );
       }
       return null;
     },

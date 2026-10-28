@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/proxy", () => ({ updateSession: vi.fn() }));
 
 import { updateSession } from "@/lib/supabase/proxy";
@@ -86,5 +87,46 @@ describe("proxy", () => {
     mockSession("u1");
     const res = await proxy(req("/login?motivo=outro"));
     expect(res.headers.get("location")).toContain("/inicio");
+  });
+
+  describe("x-client-ip (CA-E9-31)", () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    const seenIp = () =>
+      vi.mocked(updateSession).mock.calls[0]?.[0].headers.get("x-client-ip") ??
+      null;
+
+    it("descarta o x-client-ip do cliente e grava o IP calculado (última entrada, 1 salto)", async () => {
+      mockSession(null);
+      await proxy(
+        req("/login", {
+          headers: {
+            "x-client-ip": "6.6.6.6",
+            "x-forwarded-for": "9.9.9.9, 203.0.113.7",
+          },
+        }),
+      );
+      expect(seenIp()).toBe("203.0.113.7");
+    });
+
+    it("sem IP confiável o cabeçalho do cliente é removido, não repassado", async () => {
+      mockSession(null);
+      await proxy(req("/login", { headers: { "x-client-ip": "6.6.6.6" } }));
+      expect(seenIp()).toBeNull();
+    });
+
+    it("TRUSTED_PROXY_HOPS=0 desativa e =2 usa a penúltima entrada", async () => {
+      mockSession(null);
+      const headers = { "x-forwarded-for": "9.9.9.9, 203.0.113.7, 10.0.0.1" };
+      vi.stubEnv("TRUSTED_PROXY_HOPS", "0");
+      await proxy(req("/login", { headers }));
+      expect(seenIp()).toBeNull();
+
+      vi.clearAllMocks();
+      mockSession(null);
+      vi.stubEnv("TRUSTED_PROXY_HOPS", "2");
+      await proxy(req("/login", { headers }));
+      expect(seenIp()).toBe("203.0.113.7");
+    });
   });
 });

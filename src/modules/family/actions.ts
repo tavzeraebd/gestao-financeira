@@ -57,6 +57,7 @@ export async function createInvite(
     schema: createInviteSchema,
     input,
     auth: "required",
+    identity: (data) => ({ email: data.email }),
     handler: async (data, { supabase }) => {
       const invite = await rpcCreateInvite(supabase, data.role, data.email);
       revalidatePath("/familia");
@@ -78,6 +79,7 @@ export async function revokeInvite(
     schema: revokeInviteSchema,
     input,
     auth: "required",
+    identity: (data) => ({ inviteId: data.inviteId }),
     handler: async (data, { supabase }) => {
       await rpcRevokeInvite(supabase, data.inviteId);
       revalidatePath("/familia");

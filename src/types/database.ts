@@ -819,6 +819,39 @@ export type Database = {
           },
         ];
       };
+      security_events: {
+        Row: {
+          action: string;
+          created_at: string;
+          id: string;
+          metadata: NonNullable<Json>;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          action: string;
+          created_at?: string;
+          id?: string;
+          metadata?: NonNullable<Json>;
+          user_id: string;
+        };
+        Update: {
+          action?: string;
+          created_at?: string;
+          id?: string;
+          metadata?: NonNullable<Json>;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "security_events_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       settlements: {
         Row: {
           amount: number;
@@ -1089,7 +1122,7 @@ export type Database = {
       };
       change_member_role: {
         Args: { p_member_id: string; p_role: string };
-        Returns: undefined;
+        Returns: string;
       };
       create_family: { Args: { p_name: string }; Returns: string };
       create_family_invite: {
@@ -1189,10 +1222,7 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: number;
       };
-      remove_family_member: {
-        Args: { p_member_id: string };
-        Returns: undefined;
-      };
+      remove_family_member: { Args: { p_member_id: string }; Returns: string };
       revoke_family_invite: {
         Args: { p_invite_id: string };
         Returns: undefined;
@@ -1201,7 +1231,7 @@ export type Database = {
         Args: { p_mode: string; p_shares: Json; p_transaction_id: string };
         Returns: undefined;
       };
-      transfer_ownership: { Args: { p_member_id: string }; Returns: undefined };
+      transfer_ownership: { Args: { p_member_id: string }; Returns: string };
     };
     Enums: {
       [_ in never]: never;

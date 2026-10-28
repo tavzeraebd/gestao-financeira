@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { resolveClientIp } from "@/lib/client-ip";
+import { serverEnv } from "@/lib/env/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
 const PRIVATE_PREFIXES = [
@@ -21,8 +23,23 @@ function matches(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+/**
+ * IP do cliente calculado UMA vez aqui (ADR-0034 §6) e gravado em `x-client-ip` na requisição,
+ * que `updateSession` repassa. Um `x-client-ip` vindo do cliente é sempre descartado; sem IP
+ * confiável o cabeçalho fica ausente (e os baldes por IP são ignorados adiante).
+ */
+function stampClientIp(request: NextRequest): void {
+  request.headers.delete("x-client-ip");
+  const ip = resolveClientIp(
+    request.headers.get("x-forwarded-for"),
+    serverEnv.TRUSTED_PROXY_HOPS,
+  );
+  if (ip) request.headers.set("x-client-ip", ip);
+}
+
 // O proxy não é fronteira de autorização: layouts (requireUser/requireMembership) e RLS decidem.
 export async function proxy(request: NextRequest): Promise<NextResponse> {
+  stampClientIp(request);
   const { response, userId, requestId } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
 

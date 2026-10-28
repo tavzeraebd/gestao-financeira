@@ -98,6 +98,21 @@ select count(*) from (select 1 from public.settlements s2 where s2.created_by = 
 -- goal_contributions por família: prefixo de goal_contributions_family_idempotency_key (sem índice parcial dedicado)
 ```
 
+## Etapa 9 · M4 exclusão de conta (T-09) — database, 2026-10-28
+
+Escrito por leitura contra o schema real; **nada executado** (sem Docker) e nada aplicado no Supabase online.
+Migration: `20261028100300_etapa9_account_deletion.sql` (nova; nenhuma antiga alterada). pgTAP novos: `650_account_deletion`, `655_account_deletion_auth`, `660_etapa9_regression`; helpers novos em `000_setup` (seed, hashes, catálogo, `login_amr`). 010 e 600 não precisaram de ajuste (contagens por nome; M4 não cria tabela em `public`).
+Validação prevista: `CI Docker` (`db reset`, `db test`, `db lint`).
+
+### Decisões pendentes / dúvidas (M4)
+
+- **Escrita em `auth.*` pelo papel das migrations (DÚVIDA ABERTA)**: `delete_my_account` atualiza `auth.users` e apaga `auth.identities`, `auth.sessions`, `auth.mfa_factors` (e `auth.one_time_tokens`, se existir). Evidência a favor: `on_auth_user_created` e o trigger de M2 já estão em produção; contra: o `postgres` do Supabase hospedado não é dono dessas tabelas e UPDATE/DELETE não foi verificado. Desenho: `private.account_erasure_auth_ready` confere os privilégios ANTES de qualquer escrita e a RPC aborta com `ACCOUNT_ERASURE_UNAVAILABLE` (nada alterado); a parte de `auth.*` é o último passo e qualquer erro dela sobe e desfaz a transação (655 prova). **Verificar na homologação com conta descartável** antes do aceite. **Plano B** (ADR-0038): Admin API `deleteUser` com `service_role` isolada em um módulo, ADR nova e decisão do usuário sobre a credencial.
+- **`banned_until`**: usado `9999-12-31 00:00:00+00` em vez de `'infinity'` (driver Go pode não ler o valor especial). Ratificar; o CA-E9-22 diz "infinito".
+- **Acréscimo ao ADR-0038 §4**: `invited_email` também é nulado nos convites que o titular ACEITOU (criados por outros). Ratificar.
+- **Resíduo fora do escopo do banco**: `auth.audit_log_entries` (GoTrue) pode guardar e-mail/IP; retenção não tratada. Decisão do usuário.
+- **Backend**: o código `ACCOUNT_ERASURE_UNAVAILABLE` (P0001) precisa entrar na lista fechada de `errors.ts`/`error-messages.ts`; `FORBIDDEN` (42501) é devolvido numa segunda chamada de conta já excluída.
+- **Custo**: exclusão de família grande (teto 100000 lançamentos) não medida; pode bater no `statement_timeout` do papel (falha limpa, sem efeito).
+
 ## Próximas etapas
 
 _(vazio por ora)_

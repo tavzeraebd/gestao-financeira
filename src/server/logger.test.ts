@@ -106,4 +106,56 @@ describe("logger", () => {
     logger.info({ requestId: ID, module: "m", operation: "o" });
     expect(out).toHaveLength(1);
   });
+
+  it("aceita ip (IPv4/IPv6), emailHmac (16 hex) e inviteId (uuid) — CA-E9-30", () => {
+    logger.warn({
+      requestId: ID,
+      module: "auth",
+      operation: "signIn",
+      ip: "203.0.113.7",
+      emailHmac: "0123456789abcdef",
+      inviteId: ID,
+    });
+    logger.warn({
+      requestId: ID,
+      module: "auth",
+      operation: "signIn",
+      ip: "2001:db8::1",
+    });
+    expect(JSON.parse(out[0] as string)).toMatchObject({
+      ip: "203.0.113.7",
+      emailHmac: "0123456789abcdef",
+      inviteId: ID,
+    });
+    expect(JSON.parse(out[1] as string)).toMatchObject({ ip: "2001:db8::1" });
+  });
+
+  it("descarta ip, emailHmac e inviteId fora do padrão (texto, e-mail, uuid malformado)", () => {
+    const bad = [
+      { ip: "pessoa@example.com" },
+      { ip: "999.1.1.1" },
+      { ip: "fe80::1%eth0" },
+      { ip: `${"1".repeat(46)}` },
+      { emailHmac: "pessoa@example.com" },
+      { emailHmac: "0123456789abcde" },
+      { emailHmac: "0123456789abcdeg" },
+      { emailHmac: "0123456789abcdef0" },
+      { inviteId: "nao-e-uuid" },
+      { inviteId: "6f1c2b3a-1111-4222-8333-94445555666" },
+    ];
+    for (const extra of bad) {
+      logger.warn({
+        requestId: ID,
+        module: "auth",
+        operation: "signIn",
+        ...extra,
+      });
+    }
+    for (const line of out) {
+      expect(Object.keys(JSON.parse(line)).sort()).toEqual(
+        ["level", "module", "operation", "requestId", "ts"].sort(),
+      );
+    }
+    expect(out).toHaveLength(bad.length);
+  });
 });

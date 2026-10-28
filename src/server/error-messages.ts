@@ -12,6 +12,9 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   CONFLICT: "Essa informação já existe. Revise os dados e tente novamente.",
   RATE_LIMITED:
     "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.",
+  VOLUME_LIMIT_REACHED:
+    "Sua família atingiu o limite de registros desta lista. Exclua registros que não usa mais.",
+  REAUTH_REQUIRED: "Confirme sua senha para continuar.",
   INVALID_CREDENTIALS:
     "E-mail ou senha incorretos. Confira os dados ou redefina sua senha.",
   EMAIL_NOT_CONFIRMED:

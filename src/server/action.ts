@@ -3,9 +3,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getClientIp } from "@/server/client-ip";
 import { ERROR_MESSAGES } from "@/server/error-messages";
 import { toAppError } from "@/server/errors";
+import { emailHmac } from "@/server/log-identity";
 import { logger } from "@/server/logger";
+import { hitIpRateLimit, hitRateLimit } from "@/server/rate-limit";
 import { getRequestId } from "@/server/request-id";
 import type { Database } from "@/types/database";
 
@@ -16,6 +19,8 @@ export type ErrorCode =
   | "NOT_FOUND"
   | "CONFLICT"
   | "RATE_LIMITED"
+  | "VOLUME_LIMIT_REACHED"
+  | "REAUTH_REQUIRED"
   | "INVALID_CREDENTIALS"
   | "EMAIL_NOT_CONFIRMED"
   | "WEAK_PASSWORD"
@@ -70,6 +75,8 @@ export type ActionContext = {
   supabase: SupabaseClient<Database>;
   userId: string | null;
   requestId: string;
+  /** IP do cliente calculado pelo proxy; `null` sem IP confiável. */
+  ip: string | null;
 };
 
 export async function runAction<S extends z.ZodType, O>(opts: {
@@ -78,11 +85,23 @@ export async function runAction<S extends z.ZodType, O>(opts: {
   schema: S;
   input: unknown;
   auth: "required" | "none";
+  /**
+   * `false` desliga o rate limit geral (`user_actions`/`anon_actions`). Só com justificativa
+   * explícita no ponto de uso (ex.: a ação aplica baldes próprios, mais estritos).
+   */
+  rateLimit?: false;
+  /**
+   * Identificadores para o log de segurança, lidos só da entrada JÁ validada. O e-mail vira
+   * `emailHmac` (nunca vai em claro); o convite vira `inviteId` (nunca o token).
+   */
+  identity?: (input: z.output<S>) => { email?: string; inviteId?: string };
   handler: (input: z.output<S>, ctx: ActionContext) => Promise<O>;
 }): Promise<ActionResult<O>> {
   const requestId = await getRequestId();
+  const ip = await getClientIp();
   const startedAt = Date.now();
   let userId: string | undefined;
+  let identity: { email?: string; inviteId?: string } | undefined;
 
   const fail = (
     code: ErrorCode,
@@ -95,6 +114,10 @@ export async function runAction<S extends z.ZodType, O>(opts: {
       code,
       durationMs: Date.now() - startedAt,
       userId,
+      // IP só nas linhas de falha (warn/error); nunca nas de sucesso (ADR-0035 §2).
+      ip: ip ?? undefined,
+      emailHmac: identity?.email ? emailHmac(identity.email) : undefined,
+      inviteId: identity?.inviteId,
     });
     return {
       ok: false,
@@ -115,6 +138,8 @@ export async function runAction<S extends z.ZodType, O>(opts: {
         z.flattenError(parsed.error).fieldErrors as ActionError["fieldErrors"],
       );
     }
+
+    identity = opts.identity?.(parsed.data);
 
     const supabase = await createClient();
     let currentUserId: string | null = null;
@@ -139,10 +164,18 @@ export async function runAction<S extends z.ZodType, O>(opts: {
       userId = currentUserId;
     }
 
+    if (opts.rateLimit !== false) {
+      const { allowed } = currentUserId
+        ? hitRateLimit("user_actions", currentUserId)
+        : hitIpRateLimit("anon_actions", ip, requestId);
+      if (!allowed) return fail("RATE_LIMITED");
+    }
+
     const result = await opts.handler(parsed.data, {
       supabase,
       userId: currentUserId,
       requestId,
+      ip,
     });
 
     logger.info({

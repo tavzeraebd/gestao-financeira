@@ -10,6 +10,18 @@ const logLevel = z.preprocess(
   z.enum(["debug", "info", "warn", "error"]).default("info"),
 );
 
+// Quantos proxies confiáveis (do lado do servidor) acrescentam a `x-forwarded-for`. 0 = sem IP confiável.
+const trustedProxyHops = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+  z.coerce.number().int().min(0).max(5).default(1),
+);
+
+// Chave do HMAC do e-mail no log. Opcional: sem ela o campo é omitido (nunca há hash sem chave).
+const logHmacKey = z.preprocess(
+  (v) => (v === "" ? undefined : v),
+  z.string().min(32).optional(),
+);
+
 function read<T>(name: string, schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
   if (!result.success) {
@@ -25,5 +37,15 @@ export const serverEnv = {
   },
   get LOG_LEVEL(): "debug" | "info" | "warn" | "error" {
     return read("LOG_LEVEL", logLevel, process.env.LOG_LEVEL);
+  },
+  get TRUSTED_PROXY_HOPS(): number {
+    return read(
+      "TRUSTED_PROXY_HOPS",
+      trustedProxyHops,
+      process.env.TRUSTED_PROXY_HOPS,
+    );
+  },
+  get LOG_HMAC_KEY(): string | undefined {
+    return read("LOG_HMAC_KEY", logHmacKey, process.env.LOG_HMAC_KEY);
   },
 };
