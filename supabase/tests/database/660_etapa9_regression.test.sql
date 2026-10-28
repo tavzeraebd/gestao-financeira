@@ -19,7 +19,7 @@ create function tests.snap() returns jsonb language sql as $$
     'ps', (select to_jsonb(p) from public.period_summary(private.today() - 30, private.today()) p),
     'bp', (select to_jsonb(p) from public.pending_summary() p),
     'mb', (select jsonb_agg(to_jsonb(p) order by to_jsonb(p)::text) from public.member_balances() p),
-    'gs', (select to_jsonb(g) from public.goal_summary(private.today() - 89, private.today()) g)) $$;
+    'gs', (select jsonb_agg(to_jsonb(g) order by to_jsonb(g)::text) from public.goal_summary(private.today() - 89, private.today()) g)) $$;
 create function tests.commit_check() returns void language plpgsql as $$
 begin set constraints all immediate; set constraints all deferred; end $$;
 -- tabelas da família conforme o catálogo: FK para families, direta ou por tabela da família (fecho transitivo)

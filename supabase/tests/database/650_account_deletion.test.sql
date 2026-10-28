@@ -223,13 +223,13 @@ select is((select count(*)::int from private.account_erasure_log where user_id =
   'CA-E9-20: a linha é do admin, family_erased = false');
 select is((select count(*)::int from private.account_erasure_log l where to_jsonb(l)::text ~ '(@|test\.local|Beto Admin|Ana Dona|Carla Membro)'), 0,
   'CA-E9-20: account_erasure_log sem e-mail nem nome');
-select is((select email from auth.users where id = tests.uid('ad')), 'conta-excluida+' || tests.uid('ad')::text || '@excluida.invalid',
+select is((select email::text from auth.users where id = tests.uid('ad')), ('conta-excluida+' || tests.uid('ad')::text || '@excluida.invalid')::text,
   'CA-E9-22: e-mail trocado por valor inerte derivado do id');
 select ok((select encrypted_password is null from auth.users where id = tests.uid('ad')), 'CA-E9-22: senha anulada');
 select ok((select banned_until > now() + interval '100 years' from auth.users where id = tests.uid('ad')), 'CA-E9-22: banido por prazo praticamente infinito');
 select ok((select deleted_at is not null from auth.users where id = tests.uid('ad')), 'CA-E9-22: deleted_at preenchido');
 select is((select raw_user_meta_data from auth.users where id = tests.uid('ad')), '{}'::jsonb, 'CA-E9-22: metadados do usuário vazios');
-select is((select email from auth.users where id = tests.uid('m')), 'm@test.local', 'CA-E9-22: o e-mail de quem não excluiu não foi tocado');
+select is((select email::text from auth.users where id = tests.uid('m')), 'm@test.local'::text, 'CA-E9-22: o e-mail de quem não excluiu não foi tocado');
 select ok((select encrypted_password is not null and deleted_at is null and banned_until is null from auth.users where id = tests.uid('m')),
   'CA-E9-22: senha, deleted_at e banned_until de quem não excluiu intactos');
 select is(tests.surv(), current_setting('tests.s0')::jsonb,
@@ -314,7 +314,7 @@ select is((select count(*)::int from public.security_events where user_id in (te
 select is((select count(*)::int from public.notifications where user_id in (tests.uid('a'), tests.uid('ad'), tests.uid('m'))), 0, 'CA-E9-20: notificações de todos apagadas');
 select ok((select deleted_at is not null and encrypted_password is null and email like 'conta-excluida+%@excluida.invalid'
     from auth.users where id = tests.uid('a')), 'CA-E9-22: auth.users do owner neutralizado');
-select is((select email from auth.users where id = tests.uid('b')), 'b@test.local', 'CA-E9-22: auth.users de outra família intacto');
+select is((select email::text from auth.users where id = tests.uid('b')), 'b@test.local'::text, 'CA-E9-22: auth.users de outra família intacto');
 select is((select count(*)::int from auth.users where deleted_at is not null), 4, 'CA-E9-22: exatamente 4 contas neutralizadas');
 select is((select count(*)::int from public.profiles p join auth.users u on u.id = p.id), 6, 'FK profiles → auth.users íntegra: os 6 perfis continuam com o usuário do Auth');
 
