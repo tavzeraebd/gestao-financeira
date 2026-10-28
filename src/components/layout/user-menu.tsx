@@ -29,13 +29,18 @@ function initialsOf(name: string): string {
   return `${first}${last}`.toUpperCase();
 }
 
+/** WCAG 2.5.3: o nome acessível começa pelo texto visível (as iniciais). */
+export function userMenuLabel(displayName: string): string {
+  return `${initialsOf(displayName)}, menu de ${displayName}`;
+}
+
 export function UserMenu({ displayName, email, avatarUrl }: UserMenuProps) {
   const [pending, startTransition] = useTransition();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={`Menu de ${displayName}`}
+        aria-label={userMenuLabel(displayName)}
         className="focus-visible:ring-ring flex size-10 items-center justify-center rounded-full outline-none focus-visible:ring-3"
       >
         <Avatar>

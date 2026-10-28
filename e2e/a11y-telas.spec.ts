@@ -1,14 +1,17 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { auditar, resumir } from "./helpers/a11y";
-import { semearDadosDasRotas } from "./helpers/cenario-rotas";
+import {
+  novoCaminhoDeSessaoDasRotas,
+  semearDadosDasRotas,
+} from "./helpers/cenario-rotas";
 import {
   ROTAS_AUTENTICADAS,
   resolver,
   type IdsDinamicos,
   type Rota,
 } from "./helpers/rotas";
-import { sessionFile, type SharedRole } from "./helpers/shared-users";
+import { sessionFile } from "./helpers/shared-users";
 import { fixarTema } from "./helpers/tema";
 import { TEMAS, VIEWPORTS } from "./helpers/viewports";
 
@@ -18,18 +21,24 @@ import { TEMAS, VIEWPORTS } from "./helpers/viewports";
  * autenticadas). Precisa do Supabase local (global-setup). Escrito agora, executado com Docker
  * (ADR-0032 §2, camada 2): enquanto não rodar, NÃO conta como verde.
  *
- * Estado "vazio" = família `outsider` (sem dados); "com dados" = `owner` + semeadura.
+ * Estado "vazio" = família `outsider` (sem dados); "com dados" = usuário/família próprios semeados.
  */
 let ids: IdsDinamicos;
+/** Sessão de um usuário/família semeados só para este arquivo e worker (não é o dono compartilhado). */
+const SESSAO_COM_DADOS = novoCaminhoDeSessaoDasRotas("a11y");
 
-test.beforeAll(async () => {
-  ids = await semearDadosDasRotas();
+test.beforeAll(async ({ browser }, testInfo) => {
+  ids = await semearDadosDasRotas(
+    browser,
+    String(testInfo.project.use.baseURL ?? "http://localhost:3000"),
+    SESSAO_COM_DADOS,
+  );
 });
 
-type Estado = { nome: "vazio" | "com dados"; papel: SharedRole };
+type Estado = { nome: "vazio" | "com dados"; sessao: string };
 const ESTADOS: Estado[] = [
-  { nome: "com dados", papel: "owner" },
-  { nome: "vazio", papel: "outsider" },
+  { nome: "com dados", sessao: SESSAO_COM_DADOS },
+  { nome: "vazio", sessao: sessionFile("outsider") },
 ];
 
 /** Abre o primeiro menu/diálogo que a tela oferece e audita só o trecho aberto. */
@@ -74,7 +83,7 @@ function alvosDoEstado(estado: Estado): Rota[] {
 
 for (const estado of ESTADOS) {
   test.describe(`@docker axe · ${estado.nome}`, () => {
-    test.use({ storageState: sessionFile(estado.papel) });
+    test.use({ storageState: estado.sessao });
 
     for (const tema of TEMAS) {
       for (const rota of alvosDoEstado(estado)) {
@@ -128,7 +137,7 @@ test.describe("@docker /convite/[token] (pública, com banco)", () => {
 });
 
 test.describe("@docker estrutura das rotas autenticadas (CA-E8-31)", () => {
-  test.use({ storageState: sessionFile("owner") });
+  test.use({ storageState: SESSAO_COM_DADOS });
 
   for (const rota of ROTAS_AUTENTICADAS.filter(
     (r) => r.padrao !== "/onboarding",
@@ -155,7 +164,7 @@ test.describe("@docker estrutura das rotas autenticadas (CA-E8-31)", () => {
 });
 
 test.describe("@docker teclado, foco e alvo nas telas autenticadas (CA-E8-24/25/26)", () => {
-  test.use({ storageState: sessionFile("owner") });
+  test.use({ storageState: SESSAO_COM_DADOS });
 
   test("primeiro Tab em /inicio foca 'Pular para o conteúdo' e Enter leva a main#conteudo (CA-E8-20)", async ({
     page,

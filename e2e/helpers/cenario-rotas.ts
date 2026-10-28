@@ -1,7 +1,22 @@
-import { clienteDo } from "./cenario";
+import type { Browser } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
+import { clienteDo, criarCenario } from "./cenario";
+import { loginPelaTela } from "./login-pelo-formulario";
 import type { IdsDinamicos } from "./rotas";
-import { sharedUser } from "./shared-users";
+import { AUTH_DIR } from "./shared-users";
 import { adminClient } from "./users";
+
+/**
+ * Caminho único (por carga do módulo, isto é, por worker) do storageState do usuário semeado.
+ * `test.use({ storageState })` precisa do caminho na declaração; o `beforeAll` do mesmo worker
+ * grava o arquivo nele. Workers e arquivos diferentes nunca compartilham sessão nem família.
+ */
+export function novoCaminhoDeSessaoDasRotas(rotulo: string): string {
+  return join(AUTH_DIR, `rotas-${rotulo}-${randomUUID().slice(0, 8)}.json`);
+}
 
 /** Data de hoje em São Paulo (`private.today()` do banco), não em UTC: lançamento efetivado não pode ser futuro. */
 function hojeEmSaoPaulo(): string {
@@ -11,9 +26,12 @@ function hojeEmSaoPaulo(): string {
 }
 
 /**
- * Semeia, na família do dono compartilhado (global-setup), uma linha de cada entidade que tem
+ * Semeia, numa FAMÍLIA PRÓPRIA (usuário novo, dono dela; nunca o dono compartilhado do
+ * global-setup, cuja cota de convites os specs de família consomem), uma linha de cada entidade que tem
  * rota dinâmica no inventário, para o QA percorrer telas "com dados". Só roda com Docker
- * (Supabase local). Nomes únicos por execução: a semeadura é repetível.
+ * (Supabase local). Cada chamada cria usuário e família novos (nada depende de execuções
+ * anteriores) e exatamente 1 convite, bem abaixo do limite de 20 pendentes. Entra pela tela e
+ * grava a sessão em `arquivoSessao` (use `novoCaminhoDeSessaoDasRotas` + `test.use`).
  *
  * Caminho de escrita (mesmo dos outros specs, que passam no CI):
  * - `accounts` e `categories`: secret key (`adminClient`), como `criarContaNoBanco`/`criarCenario`.
@@ -24,21 +42,25 @@ function hojeEmSaoPaulo(): string {
  *   `next_occurrence_date` ficam FORA do grant e vêm do banco. Enviá-los devolve
  *   "permission denied for table ...", mesmo com o usuário autenticado.
  */
-export async function semearDadosDasRotas(): Promise<IdsDinamicos> {
-  const dono = sharedUser("owner");
-  const admin = adminClient();
+export async function semearDadosDasRotas(
+  browser: Browser,
+  baseURL: string,
+  arquivoSessao: string,
+): Promise<IdsDinamicos> {
   const sufixo = Math.random().toString(36).slice(2, 8);
+  const { owner: dono, familyId } = await criarCenario(`rotas-${sufixo}`);
+  const admin = adminClient();
 
-  const { data: vinculo, error: erroVinculo } = await admin
-    .from("family_members")
-    .select("family_id")
-    .eq("user_id", dono.id)
-    .eq("status", "active")
-    .single();
-  if (erroVinculo || !vinculo) {
-    throw new Error(`Dono sem família: ${erroVinculo?.message}`);
+  mkdirSync(AUTH_DIR, { recursive: true });
+  const contexto = await browser.newContext({ baseURL });
+  try {
+    const pagina = await contexto.newPage();
+    await pagina.goto("/login");
+    await loginPelaTela(pagina, dono);
+    await contexto.storageState({ path: arquivoSessao });
+  } finally {
+    await contexto.close();
   }
-  const familyId = vinculo.family_id as string;
 
   const cliente = await clienteDo(dono);
   const um = async (

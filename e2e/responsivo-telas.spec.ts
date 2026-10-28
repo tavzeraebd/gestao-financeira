@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-import { semearDadosDasRotas } from "./helpers/cenario-rotas";
+import {
+  novoCaminhoDeSessaoDasRotas,
+  semearDadosDasRotas,
+} from "./helpers/cenario-rotas";
 import {
   controlesSobrepostos,
   elementosForaDaViewport,
@@ -11,7 +14,6 @@ import {
   resolver,
   type IdsDinamicos,
 } from "./helpers/rotas";
-import { sessionFile } from "./helpers/shared-users";
 import { fixarTema } from "./helpers/tema";
 import {
   BREAKPOINT_MD,
@@ -25,11 +27,16 @@ import {
  * viewports), CA-E8-42 (navegação), CA-E8-43 (diálogos na área útil), CA-E8-44 (campos >= 16px),
  * CA-E8-47 (SubNav). Precisa do Supabase local. Escrito agora, executado com Docker.
  */
-test.use({ storageState: sessionFile("owner") });
+const SESSAO_COM_DADOS = novoCaminhoDeSessaoDasRotas("responsivo");
+test.use({ storageState: SESSAO_COM_DADOS });
 
 let ids: IdsDinamicos;
-test.beforeAll(async () => {
-  ids = await semearDadosDasRotas();
+test.beforeAll(async ({ browser }, testInfo) => {
+  ids = await semearDadosDasRotas(
+    browser,
+    String(testInfo.project.use.baseURL ?? "http://localhost:3000"),
+    SESSAO_COM_DADOS,
+  );
 });
 
 const ROTAS = ROTAS_AUTENTICADAS.filter((r) => r.padrao !== "/onboarding");
