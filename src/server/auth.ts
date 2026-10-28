@@ -34,8 +34,12 @@ export const getOptionalUser = cache(async (): Promise<AuthUser | null> => {
  */
 export async function requireUser(): Promise<AuthUser> {
   const user = await getOptionalUser();
-  if (!user) redirect("/login?motivo=sessao_expirada");
-  return user;
+  if (user) return user;
+  // Só a presença de sessão no cookie escolhe o destino (para o proxy não fechar o laço); o acesso
+  // continua negado porque a decisão acima é do `getUser()`, nunca dos claims.
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  redirect(data?.claims ? "/login?motivo=sessao_expirada" : "/login");
 }
 
 export const getOptionalMembership = cache(

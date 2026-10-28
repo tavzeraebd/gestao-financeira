@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const getUser = vi.fn();
+const getClaims = vi.fn();
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { getUser } }),
+  createClient: async () => ({ auth: { getUser, getClaims } }),
 }));
 vi.mock("@/modules/family/repository", () => ({
   findActiveMembership: vi.fn(),
@@ -25,12 +26,28 @@ async function destinoDoRedirect(promise: Promise<unknown>): Promise<string> {
 }
 
 describe("requireUser", () => {
-  beforeEach(() => getUser.mockReset());
+  beforeEach(() => {
+    getUser.mockReset();
+    getClaims.mockReset();
+  });
+
+  it("sem sessão alguma vai a /login simples", async () => {
+    getUser.mockResolvedValue({
+      data: { user: null },
+      error: { status: 400, code: "session_missing", message: "sem sessão" },
+    });
+    getClaims.mockResolvedValue({ data: null, error: null });
+    expect(await destinoDoRedirect(requireUser())).toBe("/login");
+  });
 
   it("sessão revogada (getUser falha com JWT local ainda válido) vai a /login com motivo, para o proxy não fechar um laço", async () => {
     getUser.mockResolvedValue({
       data: { user: null },
       error: { status: 403, code: "session_not_found", message: "revogada" },
+    });
+    getClaims.mockResolvedValue({
+      data: { claims: { sub: "u1" } },
+      error: null,
     });
     expect(await destinoDoRedirect(requireUser())).toBe(
       "/login?motivo=sessao_expirada",
