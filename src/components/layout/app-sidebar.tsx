@@ -45,11 +45,11 @@ export function AppSidebar({ familyName }: { familyName: string }) {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-sidebar-border h-16 justify-center border-b px-4">
+      <SidebarHeader className="border-sidebar-border h-16 justify-center border-b px-4 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
         <Link
           href="/inicio"
           aria-label="Núcleo, ir para o início"
-          className="focus-visible:ring-sidebar-ring flex items-center rounded-md outline-none focus-visible:ring-2"
+          className="focus-visible:ring-sidebar-ring flex items-center justify-center rounded-md outline-none focus-visible:ring-2"
         >
           <Logo
             variant="full"
@@ -64,7 +64,7 @@ export function AppSidebar({ familyName }: { familyName: string }) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu aria-label="Navegação principal">
+            <SidebarMenu aria-label="Navegação principal" className="gap-1">
               {navItems.map((item) => {
                 const { href, label, icon: Icon } = item;
                 return (
@@ -72,11 +72,15 @@ export function AppSidebar({ familyName }: { familyName: string }) {
                     <SidebarMenuButton
                       size="lg"
                       tooltip={label}
+                      aria-label={label}
                       isActive={isNavItemActive(item, pathname)}
                       render={<Link href={href} />}
+                      className="h-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!"
                     >
-                      <Icon aria-hidden="true" />
-                      <span>{label}</span>
+                      <Icon aria-hidden="true" className="size-4 shrink-0" />
+                      <span className="group-data-[collapsible=icon]:sr-only">
+                        {label}
+                      </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
