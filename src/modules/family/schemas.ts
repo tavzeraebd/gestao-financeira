@@ -32,3 +32,14 @@ export const revokeInviteSchema = z.object({
 export const acceptInviteSchema = z.object({
   token: z.string().regex(/^[0-9a-f]{64}$/, "Convite inválido."),
 });
+
+export const memberIdSchema = z.object({
+  memberId: z.uuid("Integrante inválido."),
+});
+
+export const changeRoleSchema = z.object({
+  memberId: z.uuid("Integrante inválido."),
+  role: z.enum(["admin", "member"], { error: "Escolha um papel." }),
+});
+
+export const renameFamilySchema = createFamilySchema;

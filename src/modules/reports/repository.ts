@@ -69,3 +69,48 @@ export async function selectHasPaidTransaction(
   if (error) throw error;
   return data.length > 0;
 }
+
+/** D22: movimento por conta (entradas, saídas e saldos nas duas pontas). */
+export async function rpcAccountFlows(
+  supabase: Client,
+  from: ISODate,
+  to: ISODate,
+): Promise<
+  {
+    accountId: string;
+    opening: Cents;
+    inflow: Cents;
+    outflow: Cents;
+    closing: Cents;
+  }[]
+> {
+  const { data, error } = await supabase.rpc("account_flows", {
+    p_from: from,
+    p_to: to,
+  });
+  if (error) throw error;
+  return data.map((r) => ({
+    accountId: r.account_id,
+    opening: fromDbNumeric(r.opening),
+    inflow: fromDbNumeric(r.inflow),
+    outflow: fromDbNumeric(r.outflow),
+    closing: fromDbNumeric(r.closing),
+  }));
+}
+
+/** D10: despesas por integrante; `memberId` nulo = sem responsável. */
+export async function rpcMemberExpenseTotals(
+  supabase: Client,
+  from: ISODate,
+  to: ISODate,
+): Promise<{ memberId: string | null; amount: Cents }[]> {
+  const { data, error } = await supabase.rpc("member_expense_totals", {
+    p_from: from,
+    p_to: to,
+  });
+  if (error) throw error;
+  return data.map((r) => ({
+    memberId: (r.member_id as string | null) ?? null,
+    amount: fromDbNumeric(r.amount),
+  }));
+}

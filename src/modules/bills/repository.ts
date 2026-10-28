@@ -23,6 +23,7 @@ import type { Database } from "@/types/database";
 import { BILL_KIND_TO_TYPE, type BillKind } from "./constants";
 import { billStatusOf } from "./domain/status";
 import type { BillFilters, BillListItem, BillsSummary } from "./types";
+import { memberDisplayName } from "@/modules/family/domain/member-name";
 
 type Client = SupabaseClient<Database>;
 
@@ -111,7 +112,9 @@ export function toBillItem(
     assignedMember: row.assigned_member
       ? {
           id: row.assigned_member.id,
-          displayName: row.assigned_member.profiles?.display_name ?? null,
+          displayName: memberDisplayName(
+            row.assigned_member.profiles?.display_name ?? null,
+          ),
         }
       : null,
     recurrence: row.recurrence

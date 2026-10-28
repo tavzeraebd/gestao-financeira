@@ -50,6 +50,8 @@ export type ErrorCode =
   | "SPLIT_AMOUNT_TOO_SMALL"
   | "MEMBER_INACTIVE"
   | "NAME_TAKEN"
+  | "OWNER_MUST_TRANSFER"
+  | "CANNOT_TARGET_SELF"
   | "INTERNAL_ERROR";
 
 export type ActionError = {

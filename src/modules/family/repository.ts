@@ -52,7 +52,7 @@ export async function listActiveMembers(
   supabase: Client,
   familyId: string,
   currentUserId: string,
-): Promise<MemberView[]> {
+): Promise<Omit<MemberView, "actions">[]> {
   const { data, error } = await supabase
     .from("family_members")
     .select("id, user_id, role, joined_at, profiles(display_name, avatar_url)")
@@ -171,4 +171,56 @@ export async function rpcGetInvitePreview(
     status,
     emailBound: row.email_bound,
   };
+}
+
+export async function rpcChangeMemberRole(
+  supabase: Client,
+  memberId: string,
+  role: "admin" | "member",
+): Promise<void> {
+  const { error } = await supabase.rpc("change_member_role", {
+    p_member_id: memberId,
+    p_role: role,
+  });
+  if (error) throw error;
+}
+
+export async function rpcTransferOwnership(
+  supabase: Client,
+  memberId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("transfer_ownership", {
+    p_member_id: memberId,
+  });
+  if (error) throw error;
+}
+
+export async function rpcRemoveFamilyMember(
+  supabase: Client,
+  memberId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("remove_family_member", {
+    p_member_id: memberId,
+  });
+  if (error) throw error;
+}
+
+export async function rpcLeaveFamily(supabase: Client): Promise<void> {
+  const { error } = await supabase.rpc("leave_family");
+  if (error) throw error;
+}
+
+/** Devolve quantas linhas o update alcançou (0 = a RLS negou: só o owner renomeia). */
+export async function updateFamilyName(
+  supabase: Client,
+  familyId: string,
+  name: string,
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("families")
+    .update({ name })
+    .eq("id", familyId)
+    .select("id");
+  if (error) throw error;
+  return data.length;
 }

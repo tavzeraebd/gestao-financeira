@@ -26,6 +26,7 @@ import type {
   TransactionListItem,
 } from "@/modules/transactions/types";
 import type { Database } from "@/types/database";
+import { memberDisplayName } from "@/modules/family/domain/member-name";
 
 type Client = SupabaseClient<Database>;
 
@@ -111,7 +112,9 @@ export function toListItem(
     assignedMember: row.assigned_member
       ? {
           id: row.assigned_member.id,
-          displayName: row.assigned_member.profiles?.display_name ?? null,
+          displayName: memberDisplayName(
+            row.assigned_member.profiles?.display_name ?? null,
+          ),
         }
       : null,
     reversalOfId: row.reversal_of_id,

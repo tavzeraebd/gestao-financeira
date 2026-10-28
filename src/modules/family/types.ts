@@ -1,4 +1,4 @@
-import type { FamilyRole } from "@/modules/family/permissions";
+import type { FamilyRole, MemberActions } from "@/modules/family/permissions";
 
 export type Membership = {
   userId: string;
@@ -16,6 +16,8 @@ export type MemberView = {
   role: FamilyRole;
   joinedAt: string;
   isMe: boolean;
+  /** Só UX; a autorização real é das RPCs. */
+  actions: MemberActions;
 };
 
 export type InviteView = {
@@ -37,5 +39,11 @@ export type InvitePreview = {
 export type FamilyOverview = {
   family: { id: string; name: string };
   myRole: FamilyRole;
+  memberCount: number;
+  permissions: {
+    canRename: boolean;
+    canLeave: boolean;
+    canViewActivity: boolean;
+  };
   members: MemberView[];
 };

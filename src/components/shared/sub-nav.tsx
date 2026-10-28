@@ -6,13 +6,15 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type SubNavProps = {
-  items: { href: string; label: string }[];
+  /** `href` pode ter query string (ela não conta para o item ativo); `exact` só casa a própria rota. */
+  items: { href: string; label: string; exact?: boolean }[];
   "aria-label": string;
   className?: string;
 };
 
-function isActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isActive(pathname: string, href: string, exact = false): boolean {
+  const path = href.split("?")[0] ?? href;
+  return pathname === path || (!exact && pathname.startsWith(`${path}/`));
 }
 
 export function SubNav({ items, "aria-label": ariaLabel, className }: SubNavProps) {
@@ -21,7 +23,7 @@ export function SubNav({ items, "aria-label": ariaLabel, className }: SubNavProp
     <nav aria-label={ariaLabel} className={cn("max-w-full", className)}>
       <ul className="bg-muted inline-flex max-w-full gap-1 overflow-x-auto rounded-lg p-1">
         {items.map((item) => {
-          const active = isActive(pathname, item.href);
+          const active = isActive(pathname, item.href, item.exact);
           return (
             <li key={item.href} className="shrink-0">
               <Link

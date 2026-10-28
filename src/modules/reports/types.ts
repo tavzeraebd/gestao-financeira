@@ -4,10 +4,16 @@ import type {
   CategoryColor,
   CategoryIconName,
 } from "@/modules/categories/constants";
-import type { GoalIconName } from "@/modules/goals/constants";
+import type { AccountType } from "@/modules/accounts/constants";
+import type { BudgetStatus } from "@/modules/budgets/constants";
+import type { GoalIconName, GoalStatus } from "@/modules/goals/constants";
 import type { BillListItem } from "@/modules/bills/types";
 import type { TransactionListItem } from "@/modules/transactions/types";
-import type { PERIOD_PRESETS } from "./constants";
+import type {
+  PERIOD_PRESETS,
+  REPORT_CATEGORY_TYPES,
+  REPORT_PRESETS,
+} from "./constants";
 
 export type PeriodPreset = (typeof PERIOD_PRESETS)[number];
 
@@ -95,4 +101,134 @@ export type Dashboard = {
   upcomingBills: BillListItem[];
   /** Até 3 metas ativas: data-alvo crescente (sem data por último), depois criação. */
   goals: DashboardGoal[];
+};
+
+export type ReportPreset = (typeof REPORT_PRESETS)[number];
+
+/** Filtros de URL dos relatórios já normalizados (D21). */
+export type ReportFilters = {
+  periodo: ReportPreset;
+  de?: ISODate;
+  ate?: ISODate;
+};
+
+export type CategoryReportFilters = ReportFilters & {
+  tipo: (typeof REPORT_CATEGORY_TYPES)[number];
+};
+
+export type ReportPeriod = {
+  preset: ReportPreset;
+  from: ISODate;
+  to: ISODate;
+  previousFrom: ISODate;
+  previousTo: ISODate;
+  label: string;
+  previousLabel: string;
+  /** 1º dia de cada mês civil que toca o período. */
+  months: ISODate[];
+};
+
+export type ReportOverview = {
+  period: ReportPeriod;
+  summary: { income: Comparison; expense: Comparison; result: Comparison };
+  cashFlow: CashFlowMonth[];
+  expenseByCategory: CategoryBreakdown;
+};
+
+export type CategoryReportRow = {
+  categoryId: string;
+  name: string;
+  color: CategoryColor;
+  icon: CategoryIconName | null;
+  archived: boolean;
+  current: Cents;
+  previous: Cents;
+  comparison: Comparison;
+};
+
+export type CategoryReport = {
+  period: ReportPeriod;
+  type: "expense" | "income";
+  breakdown: CategoryBreakdown;
+  rows: CategoryReportRow[];
+};
+
+export type AccountReportRow = {
+  id: string;
+  name: string;
+  type: AccountType;
+  archived: boolean;
+  opening: Cents;
+  inflow: Cents;
+  outflow: Cents;
+  /** Entradas − saídas (D22). */
+  net: Cents;
+  closing: Cents;
+};
+
+export type AccountReport = {
+  period: ReportPeriod;
+  accounts: AccountReportRow[];
+  /** Σ líquido das contas de ativo (cartões fora) = `consolidated.delta`. */
+  assetNet: Cents;
+  /** Saldo consolidado (D3) no fim × no início do período. */
+  consolidated: Comparison;
+};
+
+export type MemberReportRow = {
+  /** `null` = "Família (sem responsável)". */
+  member: { id: string; displayName: string } | null;
+  amount: Cents;
+  percent: number | null;
+};
+
+export type MemberReport = {
+  period: ReportPeriod;
+  /** Despesas do período (D4); igual à soma das linhas. */
+  total: Cents;
+  rows: MemberReportRow[];
+};
+
+export type BudgetReportRow = {
+  budgetId: string;
+  /** `null` = todas as despesas. */
+  category: {
+    id: string;
+    name: string;
+    color: CategoryColor;
+    icon: CategoryIconName;
+    archived: boolean;
+  } | null;
+  limit: Cents;
+  spent: Cents;
+  percent: number | null;
+  status: BudgetStatus;
+};
+
+export type BudgetReportMonth = {
+  month: ISODate;
+  label: string;
+  rows: BudgetReportRow[];
+};
+
+export type BudgetReport = {
+  period: ReportPeriod;
+  months: BudgetReportMonth[];
+};
+
+export type GoalReportRow = {
+  id: string;
+  name: string;
+  icon: GoalIconName;
+  status: GoalStatus;
+  target: Cents;
+  saved: Cents;
+  deposits: Cents;
+  withdrawals: Cents;
+  percent: number | null;
+};
+
+export type GoalReport = {
+  period: ReportPeriod;
+  goals: GoalReportRow[];
 };

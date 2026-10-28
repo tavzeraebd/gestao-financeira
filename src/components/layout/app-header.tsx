@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { UserMenu } from "@/components/layout/user-menu";
 import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -12,9 +13,16 @@ type AppHeaderProps = {
   displayName: string;
   email: string;
   avatarUrl: string | null;
+  /** Notificações não lidas (`null` = contagem indisponível). */
+  unreadNotifications: number | null;
 };
 
-export function AppHeader({ displayName, email, avatarUrl }: AppHeaderProps) {
+export function AppHeader({
+  displayName,
+  email,
+  avatarUrl,
+  unreadNotifications,
+}: AppHeaderProps) {
   const pathname = usePathname();
   const current = navItems.find(
     ({ href }) => pathname === href || pathname.startsWith(`${href}/`),
@@ -31,6 +39,10 @@ export function AppHeader({ displayName, email, avatarUrl }: AppHeaderProps) {
         {current?.label ?? "Núcleo"}
       </p>
       <ThemeToggle />
+      <NotificationBell
+        unread={unreadNotifications}
+        active={pathname === "/notificacoes"}
+      />
       <UserMenu displayName={displayName} email={email} avatarUrl={avatarUrl} />
     </header>
   );

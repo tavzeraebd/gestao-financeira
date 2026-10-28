@@ -29,7 +29,7 @@ import {
 import type { BudgetStatus, BudgetView } from "@/modules/budgets/types";
 import { BudgetStatusButton } from "./budget-status-button";
 
-const STATUS_VIEW: Record<
+export const STATUS_VIEW: Record<
   BudgetStatus,
   {
     variant: "success" | "warning" | "danger";
@@ -43,7 +43,7 @@ const STATUS_VIEW: Record<
 };
 
 /** Só formata o percentual que já vem calculado (`budgetProgress`). */
-function percentText(percent: number | null): string {
+export function percentText(percent: number | null): string {
   return percent === null ? "Sem gastos" : `${Math.round(percent)}%`;
 }
 

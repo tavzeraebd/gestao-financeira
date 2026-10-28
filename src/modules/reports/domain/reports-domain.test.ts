@@ -28,7 +28,10 @@ describe("D20 resolvePeriod", () => {
   it("mes_atual é o mês de hoje", () => {
     const p = resolvePeriod({ periodo: "mes_atual" }, today);
     expect([p.from, p.to]).toEqual(["2026-10-01", "2026-10-31"]);
-    expect([p.previousFrom, p.previousTo]).toEqual(["2026-09-01", "2026-09-30"]);
+    expect([p.previousFrom, p.previousTo]).toEqual([
+      "2026-09-01",
+      "2026-09-30",
+    ]);
     expect(p.label).toBe("outubro de 2026");
     expect(p.previousLabel).toBe("setembro de 2026");
   });
@@ -36,7 +39,10 @@ describe("D20 resolvePeriod", () => {
   it("mes_anterior cruza o ano", () => {
     const p = resolvePeriod({ periodo: "mes_anterior" }, d("2026-01-10"));
     expect([p.from, p.to]).toEqual(["2025-12-01", "2025-12-31"]);
-    expect([p.previousFrom, p.previousTo]).toEqual(["2025-11-01", "2025-11-30"]);
+    expect([p.previousFrom, p.previousTo]).toEqual([
+      "2025-11-01",
+      "2025-11-30",
+    ]);
   });
 
   it("personalizado válido usa os N dias imediatamente anteriores", () => {
@@ -45,7 +51,10 @@ describe("D20 resolvePeriod", () => {
       today,
     );
     expect(p.preset).toBe("personalizado");
-    expect([p.previousFrom, p.previousTo]).toEqual(["2026-09-16", "2026-09-30"]);
+    expect([p.previousFrom, p.previousTo]).toEqual([
+      "2026-09-16",
+      "2026-09-30",
+    ]);
     expect(p.label).toBe("01/10/2026 a 15/10/2026");
   });
 
@@ -54,7 +63,10 @@ describe("D20 resolvePeriod", () => {
       { periodo: "personalizado", de: d("2026-03-01"), ate: d("2026-03-31") },
       today,
     );
-    expect([p.previousFrom, p.previousTo]).toEqual(["2026-02-01", "2026-02-28"]);
+    expect([p.previousFrom, p.previousTo]).toEqual([
+      "2026-02-01",
+      "2026-02-28",
+    ]);
     expect(p.label).toBe("março de 2026");
   });
 
@@ -63,7 +75,10 @@ describe("D20 resolvePeriod", () => {
     ["sem de", { ate: d("2026-10-10") }],
     ["de > ate", { de: d("2026-10-10"), ate: d("2026-10-01") }],
     ["antes de 2000", { de: d("1999-12-31"), ate: d("2000-01-10") }],
-    ["ate depois do fim do mês atual", { de: d("2026-10-01"), ate: d("2026-11-01") }],
+    [
+      "ate depois do fim do mês atual",
+      { de: d("2026-10-01"), ate: d("2026-11-01") },
+    ],
     ["mais de 366 dias", { de: d("2025-10-01"), ate: d("2026-10-31") }],
   ])("personalizado inválido (%s) cai em mes_atual", (_n, extra) => {
     const p = resolvePeriod({ periodo: "personalizado", ...extra }, today);

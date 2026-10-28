@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { can } from "@/modules/family/permissions";
+import { can, memberActionsFor } from "@/modules/family/permissions";
 import {
   listActiveMembers,
   listPendingInvites as selectPendingInvites,
@@ -26,7 +26,16 @@ export async function getFamilyOverview(): Promise<FamilyOverview> {
   return {
     family: { id: membership.familyId, name: membership.familyName },
     myRole: membership.role,
-    members,
+    memberCount: members.length,
+    permissions: {
+      canRename: can(membership.role, "family.rename"),
+      canLeave: can(membership.role, "family.leave"),
+      canViewActivity: can(membership.role, "audit.read"),
+    },
+    members: members.map((m) => ({
+      ...m,
+      actions: memberActionsFor(membership.role, m),
+    })),
   };
 }
 

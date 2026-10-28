@@ -78,6 +78,9 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   MEMBER_INACTIVE:
     "Um dos integrantes não faz mais parte da família. Atualize a página.",
   NAME_TAKEN: "Já existe um item com este nome. Escolha outro nome.",
+  OWNER_MUST_TRANSFER:
+    "Transfira a propriedade da família para outro integrante antes de sair.",
+  CANNOT_TARGET_SELF: "Você não pode fazer isso com o seu próprio vínculo.",
   INTERNAL_ERROR:
     "Algo deu errado do nosso lado. Tente novamente em instantes.",
 };

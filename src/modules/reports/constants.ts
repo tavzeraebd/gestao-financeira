@@ -8,6 +8,22 @@ export const PERIOD_PRESETS = [
 
 export const DEFAULT_PERIOD_PRESET = "mes_atual" as const;
 
+/** Presets de período dos relatórios (D21). */
+export const REPORT_PRESETS = [
+  "7_dias",
+  "30_dias",
+  "3_meses",
+  "12_meses",
+  "personalizado",
+] as const;
+
+export const DEFAULT_REPORT_PRESET = "30_dias" as const;
+
+/** `?tipo=` do relatório por categoria. */
+export const REPORT_CATEGORY_TYPES = ["despesas", "receitas"] as const;
+
+export const DEFAULT_REPORT_CATEGORY_TYPE = "despesas" as const;
+
 /** Menor data aceita no período personalizado. */
 export const MIN_PERIOD_DATE = "2000-01-01" as ISODate;
 

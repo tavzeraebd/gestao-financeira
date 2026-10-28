@@ -1,8 +1,11 @@
+import { HistoryIcon } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -15,7 +18,11 @@ import {
   ROLE_LABELS,
   formatDateTime,
 } from "@/modules/family/components/invite-labels";
+import { LeaveFamilyButton } from "@/modules/family/components/leave-family-button";
+import { MemberActionsMenu } from "@/modules/family/components/member-actions-menu";
+import { RenameFamilyDialog } from "@/modules/family/components/rename-family-dialog";
 import { RevokeInviteButton } from "@/modules/family/components/revoke-invite-button";
+import { roleLabel } from "@/modules/family/domain/role-labels";
 import { can } from "@/modules/family/permissions";
 import {
   getFamilyOverview,
@@ -42,7 +49,7 @@ export default async function FamilyPage() {
     getFamilyOverview(),
     listPendingInvites(),
   ]);
-  const { family, myRole, members } = overview;
+  const { family, myRole, members, memberCount, permissions } = overview;
   const canManageInvites = can(myRole, "invite.list");
 
   return (
@@ -50,19 +57,35 @@ export default async function FamilyPage() {
       <PageHeader
         title="Família"
         description="Quem participa e como convidar novas pessoas."
+        actions={
+          permissions.canRename || permissions.canViewActivity ? (
+            <>
+              {permissions.canRename ? (
+                <RenameFamilyDialog currentName={family.name} />
+              ) : null}
+              {permissions.canViewActivity ? (
+                <Link
+                  href="/familia/atividade"
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  <HistoryIcon aria-hidden="true" data-icon="inline-start" />
+                  Ver atividade
+                </Link>
+              ) : null}
+            </>
+          ) : undefined
+        }
       />
 
       <Card className="[--card-spacing:--spacing(5)]">
         <CardHeader>
           <CardTitle className="text-lg">{family.name}</CardTitle>
           <CardDescription>
-            {members.length === 1
-              ? "1 integrante"
-              : `${members.length} integrantes`}
+            {memberCount === 1 ? "1 membro" : `${memberCount} membros`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <h2 className="mb-2 text-sm font-semibold">Integrantes</h2>
+          <h2 className="mb-2 text-sm font-semibold">Membros</h2>
           <ul className="flex flex-col divide-y">
             {members.map((member) => (
               <li
@@ -87,11 +110,25 @@ export default async function FamilyPage() {
                   ) : null}
                 </p>
                 <Badge variant={ROLE_BADGE[member.role]}>
-                  {ROLE_LABELS[member.role]}
+                  {roleLabel(member.role)}
                 </Badge>
+                <MemberActionsMenu
+                  memberId={member.memberId}
+                  displayName={member.displayName}
+                  actions={member.actions}
+                />
               </li>
             ))}
           </ul>
+          {permissions.canLeave ? (
+            <div className="mt-4 border-t pt-4">
+              <LeaveFamilyButton />
+            </div>
+          ) : myRole === "owner" ? (
+            <p className="text-muted-foreground mt-4 border-t pt-4 text-sm">
+              Para sair, transfira a propriedade antes.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

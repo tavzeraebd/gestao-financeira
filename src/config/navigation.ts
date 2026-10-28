@@ -1,6 +1,8 @@
 import {
   ArrowLeftRightIcon,
+  BellIcon,
   CalculatorIcon,
+  ChartColumnIcon,
   HomeIcon,
   PiggyBankIcon,
   SettingsIcon,
@@ -50,7 +52,19 @@ export const navItems: NavItem[] = [
     icon: CalculatorIcon,
     mobile: "more",
   },
+  {
+    href: "/relatorios",
+    label: "Relatórios",
+    icon: ChartColumnIcon,
+    mobile: "more",
+  },
   { href: "/familia", label: "Família", icon: UsersIcon, mobile: "more" },
+  {
+    href: "/notificacoes",
+    label: "Notificações",
+    icon: BellIcon,
+    mobile: "more",
+  },
   { href: "/categorias", label: "Categorias", icon: TagsIcon, mobile: "more" },
   {
     href: "/configuracoes",

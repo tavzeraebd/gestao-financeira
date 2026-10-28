@@ -17,7 +17,10 @@ export function buildCategoryBreakdown(
   categories: ReadonlyMap<string, CategoryView>,
   total: Cents,
 ): CategoryBreakdown {
-  const toSlice = (row: { categoryId: string; amount: Cents }): CategorySlice => {
+  const toSlice = (row: {
+    categoryId: string;
+    amount: Cents;
+  }): CategorySlice => {
     const category = categories.get(row.categoryId);
     return {
       key: row.categoryId,

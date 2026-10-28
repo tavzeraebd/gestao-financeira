@@ -25,6 +25,7 @@ import type {
   RecurrenceView,
 } from "@/modules/recurrences/types";
 import { requireMembership } from "@/server/auth";
+import { memberDisplayName } from "@/modules/family/domain/member-name";
 
 /** Séries por página lida (o limite é 100 ativas por família; o laço cobre o resto). */
 const PAGE_SIZE = 100;
@@ -88,7 +89,9 @@ function toView(
     assignedMember: row.assigned_member
       ? {
           id: row.assigned_member.id,
-          displayName: row.assigned_member.profiles?.display_name ?? null,
+          displayName: memberDisplayName(
+            row.assigned_member.profiles?.display_name ?? null,
+          ),
         }
       : null,
     canManage: canManageTransaction(viewer.role, row.created_by, viewer.userId),

@@ -283,3 +283,65 @@ test.describe("Família: outra família e integrante", () => {
     await contexto.close();
   });
 });
+
+test.describe("Família: gestão de integrantes (Etapa 7)", () => {
+  test("CA-E7-56/59: integrante vê só 'Sair da família' e sem menu de ações", async ({
+    browser,
+  }) => {
+    const contexto = await contextoComSessao(browser, "member");
+    const page = await contexto.newPage();
+    await page.goto("/familia");
+
+    await expect(
+      page.getByRole("button", { name: "Sair da família" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Ações para / })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Ver atividade" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Editar/ })).toHaveCount(0);
+
+    // Cancelar a confirmação não tira ninguém da família.
+    await page.getByRole("button", { name: "Sair da família" }).click();
+    await expect(page.getByRole("alertdialog")).toContainText(
+      "Você perde o acesso aos dados desta família",
+    );
+    await page.getByRole("button", { name: "Ficar na família" }).click();
+    await expect(page).toHaveURL(/\/familia$/);
+    await contexto.close();
+  });
+
+  test("CA-E7-55/59: dono vê as ações do integrante e a orientação para sair", async ({
+    browser,
+  }) => {
+    const member = sharedUser("member");
+    const contexto = await contextoComSessao(browser, "owner");
+    const page = await contexto.newPage();
+    await page.goto("/familia");
+
+    await expect(
+      page.getByText("Para sair, transfira a propriedade antes."),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: `Ações para ${member.displayName}` })
+      .click();
+    await expect(
+      page.getByRole("menuitem", { name: "Transferir propriedade" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "Remover da família" }),
+    ).toBeVisible();
+
+    // A confirmação aparece e cancelar não muda nada.
+    await page.getByRole("menuitem", { name: "Remover da família" }).click();
+    await expect(page.getByRole("alertdialog")).toContainText(
+      "perde o acesso aos dados da família na hora",
+    );
+    await page.getByRole("button", { name: "Manter na família" }).click();
+    await expect(page.getByText(member.displayName)).toBeVisible();
+
+    await page.getByRole("button", { name: /^Editar/ }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Nome da família" }),
+    ).toBeVisible();
+    await contexto.close();
+  });
+});

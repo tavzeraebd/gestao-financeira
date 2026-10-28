@@ -21,6 +21,7 @@ import type {
   BillPage,
   BillsSummary,
 } from "./types";
+import { memberDisplayName } from "@/modules/family/domain/member-name";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -62,7 +63,7 @@ export async function getBill(id: string): Promise<BillDetail | null> {
     notes: row.notes,
     createdBy: {
       id: row.created_by,
-      displayName: row.creator?.display_name ?? "Integrante",
+      displayName: memberDisplayName(row.creator?.display_name ?? null),
     },
     createdAt: row.created_at,
     history: can(membership.role, "audit.read")

@@ -175,7 +175,7 @@ export async function setRecurrenceEndDate(
 export async function rpcMaterializeRecurrences(
   supabase: Client,
 ): Promise<number> {
-  const { data, error } = await supabase.rpc("materialize_recurrences", {});
+  const { data, error } = await supabase.rpc("materialize_recurrences");
   if (error) throw error;
   return data;
 }

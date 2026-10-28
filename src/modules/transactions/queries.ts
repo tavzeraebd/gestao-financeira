@@ -26,6 +26,7 @@ import type {
 } from "@/modules/transactions/types";
 import { requireMembership } from "@/server/auth";
 import { AppError } from "@/server/errors";
+import { memberDisplayName } from "@/modules/family/domain/member-name";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -96,7 +97,7 @@ export async function getTransaction(
       : null,
     createdBy: {
       id: row.created_by,
-      displayName: row.creator?.display_name ?? "Integrante",
+      displayName: memberDisplayName(row.creator?.display_name ?? null),
     },
     createdAt: row.created_at,
     updatedAt: row.updated_at,

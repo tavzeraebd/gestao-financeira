@@ -3,21 +3,31 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { z } from "zod";
+import { z } from "zod";
 import { serverEnv } from "@/lib/env/server";
 import {
   acceptInviteSchema,
+  changeRoleSchema,
   createFamilySchema,
   createInviteSchema,
+  memberIdSchema,
+  renameFamilySchema,
   revokeInviteSchema,
 } from "@/modules/family/schemas";
 import {
   rpcAcceptInvite,
+  rpcChangeMemberRole,
   rpcCreateFamily,
   rpcCreateInvite,
+  rpcLeaveFamily,
+  rpcRemoveFamilyMember,
   rpcRevokeInvite,
+  rpcTransferOwnership,
+  updateFamilyName,
 } from "@/modules/family/repository";
 import { runAction, type ActionResult } from "@/server/action";
+import { requireMembership } from "@/server/auth";
+import { AppError } from "@/server/errors";
 
 // Nenhuma action recebe family_id: a família é derivada no banco (ADR-0008).
 
@@ -89,6 +99,97 @@ export async function acceptInvite(
       await rpcAcceptInvite(supabase, data.token);
       revalidatePath("/", "layout");
       redirect("/inicio");
+    },
+  });
+}
+
+export async function changeMemberRole(
+  input: z.input<typeof changeRoleSchema>,
+): Promise<ActionResult<null>> {
+  return runAction({
+    module: "family",
+    operation: "changeMemberRole",
+    schema: changeRoleSchema,
+    input,
+    auth: "required",
+    handler: async (data, { supabase }) => {
+      await rpcChangeMemberRole(supabase, data.memberId, data.role);
+      revalidatePath("/familia");
+      return null;
+    },
+  });
+}
+
+export async function transferOwnership(
+  input: z.input<typeof memberIdSchema>,
+): Promise<ActionResult<null>> {
+  return runAction({
+    module: "family",
+    operation: "transferOwnership",
+    schema: memberIdSchema,
+    input,
+    auth: "required",
+    handler: async (data, { supabase }) => {
+      await rpcTransferOwnership(supabase, data.memberId);
+      revalidatePath("/familia");
+      return null;
+    },
+  });
+}
+
+export async function removeMember(
+  input: z.input<typeof memberIdSchema>,
+): Promise<ActionResult<null>> {
+  return runAction({
+    module: "family",
+    operation: "removeMember",
+    schema: memberIdSchema,
+    input,
+    auth: "required",
+    handler: async (data, { supabase }) => {
+      await rpcRemoveFamilyMember(supabase, data.memberId);
+      revalidatePath("/familia");
+      return null;
+    },
+  });
+}
+
+/** O cliente navega para `/onboarding` quando `ok`. */
+export async function leaveFamily(): Promise<ActionResult<null>> {
+  return runAction({
+    module: "family",
+    operation: "leaveFamily",
+    schema: z.object({}),
+    input: {},
+    auth: "required",
+    handler: async (_data, { supabase }) => {
+      await rpcLeaveFamily(supabase);
+      revalidatePath("/", "layout");
+      return null;
+    },
+  });
+}
+
+export async function renameFamily(
+  input: z.input<typeof renameFamilySchema>,
+): Promise<ActionResult<null>> {
+  return runAction({
+    module: "family",
+    operation: "renameFamily",
+    schema: renameFamilySchema,
+    input,
+    auth: "required",
+    handler: async (data, { supabase }) => {
+      const membership = await requireMembership();
+      const rows = await updateFamilyName(
+        supabase,
+        membership.familyId,
+        data.name,
+      );
+      // 0 linhas = a RLS negou (não é o owner).
+      if (rows === 0) throw new AppError("FORBIDDEN");
+      revalidatePath("/", "layout");
+      return null;
     },
   });
 }

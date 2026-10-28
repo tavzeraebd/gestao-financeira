@@ -10,6 +10,14 @@ export const LazyDonutChart = dynamic(() => import("./donut-chart"), {
   loading: () => <Skeleton className="h-56 w-full" />,
 });
 
+export const LazyHorizontalBarChart = dynamic(
+  () => import("./horizontal-bar-chart"),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-56 w-full" />,
+  },
+);
+
 export const LazyCashFlowBarChart = dynamic(
   () => import("./cash-flow-bar-chart"),
   {

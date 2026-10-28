@@ -12,6 +12,8 @@ const PRIVATE_PREFIXES = [
   "/metas",
   "/planejamento",
   "/divisao",
+  "/relatorios",
+  "/notificacoes",
 ];
 const GUEST_ONLY = ["/login", "/cadastro", "/recuperar-senha"];
 

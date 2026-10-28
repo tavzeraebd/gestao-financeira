@@ -11,6 +11,8 @@ const ALLOWED_PREFIXES = [
   "/metas",
   "/planejamento",
   "/divisao",
+  "/relatorios",
+  "/notificacoes",
 ] as const;
 
 const MAX_LENGTH = 512;

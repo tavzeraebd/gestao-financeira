@@ -26,7 +26,7 @@ describe("ensureRecurrencesMaterialized", () => {
   it("chama a RPC sem parâmetros e não registra nada quando dá certo", async () => {
     rpc.mockResolvedValue({ data: 2, error: null });
     await expect(ensureRecurrencesMaterialized()).resolves.toBeUndefined();
-    expect(rpc).toHaveBeenCalledWith("materialize_recurrences", {});
+    expect(rpc).toHaveBeenCalledWith("materialize_recurrences");
     expect(warn).not.toHaveBeenCalled();
   });
 

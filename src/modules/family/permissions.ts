@@ -12,7 +12,11 @@ export type FamilyAction =
   | "transaction.manage_any"
   | "budget.manage"
   | "goal.manage"
-  | "settlement.register";
+  | "settlement.register"
+  | "member.change_role"
+  | "member.transfer_ownership"
+  | "family.rename"
+  | "family.leave";
 
 const ALLOWED: Record<FamilyAction, readonly FamilyRole[]> = {
   "invite.list": ["owner", "admin"],
@@ -27,6 +31,10 @@ const ALLOWED: Record<FamilyAction, readonly FamilyRole[]> = {
   "budget.manage": ["owner", "admin"],
   "goal.manage": ["owner", "admin"],
   "settlement.register": ["owner", "admin"],
+  "member.change_role": ["owner"],
+  "member.transfer_ownership": ["owner"],
+  "family.rename": ["owner"],
+  "family.leave": ["admin", "member"],
 };
 
 /** Só UX (mostrar/ocultar). A autorização real é do banco (RLS + RPCs). */
@@ -109,4 +117,42 @@ export function canDeleteSettlement(
     canRegisterSettlement(role, myMemberId, fromId, toId) ||
     createdBy === userId
   );
+}
+
+/** Só UX: owner remove admin e member; admin remove member; ninguém remove o owner. */
+export function canRemoveMember(
+  myRole: FamilyRole,
+  targetRole: FamilyRole,
+): boolean {
+  if (targetRole === "owner") return false;
+  if (myRole === "owner") return true;
+  return myRole === "admin" && targetRole === "member";
+}
+
+export type MemberActions = {
+  makeAdmin: boolean;
+  makeMember: boolean;
+  transferOwnership: boolean;
+  remove: boolean;
+};
+
+/** Só UX: ações permitidas sobre um integrante (nunca sobre o próprio vínculo). */
+export function memberActionsFor(
+  myRole: FamilyRole,
+  target: { role: FamilyRole; isMe: boolean },
+): MemberActions {
+  if (target.isMe || target.role === "owner") {
+    return {
+      makeAdmin: false,
+      makeMember: false,
+      transferOwnership: false,
+      remove: false,
+    };
+  }
+  return {
+    makeAdmin: can(myRole, "member.change_role") && target.role === "member",
+    makeMember: can(myRole, "member.change_role") && target.role === "admin",
+    transferOwnership: can(myRole, "member.transfer_ownership"),
+    remove: canRemoveMember(myRole, target.role),
+  };
 }

@@ -20,7 +20,7 @@ function isFullMonth(from: ISODate, to: ISODate): boolean {
   return from === startOfMonth(from) && to === endOfMonth(from);
 }
 
-function labelOf(from: ISODate, to: ISODate): string {
+export function labelOf(from: ISODate, to: ISODate): string {
   return isFullMonth(from, to)
     ? formatMonthBR(from, "long")
     : `${formatDateBR(from)} a ${formatDateBR(to)}`;
@@ -48,7 +48,7 @@ export function cashFlowWindow(to: ISODate): { from: ISODate; to: ISODate } {
   };
 }
 
-function isValidCustom(
+export function isValidCustom(
   de: ISODate | undefined,
   ate: ISODate | undefined,
   today: ISODate,

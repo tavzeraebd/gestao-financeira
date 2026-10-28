@@ -1,7 +1,24 @@
 import { z } from "zod";
 import { parseISODate } from "@/lib/dates";
-import { DEFAULT_PERIOD_PRESET, PERIOD_PRESETS } from "./constants";
-import type { DashboardFilters, PeriodPreset } from "./types";
+import {
+  dateParam,
+  enumParam,
+  paramsObject,
+} from "@/lib/validation/url-params";
+import {
+  DEFAULT_PERIOD_PRESET,
+  DEFAULT_REPORT_CATEGORY_TYPE,
+  DEFAULT_REPORT_PRESET,
+  PERIOD_PRESETS,
+  REPORT_CATEGORY_TYPES,
+  REPORT_PRESETS,
+} from "./constants";
+import type {
+  CategoryReportFilters,
+  DashboardFilters,
+  PeriodPreset,
+  ReportFilters,
+} from "./types";
 
 const first = (value: unknown): unknown =>
   Array.isArray(value) ? value[0] : value;
@@ -31,4 +48,36 @@ export const dashboardFiltersSchema = z
     if (parsedDe) filters.de = parsedDe;
     if (parsedAte) filters.ate = parsedAte;
     return filters;
+  });
+
+/**
+ * Parâmetros de URL dos relatórios (D21). Tolerante como o do dashboard: valor inválido vira o padrão
+ * (`30_dias`), parâmetro repetido usa o primeiro, entrada que não é objeto não lança.
+ */
+export const reportFiltersSchema = z
+  .unknown()
+  .transform((raw): ReportFilters => {
+    const source = paramsObject(raw);
+    const filters: ReportFilters = {
+      periodo:
+        enumParam(source.periodo, REPORT_PRESETS) ?? DEFAULT_REPORT_PRESET,
+    };
+    const de = dateParam(source.de);
+    const ate = dateParam(source.ate);
+    if (de) filters.de = de;
+    if (ate) filters.ate = ate;
+    return filters;
+  });
+
+/** Relatório por categoria: acrescenta `tipo` (`despesas` padrão | `receitas`). */
+export const categoryReportSchema = z
+  .unknown()
+  .transform((raw): CategoryReportFilters => {
+    const source = paramsObject(raw);
+    return {
+      ...reportFiltersSchema.parse(raw),
+      tipo:
+        enumParam(source.tipo, REPORT_CATEGORY_TYPES) ??
+        DEFAULT_REPORT_CATEGORY_TYPE,
+    };
   });

@@ -2,9 +2,19 @@ import "server-only";
 import { today, type ISODate } from "@/lib/dates";
 import { asCents, fromDbNumeric, type Cents } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
-import { toGoalIcon } from "@/modules/goals/constants";
+import { toGoalIcon, type GoalStatus } from "@/modules/goals/constants";
 import { goalProgress } from "@/modules/goals/domain/progress";
-import { rpcGoalSummary, selectGoals } from "@/modules/goals/repository";
+import {
+  rpcGoalSummary,
+  selectActiveMembers,
+  selectGoals,
+} from "@/modules/goals/repository";
+import { MAX_PROGRESS_MONTHS } from "@/modules/budgets/constants";
+import { rpcBudgetProgress, selectBudgets } from "@/modules/budgets/repository";
+import {
+  toCategoryColor,
+  toCategoryIcon,
+} from "@/modules/categories/constants";
 import {
   consolidatedBalance,
   openCardDebt,
@@ -26,13 +36,35 @@ import { buildCategoryBreakdown } from "./domain/breakdown";
 import { buildCashFlowMonths } from "./domain/cash-flow";
 import { compare } from "./domain/comparison";
 import { cashFlowWindow, resolvePeriod } from "./domain/period";
+import { resolveReportPeriod } from "./domain/report-period";
 import {
+  buildAccountReport,
+  buildBudgetReportMonths,
+  buildCategoryReportRows,
+  buildGoalReportRows,
+  buildMemberReportRows,
+} from "./domain/report-rows";
+import {
+  rpcAccountFlows,
   rpcBalancesAsOf,
   rpcCategoryTotals,
+  rpcMemberExpenseTotals,
   rpcMonthlyCashFlow,
   selectHasPaidTransaction,
 } from "./repository";
-import type { Dashboard, DashboardFilters, DashboardGoal } from "./types";
+import type {
+  AccountReport,
+  BudgetReport,
+  CategoryReport,
+  CategoryReportFilters,
+  Dashboard,
+  DashboardFilters,
+  DashboardGoal,
+  GoalReport,
+  MemberReport,
+  ReportFilters,
+  ReportOverview,
+} from "./types";
 
 const ZERO = asCents(0);
 
@@ -172,4 +204,194 @@ export async function getDashboard(
     }
     throw e;
   }
+}
+
+// --- Relatórios (Etapa 7, ADR-0028): só chamam as funções SQL e a composição de `reports/domain`. ---
+
+/** Agregado acima do inteiro seguro (SEC-18): erro explícito e tratado, nunca número errado. */
+async function guardAggregates<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    if (e instanceof RangeError) {
+      throw new AppError("INTERNAL_ERROR", { cause: e });
+    }
+    throw e;
+  }
+}
+
+export async function getReportOverview(
+  filters: ReportFilters,
+): Promise<ReportOverview> {
+  await requireMembership();
+  const supabase = await createClient();
+  const period = resolveReportPeriod(filters, today());
+  return guardAggregates(async () => {
+    const [summary, previousSummary, cashFlowRows, totals, categories] =
+      await Promise.all([
+        rpcPeriodSummary(supabase, period.from, period.to),
+        rpcPeriodSummary(supabase, period.previousFrom, period.previousTo),
+        rpcMonthlyCashFlow(supabase, period.from, period.to),
+        rpcCategoryTotals(supabase, period.from, period.to, "expense"),
+        listCategories({ includeArchived: true }),
+      ]);
+    return {
+      period,
+      summary: {
+        income: compare(summary.income, previousSummary.income),
+        expense: compare(summary.expense, previousSummary.expense),
+        result: compare(summary.result, previousSummary.result),
+      },
+      cashFlow: buildCashFlowMonths(cashFlowRows),
+      expenseByCategory: buildCategoryBreakdown(
+        totals,
+        new Map(categories.map((c) => [c.id, c])),
+        summary.expense,
+      ),
+    };
+  });
+}
+
+export async function getCategoryReport(
+  filters: CategoryReportFilters,
+): Promise<CategoryReport> {
+  await requireMembership();
+  const supabase = await createClient();
+  const period = resolveReportPeriod(filters, today());
+  const type = filters.tipo === "receitas" ? "income" : "expense";
+  return guardAggregates(async () => {
+    const [summary, previousSummary, totals, previousTotals, categories] =
+      await Promise.all([
+        rpcPeriodSummary(supabase, period.from, period.to),
+        rpcPeriodSummary(supabase, period.previousFrom, period.previousTo),
+        rpcCategoryTotals(supabase, period.from, period.to, type),
+        rpcCategoryTotals(
+          supabase,
+          period.previousFrom,
+          period.previousTo,
+          type,
+        ),
+        listCategories({ includeArchived: true }),
+      ]);
+    const byId = new Map(categories.map((c) => [c.id, c]));
+    const breakdown = buildCategoryBreakdown(
+      totals,
+      byId,
+      type === "income" ? summary.income : summary.expense,
+    );
+    const previous = buildCategoryBreakdown(
+      previousTotals,
+      byId,
+      type === "income" ? previousSummary.income : previousSummary.expense,
+    );
+    return {
+      period,
+      type,
+      breakdown,
+      rows: buildCategoryReportRows(breakdown, previous),
+    };
+  });
+}
+
+export async function getAccountReport(
+  filters: ReportFilters,
+): Promise<AccountReport> {
+  await requireMembership();
+  const supabase = await createClient();
+  const period = resolveReportPeriod(filters, today());
+  return guardAggregates(async () => {
+    const [flows, accounts] = await Promise.all([
+      rpcAccountFlows(supabase, period.from, period.to),
+      selectAccounts(supabase),
+    ]);
+    return {
+      period,
+      ...buildAccountReport(flows, new Map(accounts.map((a) => [a.id, a]))),
+    };
+  });
+}
+
+export async function getMemberReport(
+  filters: ReportFilters,
+): Promise<MemberReport> {
+  await requireMembership();
+  const supabase = await createClient();
+  const period = resolveReportPeriod(filters, today());
+  return guardAggregates(async () => {
+    const [totals, summary, members] = await Promise.all([
+      rpcMemberExpenseTotals(supabase, period.from, period.to),
+      rpcPeriodSummary(supabase, period.from, period.to),
+      selectActiveMembers(supabase),
+    ]);
+    const names = new Map(
+      members.map((m) => [m.id, m.profiles?.display_name ?? null]),
+    );
+    return {
+      period,
+      total: summary.expense,
+      rows: buildMemberReportRows(totals, names, summary.expense),
+    };
+  });
+}
+
+export async function getBudgetReport(
+  filters: ReportFilters,
+): Promise<BudgetReport> {
+  await requireMembership();
+  const supabase = await createClient();
+  const period = resolveReportPeriod(filters, today());
+  const months = period.months.slice(-MAX_PROGRESS_MONTHS);
+  const first = months[0];
+  const last = months[months.length - 1];
+  if (!first || !last) return { period, months: [] };
+  return guardAggregates(async () => {
+    const [rows, progress] = await Promise.all([
+      selectBudgets(supabase, false),
+      rpcBudgetProgress(supabase, first, last),
+    ]);
+    const budgets = rows.map((row) => ({
+      id: row.id,
+      limit: fromDbNumeric(row.amount_limit),
+      category: row.category
+        ? {
+            id: row.category.id,
+            name: row.category.name,
+            color: toCategoryColor(row.category.color),
+            icon: toCategoryIcon(row.category.icon),
+            archived: row.category.archived_at !== null,
+          }
+        : null,
+    }));
+    return {
+      period,
+      months: buildBudgetReportMonths(months, budgets, progress),
+    };
+  });
+}
+
+export async function getGoalReport(
+  filters: ReportFilters,
+): Promise<GoalReport> {
+  await requireMembership();
+  const supabase = await createClient();
+  const period = resolveReportPeriod(filters, today());
+  return guardAggregates(async () => {
+    const [rows, summaries] = await Promise.all([
+      selectGoals(supabase, null),
+      rpcGoalSummary(supabase, period.from, period.to),
+    ]);
+    return {
+      period,
+      goals: buildGoalReportRows(
+        rows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          icon: toGoalIcon(r.icon),
+          status: r.status as GoalStatus,
+          target: fromDbNumeric(r.target_amount),
+        })),
+        new Map(summaries.map((s) => [s.goalId, s])),
+      ),
+    };
+  });
 }
