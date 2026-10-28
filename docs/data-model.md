@@ -35,7 +35,7 @@ Divergências da implementação voltam para este documento via orchestrator.
 | 3 | `accounts`, `categories`, `transactions` | `create_transfer`, `reverse_transaction`, `account_balances`, seed de categorias em `create_family` |
 | 4 | — | `monthly_cash_flow(p_from, p_to)`, `category_totals(p_from, p_to, p_type)` (invoker, `text`; contrato `etapa-4.md` §3.1, ADR-0020) |
 | 5 | `recurrences` (só income/expense; agenda imutável; `next_occurrence_date`, `last_failure_*`, `idempotency_key`; triggers `recurrences_before_write_biu` e `recurrences_after_update_au`), `budgets` (mensal: `start_month`/`end_month`, sem `name`/`period_type`, sem auditoria); `transactions` + `recurrence_id`, `occurrence_date` (`unique`), `due_date` mantido por trigger; trigger `transactions_before_write`/`transactions_audit` redefinidos | definer: `pay_pending_transaction`, `cancel_pending_transaction`, `materialize_recurrences()`; invoker: `pending_summary()`, `budget_progress(p_from_month, p_to_month)`; `private.recurrence_occurrence`, `private.recurrence_first_index` (auxiliar, além do contrato), `private.recurrence_next_on_or_after` (migrations `20261024100700`..`101100`; contrato `etapa-5.md` v1.1 §3.1, ADRs 0022–0024) |
-| 6 | `goals` (status `active\|paused\|completed\|canceled`, ícone de lista fechada, sem `current_amount`), `goal_contributions` (reserva, **sem** `transaction_id`; exclusão lógica), `expense_splits` (sem grant de escrita), `settlements` (exclusão lógica) | definer: `set_transaction_splits(p_transaction_id, p_mode, p_shares)`; invoker: `goal_summary(p_from, p_to)`, `member_balances()`, `projected_cash_flow(p_months)`; `private.allocate_cents`, `private.current_member_id()`, `private.rescale_splits`; trigger `transactions_rescale_splits` (contrato `etapa-6.md` §3.1, ADRs 0025–0027) |
+| 6 | `goals` (status `active\|paused\|completed\|canceled`, ícone de lista fechada, sem `current_amount`), `goal_contributions` (reserva, **sem** `transaction_id`; exclusão lógica), `expense_splits` (sem grant de escrita), `settlements` (exclusão lógica) | definer: `set_transaction_splits(p_transaction_id, p_mode, p_shares)`; invoker: `goal_summary(p_from, p_to)`, `member_balances()`, `projected_cash_flow(p_months)`; `private.allocate_cents`, `private.current_member_id()`, `private.rescale_splits`; `transactions` ganha só o trigger `transactions_rescale_splits` (migrations `20261024101200`..`101700`; contrato `etapa-6.md` v1.1 §3.1, ADRs 0025–0027) |
 | 7 | `notifications` (`data jsonb`, `dedupe_key` obrigatório) | definer: `change_member_role`, `transfer_ownership`, `remove_family_member`, `leave_family`, `refresh_notifications()`; invoker: `account_flows(p_from, p_to)`, `member_expense_totals(p_from, p_to)`; trigger de auditoria em `families` (sem `update_family`) (contrato `etapa-7.md` §3.1, ADRs 0028–0030) |
 
 Planejamento de cenários (Etapa 6) é **sem persistência** no MVP (cálculo puro no domínio). Contas a
@@ -51,7 +51,7 @@ accounts 1─N transactions (account_id, destination_account_id)
 categories 1─N categories (parent_id, 1 nível) ; categories 1─N transactions | budgets | recurrences
 recurrences 1─N transactions (recurrence_id + occurrence_date)
 transactions 1─N transactions (reversal_of_id) ; transactions 1─N expense_splits
-goals 1─N goal_contributions N─0..1 transactions (transfer)
+goals 1─N goal_contributions   (sem vínculo com transactions: ADR-0025)
 family_members 1─N transactions.assigned_member_id | expense_splits | settlements | goal_contributions
 ```
 
@@ -212,7 +212,7 @@ Eventos auditados (catálogo fechado; metadata **sem** e-mail, nome, token, desc
 | `invite.revoked` (por saída) | 7 | `{ "invite_id", "reason": "member_ended" }` |
 | `goal.status_changed` / `goal.updated` | 6 | `{ "from", "to" }` / `{ "changed": [...], "old": {target_amount,target_date}, "new": {...} }` (sem nome nem descrição) |
 | `goal_contribution.deleted` | 6 | `{ "goal_id", "kind", "amount" }` |
-| `transaction.splits_changed` | 6 | `{ "mode": "equal\|amounts\|none", "parts": n }` (sem ids de pessoas nem valores por pessoa) |
+| `transaction.splits_changed` | 6 | `{ "mode": "equal\|amounts\|none", "parts": n }` (sem ids de pessoas nem valores por pessoa). Só quando algo mudou: `none` sem parcelas e conjunto idêntico ao atual não geram evento (SEC-23, `20261024101700`) |
 | `settlement.created` / `settlement.deleted` | 6 | `{ "amount", "settlement_date" }` |
 | `transaction.updated` | 3 | `{ "changed": [...], "old": {amount,transaction_date,account_id,category_id,status}, "new": {...} }` (só campos financeiros; sem descrição/notas) |
 | `transaction.deleted` / `transaction.canceled` | 3/5 | `{ "type", "amount", "transaction_date" }` (`canceled` só em `pending → canceled`, pela RPC) |
@@ -391,29 +391,45 @@ created_by uuid not null default auth.uid(), created_at, updated_at`. FK compost
 - Trigger `budgets_before_write_biu`: categoria de despesa (`CATEGORY_TYPE_MISMATCH`) e ativa (`CATEGORY_ARCHIVED`) no insert e no desarquivamento. Sem auditoria.
 - `budget_progress(p_from_month, p_to_month)` (invoker, `text`): até 12 meses civis (senão `INVALID_INPUT`); uma linha por orçamento visível (inclusive arquivado) e mês dentro da vigência; `spent` = despesas `paid` com estorno abatendo, na categoria ou nas filhas (nula = todas); `committed` = despesas `pending` no mesmo recorte (D14).
 
-### 5.6 `goals` (Etapa 6)
+### 5.6 `goals` (Etapa 6) — [ADR-0025](adr/0025-metas-reserva-sem-transacao.md)
 
-`id, family_id, name 1..80, description ≤ 500, target_amount numeric(14,2) > 0, target_date date null,
-status (active|paused|completed|canceled), icon (allowlist), completed_at timestamptz null
-(check status='completed' ⇔ not null), created_by, created_at, updated_at`.
-**Sem `current_amount`**: progresso = Σ `goal_contributions` (fonte única). Imagem de capa do mockup: ícone da
-allowlist no MVP; upload (Storage) exige ADR.
+Implementado em `20261024101300`. Colunas: `id, family_id, name` (1..80 após `btrim`), `description` (null ou ≤ 500), `target_amount numeric(14,2)` (`> 0`, `<> 'NaN'`, `<= 99999999.99`), `target_date date null` (≥ 2000-01-01), `icon text not null default 'target'` (`goals_icon_check`: `target, plane, house, car, shield, graduation-cap, heart-pulse, gift, baby, briefcase, laptop, piggy-bank`), `status` (`active|paused|completed|canceled`, padrão `active`), `completed_at timestamptz null` (do banco; `goals_completed_shape_check`: `status = 'completed'` ⇔ não nulo), `idempotency_key uuid null`, `created_by uuid not null default auth.uid()`, `created_at`, `updated_at`.
+**Sem `current_amount`**: progresso = Σ `goal_contributions` (fonte única). Imagem de capa do mockup: ícone da allowlist no MVP; upload (Storage) exige ADR.
+- Únicos: `goals_family_id_id_key (family_id, id)` (alvo da FK de aportes) e `goals_family_idempotency_key (family_id, idempotency_key)`.
+- Grants: `select`; `insert (family_id, name, description, target_amount, target_date, icon, idempotency_key)`; `update (name, description, target_amount, target_date, icon, status)`. Sem delete (a meta se cancela). Policies: select `is_family_member`; insert e update `owner/admin` (insert com `created_by = auth.uid()`).
+- Trigger `goals_before_update_bu` (invoker): `completed` e `canceled` são finais (qualquer update → `INVALID_STATUS_TRANSITION`); transições `active→paused|completed|canceled` e `paused→active|completed|canceled`; `→ completed` fixa `completed_at = now()`.
+- Auditoria `goals_after_update_au` (definer): `goal.status_changed` e `goal.updated` (só `target_amount`/`target_date`). A criação não é auditada.
 
 ### 5.7 `goal_contributions` (Etapa 6)
 
-`id, family_id, goal_id (FK composta), member_id (FK composta → family_members), kind (deposit|withdrawal),
-amount numeric(14,2) > 0, contribution_date date, transaction_id uuid null (FK composta; trigger: deve ser
-`type='transfer'`; `unique (transaction_id)`), notes ≤ 500, created_by, deleted_at, deleted_by, created_at`.
-Trigger com `for update` em `goals`: retirada não deixa acumulado negativo.
+Implementado em `20261024101300`. `id, family_id`, `goal_id` e `member_id` (FKs compostas `goal_contributions_goal_fk (family_id, goal_id) → goals` e `goal_contributions_member_fk (family_id, member_id) → family_members`, restrict), `kind` (`deposit|withdrawal`), `amount numeric(14,2)` (`> 0`, `<> 'NaN'`, `<= 99999999.99`), `contribution_date date` (≥ 2000-01-01), `notes` (≤ 500), `idempotency_key uuid null`, `created_by`, `deleted_at`/`deleted_by` (`goal_contributions_deleted_shape_check`), `created_at`, `updated_at`.
+**Não existe `transaction_id`** (ADR-0025): o aporte é reserva e não toca contas.
+- Único `goal_contributions_family_idempotency_key (family_id, idempotency_key)`; índice parcial `goal_contributions_goal_date_idx (goal_id, contribution_date desc) where deleted_at is null`.
+- Grants: `select`; `insert (family_id, goal_id, member_id, kind, amount, contribution_date, notes, idempotency_key)`; `update (deleted_at)`. Sem delete. Policies: select `is_family_member`; insert `is_family_member and created_by = auth.uid()`; update (exclusão lógica, só com `deleted_at is null`) owner/admin ou autor com vínculo ativo.
+- Trigger `goal_contributions_before_write_biu` (invoker; `pg_advisory_xact_lock(hashtextextended('goal:' || goal_id, 0))` antes de somar). Insert: meta `active` (`GOAL_NOT_ACTIVE`), `member_id` com vínculo ativo (`INVALID_INPUT`), chamador owner/admin ou `member_id = private.current_member_id()` (`FORBIDDEN`, `42501`), data ≤ hoje (`FUTURE_DATE_NOT_ALLOWED`) e retirada que não deixe o acumulado < 0 (`GOAL_NEGATIVE_PROGRESS`). Update: só `deleted_at` de nulo para não nulo (senão `INVALID_INPUT`); o trigger fixa `deleted_at = now()` e `deleted_by = auth.uid()`; excluir um `deposit` que deixaria o acumulado < 0 → `GOAL_NEGATIVE_PROGRESS`. A contribuição é imutável (corrigir = excluir e registrar outra).
+- Auditoria `goal_contributions_after_update_au` (definer): `goal_contribution.deleted`. A criação não é auditada.
 
-### 5.8 `expense_splits` e `settlements` (Etapa 6)
+### 5.8 `expense_splits` e `settlements` (Etapa 6) — [ADR-0026](adr/0026-divisao-de-despesas-por-rpc.md)
 
-`expense_splits`: `id, family_id, transaction_id (FK composta; trigger: type='expense'), member_id (FK composta),
-amount numeric(14,2) > 0, created_at`; `unique (transaction_id, member_id)`. Escrita só por
-`set_transaction_splits(p_transaction_id uuid, p_splits jsonb)` (substitui o conjunto atomicamente e valida
-Σ = `transactions.amount`); constraint trigger `deferrable initially deferred` reforça a soma.
-`settlements` (opcional, spec "se implementado"): `id, family_id, from_member_id, to_member_id (<> from),
-amount > 0, settlement_date date, notes, created_by, deleted_at, deleted_by, created_at`. Não afeta contas.
+**`expense_splits`** (`20261024101400`): `id, family_id`, `transaction_id` (FK composta `expense_splits_transaction_fk (family_id, transaction_id) → transactions`), `member_id` (FK composta `expense_splits_member_fk`), `amount numeric(14,2)` (`> 0`, `<> 'NaN'`), `created_by`, `created_at`, `updated_at`; `expense_splits_transaction_member_key unique (transaction_id, member_id)`.
+- Grants: **só `select`**; policy select `is_family_member`. Nenhuma escrita direta: só a RPC e o trigger de reescala (ambos definer).
+- Constraint trigger `expense_splits_sum_check` (`after insert or update or delete`, `deferrable initially deferred`, por linha, definer): se a despesa tem parcelas, Σ = `transactions.amount`, senão `SPLIT_SUM_MISMATCH` no commit.
+- Trigger `transactions_rescale_splits` em `transactions` (`after update of amount`, `when old.amount is distinct from new.amount`, definer, **separado** dos triggers da Etapa 5): chama `private.rescale_splits(id, amount)`; sem parcelas é no-op. Cobre pagamento com valor real e edição de valor. Parcela resultante ≤ 0 → `SPLIT_AMOUNT_TOO_SMALL` (`20261024101700`; antes caía em `23514`).
+- Nenhuma função de saldo, total ou orçamento lê esta tabela; só `member_balances`.
+
+**`set_transaction_splits(p_transaction_id uuid, p_mode text, p_shares jsonb) returns void`** (`plpgsql security definer`, `search_path=''`, `revoke` de public/anon, `grant` a `authenticated`; versão final em `20261024101700`). Ordem: `NOT_AUTHENTICATED`; família do chamador nula → `FORBIDDEN`; lançamento da família, não excluído, `for update` (senão `NOT_FOUND`); `type <> 'expense'`, cancelado ou estorno → `SPLIT_NOT_ALLOWED`; chamador que não é owner/admin nem autor → `FORBIDDEN`; modo fora de `equal|amounts|none` → `INVALID_INPUT`. `none` apaga e só audita se removeu algo. `p_shares`: 2..20 objetos com `member_id` uuid distintos (em `amounts`, `amount` texto `^\d{1,8}(\.\d{1,2})?$` e > 0); integrantes desta família (senão `INVALID_INPUT`), ativos ou já na divisão atual (senão `MEMBER_INACTIVE`). `equal` → `private.allocate_cents` com pesos 1, integrantes por `joined_at, id`; `amounts` → Σ ≠ valor → `SPLIT_SUM_MISMATCH`. Parcela ≤ 0 → `SPLIT_AMOUNT_TOO_SMALL`. Conjunto idêntico ao atual é no-op (sem reescrita nem auditoria, SEC-23). Senão substitui o conjunto (delete + insert) e grava `transaction.splits_changed`.
+
+**`settlements`** (`20261024101500`; spec "se implementado"): `id, family_id`, `from_member_id`/`to_member_id` (FKs compostas → `family_members`; `settlements_members_check (from <> to)`), `amount numeric(14,2)` (`> 0`, `<> 'NaN'`, `<= 99999999.99`), `settlement_date date` (≥ 2000-01-01), `notes` (≤ 500), `idempotency_key`, `created_by`, `deleted_at`/`deleted_by` (check de forma), `created_at`, `updated_at`. Único `settlements_family_idempotency_key`; índice parcial `settlements_family_date_idx (family_id, settlement_date desc) where deleted_at is null`.
+- Grants: `select`; `insert (family_id, from_member_id, to_member_id, amount, settlement_date, notes, idempotency_key)`; `update (deleted_at)`. Sem delete.
+- Policies: select `is_family_member`; insert `is_family_member and created_by = auth.uid()` e (owner/admin **ou** `from`/`to` = `private.current_member_id()`); update (exclusão lógica; `deleted_at is null` e vínculo ativo): owner/admin, autor **ou uma das partes** (`from`/`to`). As partes entraram em `20261024101700` (SEC-25).
+- Trigger `settlements_before_write_biu` (invoker): insert com data > hoje → `FUTURE_DATE_NOT_ALLOWED`; update só aceita `deleted_at` de nulo para não nulo (senão `INVALID_INPUT`) e fixa `deleted_at`/`deleted_by`. Auditoria `settlements_audit_aiu` (definer): `settlement.created` e `settlement.deleted`. Integrantes inativos são aceitos (dívida histórica). Não afeta contas nem consolidado.
+
+**Funções de leitura** (`20261024101600`; `public`, `stable`, `security invoker`, `search_path=''`, montantes `text`, filtro por `private.current_family_id()` + RLS; `grant` a `authenticated`; `prosecdef = false`):
+- `goal_summary(p_from date, p_to date) returns (goal_id, saved, deposits, withdrawals)`: uma linha por meta visível (todos os status), ordem `created_at, id`; `saved` = D9 de todas as datas; `deposits`/`withdrawals` = Σ no intervalo; datas nulas, `p_from > p_to` ou mais de 366 dias → `INVALID_INPUT`.
+- `member_balances() returns (debtor_member_id, creditor_member_id, amount)`: D10; parcelas de despesas `paid`, não excluídas, não estorno e com `assigned_member_id`, líquidas de estorno (proporção do original por `allocate_cents`), menos acertos não excluídos, compensado por par; só `amount > 0`.
+- `projected_cash_flow(p_months integer) returns (month, pending_income, pending_expense, recurring_income, recurring_expense)`: D15; `p_months` 1..12 (senão `INVALID_INPUT`), todos os meses presentes desde o mês de hoje. Pendente = `pending` não excluído `income|expense` (no 1º mês, também as anteriores a hoje). Recorrente = séries `is_active`, ocorrências ≥ `greatest(next_occurrence_date, hoje)` e ≤ `end_date`, no máximo 60 por série.
+
+**Helpers `private`** (`20261024101200`, `101700`; `search_path=''`): `current_member_id()` (definer, estável; vínculo ativo do chamador; `grant` a `authenticated`); `allocate_cents(p_total, p_weights[])` (D13 em centavos, aritmética exata em `numeric`, empate pelo índice do array; `p_total` ≥ 0 com 2 casas e pesos ≥ 0 com soma > 0, senão `INVALID_INPUT`; `grant` a `authenticated`); `rescale_splits(p_transaction_id, p_new_amount)` (definer, **sem** grant a `authenticated`). A Etapa 6 também reafirma o `grant execute` de `recurrence_occurrence` e `recurrence_first_index` (Etapa 5) a `authenticated`, exigido pela função invoker `projected_cash_flow`.
 
 ### 5.9 `notifications` (Etapa 7)
 

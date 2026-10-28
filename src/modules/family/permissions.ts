@@ -95,3 +95,18 @@ export function canRegisterSettlement(
     can(role, "goal.manage") || myMemberId === fromId || myMemberId === toId
   );
 }
+
+/** Só UX: owner/admin, quem registrou ou uma das partes do acerto (SEC-25). */
+export function canDeleteSettlement(
+  role: FamilyRole,
+  createdBy: string,
+  userId: string,
+  myMemberId: string,
+  fromId: string,
+  toId: string,
+): boolean {
+  return (
+    canRegisterSettlement(role, myMemberId, fromId, toId) ||
+    createdBy === userId
+  );
+}

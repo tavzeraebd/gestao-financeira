@@ -8,7 +8,10 @@ import {
   toCategoryIcon,
 } from "@/modules/categories/constants";
 import { memberDisplayName } from "@/modules/family/domain/member-name";
-import { canSetSplits } from "@/modules/family/permissions";
+import {
+  canDeleteSettlement,
+  canSetSplits,
+} from "@/modules/family/permissions";
 import type { MemberRef } from "@/modules/goals/types";
 import { requireMembership } from "@/server/auth";
 import { SETTLEMENTS_PAGE_SIZE } from "./constants";
@@ -204,7 +207,6 @@ export async function listSettlements(options: { page?: number } = {}): Promise<
     page,
     SETTLEMENTS_PAGE_SIZE,
   );
-  const canManage = membership.role === "owner" || membership.role === "admin";
   return {
     items: rows.map((r) => ({
       id: r.id,
@@ -214,7 +216,14 @@ export async function listSettlements(options: { page?: number } = {}): Promise<
       date: dbDate(r.settlement_date),
       notes: r.notes,
       recordedBy: memberDisplayName(r.creator?.display_name ?? null),
-      canDelete: canManage || r.created_by === membership.userId,
+      canDelete: canDeleteSettlement(
+        membership.role,
+        r.created_by,
+        membership.userId,
+        membership.memberId,
+        r.from?.id ?? "",
+        r.to?.id ?? "",
+      ),
     })),
     total,
     page,

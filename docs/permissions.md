@@ -66,6 +66,7 @@ que registrou é apagado ([ADR-0030](adr/0030-gestao-de-integrantes-e-atividade.
 | Metas | excluir aporte (lógico) | ✔ | ✔ | P | 6 | RLS |
 | Divisão | definir divisão de uma despesa | ✔ | ✔ | P (despesa própria) | 6 | RPC `set_transaction_splits` |
 | Divisão | registrar liquidação | ✔ | ✔ | se é `from` ou `to` | 6 | RLS |
+| Divisão | excluir acerto (lógico) | ✔ | ✔ | P (autor) ou se é `from` ou `to` | 6 | RLS `settlements_update` (SEC-25, migration 20261024101700) |
 | Planejamento | simular cenários | ✔ | ✔ | ✔ | 6 | sem persistência |
 | Relatórios / Dashboard | ver | ✔ | ✔ | ✔ | 4/7 | funções `security invoker` (RLS) |
 | Notificações | ver e marcar como lida | próprias | próprias | próprias | 7 | RLS `user_id = auth.uid()` |

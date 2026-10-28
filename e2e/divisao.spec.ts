@@ -62,7 +62,10 @@ test("CA-E6-54: dividir igualmente mostra a prévia, aparece em /divisao e atual
 
   await page.goto(`/divisao/${id}`);
   await expect(
-    visivel(page, "A divisão só registra quanto cabe a cada um."),
+    page
+      .getByText("A divisão só registra quanto cabe a cada um.")
+      .filter({ visible: true })
+      .first(),
   ).toBeVisible();
   await expect(visivel(page, reais("100,00"))).toBeVisible();
   await page.getByRole("button", { name: "Salvar divisão" }).click();

@@ -15,3 +15,11 @@ Status: aceita (2026-10-24, Etapa 6) · Escopo: `expense_splits`, `settlements`,
 **Alternativas.** Parcelas como lançamentos (uma despesa por integrante): duplica a despesa no consolidado, contra a spec. Grant de escrita em `expense_splits` com policy: não garante Σ exata entre linhas. Bloquear o pagamento com valor diferente quando há divisão: obriga a desfazer e refazer a divisão a cada conta com valor variável. Arredondar cada parcela por `round()`: a soma pode não fechar.
 
 **Consequências.** D13 existe em SQL e em TS, com teste de paridade (exceção consciente à regra "uma fórmula, um lugar": a fonte de verdade é o SQL; o TS é só prévia). A Etapa 7 usa `member_expense_totals` e `member_balances` nos relatórios.
+
+## Emendas
+
+**2026-10-27 · pós-revisão da Etapa 6 (migration `20261024101700`; `etapa-6.md` v1.1).** A implementação refinou a decisão sem mudar o desenho:
+1. **Parcela mínima (item 3 e 4).** Se o rateio (`equal`, `amounts` ou reescala por mudança de valor) produzir parcela ≤ 0, a RPC e `private.rescale_splits` falham com `SPLIT_AMOUNT_TOO_SMALL` (`P0001`), e não mais com `23514` da CHECK de `expense_splits.amount`. Consequência: pagar ou editar para um valor muito baixo uma despesa dividida é rejeitado; a saída é remover a divisão ou aumentar o valor.
+2. **Auditoria sem ruído (item 2, SEC-23).** `set_transaction_splits` é no-op quando o conjunto novo é idêntico ao atual, e `none` sem parcelas não audita. `transaction.splits_changed` só existe quando algo mudou.
+3. **Quem exclui o acerto (item 1, SEC-25).** A exclusão lógica de `settlements` vale para owner/admin, autor **e** as partes (`from`/`to`) com vínculo ativo. Sem isso, quem foi apontado em um acerto que não registrou não tinha como contestá-lo. Toda exclusão continua auditada (`settlement.deleted`).
+4. **Fora desta etapa.** `member_expense_totals`, citada nas consequências, não foi criada; é da Etapa 7. `member_balances` existe e é a única função que lê `expense_splits`.

@@ -103,9 +103,15 @@ Pendências herdadas (não bloqueiam a etapa):
 
 Lembretes e alertas de limite (spec §7.6/§7.8) geram notificação só na Etapa 7. Na Etapa 5 o estado aparece na UI.
 
-## Etapa 6 — Metas, divisão de contas e planejamento (contrato `contracts/etapa-6.md`; ADR-0025, ADR-0026, ADR-0027)
+## Etapa 6 — Metas, divisão de contas e planejamento (contrato `contracts/etapa-6.md` v1.1; ADR-0025, ADR-0026, ADR-0027) — **concluída no código (2026-10-27)**; pendência: **E2E final aguardando Docker**
 
 Começa depois da Etapa 5 integrada (A-db pode adiantar). Dependências novas: nenhuma (`checkbox` do shadcn sobre Base UI).
+
+Estado: migrations `20261024101200`..`101700`, módulos `goals`/`splits`/`planning`, telas `/metas`, `/divisao`, `/planejamento` e card Metas no `/inicio` entregues. Emendas pós-revisão (migration `20261024101700`; ADR-0026 e ADR-0027, "Emendas"): `SPLIT_AMOUNT_TOO_SMALL`, SEC-23 e SEC-25 corrigidos; SEC-24 (limite de volume por família, baixa) aberta e adiada para a Etapa 9 (`.claude/factory/project-memory/security/achados.md`).
+Pendências (não mudam o código entregue):
+- **E2E final** (`metas`, `divisao`, `planejamento`, `inicio`; desktop e mobile) e `db:reset` + `db:test` do zero com a `101700`: aguardam o Docker Desktop. A etapa só vira "concluída" definitivamente depois deles e do gate.
+- `listSettlements.canDelete` não inclui as partes do acerto, que o banco já autoriza (SEC-25); ajuste pequeno de UI, a decidir.
+- `docs/permissions.md` §2 ainda não tem a linha "excluir acerto" (partes, owner/admin e autor).
 
 | Id | Item | Dono | P | Depende |
 |---|---|---|---|---|

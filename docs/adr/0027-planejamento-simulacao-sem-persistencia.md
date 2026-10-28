@@ -14,3 +14,7 @@ Status: aceita (2026-10-24, Etapa 6) · Escopo: `src/modules/planning`, `/planej
 **Alternativas.** Persistir cenários: não é pedido e cria dado financeiro hipotético para proteger. Calcular no servidor por action: ida e volta a cada tecla sem ganho de segurança (as entradas são do próprio usuário). Projetar recorrências em TS: segunda implementação da agenda D12.
 
 **Consequências.** A simulação usa `number` (D15) e converte para centavos com meio para longe do zero; os totais saem do valor exato, não da parcela arredondada. Entradas têm teto para evitar `Infinity`/`NaN`. O planejamento lê, mas não altera, nenhum dado.
+
+## Emendas
+
+**2026-10-27 · implementação da Etapa 6 (migration `20261024101600`; `etapa-6.md` v1.1).** Item 3: `projected_cash_flow(p_months)` (1..12) soma ocorrências virtuais a partir de `greatest(next_occurrence_date, hoje)`, e não só de `next_occurrence_date` (série atrasada não projeta o passado), com no máximo 60 ocorrências por série. Pendentes atrasados entram no mês de hoje. Para a função invoker avaliar a agenda, `recurrence_occurrence` e `recurrence_first_index` receberam `grant execute` a `authenticated`. O restante da decisão vale como escrito.

@@ -1,15 +1,20 @@
 # Contrato de execução — Etapa 6 (metas, divisão de contas e planejamento de cenários)
 
-Versão 1.0 (2026-10-24) · Dono: orchestrator/architect · Alteração só por pedido ao orchestrator (§8).
+Versão 1.1 (2026-10-27) · Dono: orchestrator/architect · Alteração só por pedido ao orchestrator (§8).
+**v1.1 reflete o implementado** (migrations `20261024101200`..`101700`, módulos `goals`, `splits`, `planning`). Mudanças em relação à v1.0:
+(a) migration `20261024101700` (§3.1): `SPLIT_AMOUNT_TOO_SMALL`, `set_transaction_splits` com no-op e auditoria condicional (SEC-23) e exclusão de
+acerto também pelas partes (SEC-25); (b) código novo `SPLIT_AMOUNT_TOO_SMALL` (§3.2); (c) ação `settlement.register` em `can()` e `recordedBy` em
+`listSettlements` (§3.2); (d) pgTAP `480_etapa6_review_fixes`; (e) a nota de dependência abaixo (Etapas 4 e 5 já integradas) e o item "Etapa 6 concluída"
+no §6. Nenhuma interface da v1.0 foi removida.
 Referências: spec §7.9, §7.10, §7.12, §8, §9, §11 Etapa 6, §12 F, §13; mockups **4** (Metas), **6** (Divisão de contas), **7** (Planejamento) e **10** (Metas no celular)
 de `docs/reference/mockups.png`; `financial-definitions.md` v1.2 (D9, D10, D13, D15; R15–R19); `permissions.md` §2 (linhas Metas, Divisão,
 Planejamento, aprovadas); `acceptance-criteria.md` (CA-E6-*); `threat-model.md` §3.11 (AB-100..109); ADRs 0003, 0004, 0015, 0018, 0020, 0022,
 0023, **0025**, **0026**, **0027**; contratos `etapa-3.md`, `etapa-4.md` e `etapa-5.md` v1.0 (regras e interfaces herdadas).
-**Onde este contrato e o `data-model.md` §5.6–5.8 divergirem, vale este contrato.**
+**Onde este contrato e o `data-model.md` §5.6–5.8 divergirem, vale este contrato.** (Na v1.1 os dois estão alinhados com as migrations.)
 
-**Dependência:** as Etapas 4 e 5 estão **contratadas, não implementadas**. Tudo o que este documento cita delas (`reports/**`, `charts/**`,
-`ProgressMeter`, `SubNav`, `budget_progress`, `ensureRecurrencesMaterialized`, `pay_pending_transaction`, `canPayBill`, `BillListItem`,
-rotas `/compromissos`) é interface **a ser entregue** por aqueles contratos, e esta etapa só começa com elas integradas.
+**Dependência:** as Etapas 4 e 5 estão integradas (a Etapa 5 concluída em 2026-10-24, roadmap). Tudo o que este documento cita delas (`reports/**`,
+`charts/**`, `ProgressMeter`, `SubNav`, `budget_progress`, `ensureRecurrencesMaterialized`, `pay_pending_transaction`, `canPayBill`, `BillListItem`,
+rotas `/compromissos`) existe no código. A sequência de fases do §1 é o plano original e fica como registro.
 
 ## 0. Regras do contrato
 
@@ -62,13 +67,14 @@ Paralelismo: A-db, A-be e A-ds rodam juntas. Em B, backend e frontend rodam junt
 ### 3.1 Database → backend
 
 Convenções do `data-model.md` §1 e do `etapa-3.md` §3.1. Os nomes de constraint fazem parte do contrato. Ordem sugerida das migrations:
-`etapa6_helpers` → `etapa6_goals` → `etapa6_splits` → `etapa6_settlements` → `etapa6_read_functions`.
+`etapa6_helpers` → `etapa6_goals` → `etapa6_splits` → `etapa6_settlements` → `etapa6_read_functions` → `etapa6_review_fixes`
+(implementadas como `20261024101200`..`101700`). A `101700` só redefine funções e uma policy (sem DDL de tabela, sem efeito em dados).
 
 **Helpers (`private`, `set search_path = ''`, `revoke ... from public, anon`)**
 - `private.current_member_id() returns uuid` (`sql stable security definer`; `grant execute` a `authenticated`, usado em policies): `id` do vínculo `active` do chamador.
 - `private.allocate_cents(p_total numeric, p_weights numeric[]) returns numeric[]` (`plpgsql immutable`, invoker, sem acesso a tabela; `grant execute` a `authenticated`): D13 em centavos; `p_total ≥ 0` com 2 casas, pesos ≥ 0 com soma > 0, senão `INVALID_INPUT`; empate pelo **índice** do array; Σ resultado = `p_total` exato.
-- `private.rescale_splits(p_transaction_id uuid, p_new_amount numeric) returns void` (`security definer`, sem grant a `authenticated`): reescala as parcelas existentes na proporção atual (pesos = parcelas atuais, ordem `family_members.joined_at, id`).
-- `grant execute on function private.recurrence_occurrence(...)` a `authenticated` (função pura da Etapa 5, exigida pela função invoker `projected_cash_flow`).
+- `private.rescale_splits(p_transaction_id uuid, p_new_amount numeric) returns void` (`security definer`, sem grant a `authenticated`): reescala as parcelas existentes na proporção atual (pesos = parcelas atuais, ordem `family_members.joined_at, id`). **v1.1:** parcela resultante ≤ 0 → `SPLIT_AMOUNT_TOO_SMALL` (`P0001`), em vez de `23514` da CHECK de `expense_splits.amount`.
+- `grant execute on function private.recurrence_occurrence(...)` **e `private.recurrence_first_index(...)`** a `authenticated` (funções puras da Etapa 5, exigidas pela função invoker `projected_cash_flow`).
 
 **`goals`** (ADR-0025)
 
@@ -143,11 +149,12 @@ Trigger `transactions_rescale_splits` em `transactions` (`after update of amount
 2. Lançamento por `id` **e** família, `for update`; inexistente, de outra família ou excluído → `NOT_FOUND`.
 3. `type <> 'expense'`, `status = 'canceled'` ou `reversal_of_id is not null` → `SPLIT_NOT_ALLOWED`.
 4. Chamador não é owner/admin nem `created_by` → `FORBIDDEN` (`42501`).
-5. `p_mode not in ('equal','amounts','none')` → `INVALID_INPUT`. `none` → apaga as parcelas e audita.
+5. `p_mode not in ('equal','amounts','none')` → `INVALID_INPUT`. `none` → apaga as parcelas e audita **somente se removeu alguma** (v1.1, SEC-23).
 6. `p_shares`: array de 2 a 20 objetos, `member_id` uuid distintos; em `amounts`, `amount` texto `^\d{1,8}(\.\d{1,2})?$` e > 0. Fora disso → `INVALID_INPUT`.
 7. Cada `member_id` é vínculo **desta** família (senão `INVALID_INPUT`, sem distinguir "não existe" de "outra família") e está `active` **ou** já está na divisão atual deste lançamento (senão `MEMBER_INACTIVE`).
 8. `equal` → valores por `private.allocate_cents(amount, pesos 1)`, integrantes em ordem `joined_at, id`. `amounts` → Σ ≠ `amount` → `SPLIT_SUM_MISMATCH`.
-9. Substitui o conjunto (delete + insert) e grava `transaction.splits_changed { "mode", "parts" }`.
+9. **(v1.1)** Qualquer parcela final ≤ 0 (rateio `equal` de valor muito baixo, ou `amounts` que a produza) → `SPLIT_AMOUNT_TOO_SMALL`. Conjunto final idêntico ao atual (mesmos integrantes e valores) → retorna sem reescrever nem auditar (SEC-23).
+10. Substitui o conjunto (delete + insert) e grava `transaction.splits_changed { "mode", "parts" }`.
 
 **`settlements`**
 
@@ -162,7 +169,7 @@ Trigger `transactions_rescale_splits` em `transactions` (`after update of amount
 | `created_by`, `deleted_at`, `deleted_by`, `created_at`, `updated_at` | como em `goal_contributions` |
 
 Grants: `select`; `insert (family_id, from_member_id, to_member_id, amount, settlement_date, notes, idempotency_key)`; `update (deleted_at)`.
-Policies: select `is_family_member`; insert `with check (is_family_member(family_id) and created_by = auth.uid() and (has_family_role(family_id,'{owner,admin}') or from_member_id = private.current_member_id() or to_member_id = private.current_member_id()))`; update `using ((has_family_role(family_id,'{owner,admin}') or created_by = auth.uid()) and deleted_at is null)`.
+Policies: select `is_family_member`; insert `with check (is_family_member(family_id) and created_by = auth.uid() and (has_family_role(family_id,'{owner,admin}') or from_member_id = private.current_member_id() or to_member_id = private.current_member_id()))`; update **(v1.1, SEC-25)** `using (deleted_at is null and is_family_member(family_id) and (has_family_role(family_id,'{owner,admin}') or created_by = auth.uid() or from_member_id = private.current_member_id() or to_member_id = private.current_member_id()))` e `with check` igual sem a condição de `deleted_at`: as partes do acerto também o excluem logicamente (v1.0: só owner/admin e autor). O trigger continua fixando `deleted_at`/`deleted_by`.
 Integrantes inativos são aceitos (dívida histórica, ADR-0026 §6). Auditoria: `settlement.created` e `settlement.deleted` `{ "amount", "settlement_date" }`.
 
 **Funções de leitura (`public`, `stable`, `security invoker`, `search_path = ''`, montantes `text`, filtro `family_id = private.current_family_id()` + RLS; `grant execute` a `authenticated`)**
@@ -173,13 +180,13 @@ Integrantes inativos são aceitos (dívida histórica, ADR-0026 §6). Auditoria:
 | `member_balances() returns table (debtor_member_id uuid, creditor_member_id uuid, amount text)` | D10 (saldo entre integrantes), todas as datas, só `amount > 0`, uma linha por par. Estorno com a proporção do original via `allocate_cents` |
 | `projected_cash_flow(p_months integer) returns table (month date, pending_income text, pending_expense text, recurring_income text, recurring_expense text)` | D15 (saldo futuro). `p_months` 1..12 (senão `INVALID_INPUT`); meses a partir do mês de hoje, todos presentes. Pendente: `pending` não excluído, `income`/`expense`, data no mês (no 1º mês, também as anteriores a hoje). Recorrente: séries `is_active`, datas da agenda ≥ `greatest(next_occurrence_date, today)` e ≤ `end_date`, no mês (no máximo 60 por série) |
 
-**pgTAP** (`supabase/tests/database/`): `400_etapa6_privileges` (RLS, grants exatos, nenhum grant de escrita em `expense_splits`, `prosecdef`/`proconfig`, `anon`), `410_goals`, `420_goal_contributions`, `430_splits`, `440_settlements_balances`, `450_projection`, `460_etapa6_regression` (R15–R18 + R1..R14 inalterados com metas, parcelas e liquidações no banco), `470_audit_etapa6`. Cobertura: CA-E6-01..16.
+**pgTAP** (`supabase/tests/database/`): `400_etapa6_privileges` (RLS, grants exatos, nenhum grant de escrita em `expense_splits`, `prosecdef`/`proconfig`, `anon`), `410_goals`, `420_goal_contributions`, `430_splits`, `440_settlements_balances`, `450_projection`, `460_etapa6_regression` (R15–R18 + R1..R14 inalterados com metas, parcelas e liquidações no banco), `470_audit_etapa6`, `480_etapa6_review_fixes` (v1.1: `SPLIT_AMOUNT_TOO_SMALL`, SEC-25 contraparte exclui acerto, SEC-23 auditoria de divisão sem ruído). Cobertura: CA-E6-01..16.
 
 ### 3.2 Backend → frontend e design-system
 
-**Códigos novos de `ErrorCode`** (de `P0001`): `GOAL_NOT_ACTIVE` ("Esta meta não está ativa. Reative-a para registrar aportes."), `GOAL_NEGATIVE_PROGRESS` ("O valor guardado não pode ficar negativo. Confira o valor da retirada.", `fieldErrors.amount` na retirada), `SPLIT_NOT_ALLOWED` ("Só despesas não canceladas podem ser divididas."), `SPLIT_SUM_MISMATCH` ("A soma das partes precisa ser igual ao valor da despesa."), `MEMBER_INACTIVE` ("Um dos integrantes não faz mais parte da família. Atualize a página."). `INVALID_STATUS_TRANSITION` (Etapa 5) vale para metas.
+**Códigos novos de `ErrorCode`** (de `P0001`): `GOAL_NOT_ACTIVE` ("Esta meta não está ativa. Reative-a para registrar aportes."), `GOAL_NEGATIVE_PROGRESS` ("O valor guardado não pode ficar negativo. Confira o valor da retirada.", `fieldErrors.amount` na retirada), `SPLIT_NOT_ALLOWED` ("Só despesas não canceladas podem ser divididas."), `SPLIT_SUM_MISMATCH` ("A soma das partes precisa ser igual ao valor da despesa."), **`SPLIT_AMOUNT_TOO_SMALL` (v1.1; "O valor ficou pequeno demais para a divisão entre os integrantes. Remova a divisão ou aumente o valor."; `fieldErrors.amount`; vem de `set_transaction_splits` e da reescala ao pagar ou editar o valor)**, `MEMBER_INACTIVE` ("Um dos integrantes não faz mais parte da família. Atualize a página."). `INVALID_STATUS_TRANSITION` (Etapa 5) vale para metas.
 
-**`family/permissions.ts`** (só UX): `can()` ganha `"goal.manage"` (owner, admin). Novas: `canContributeFor(role, myMemberId, memberId)` (owner/admin: qualquer; member: só o próprio), `canDeleteContribution(role, createdBy, userId)` e `canSetSplits(role, createdBy, userId)` (= regra de `canManageTransaction`), `canRegisterSettlement(role, myMemberId, fromId, toId)` (owner/admin ou parte).
+**`family/permissions.ts`** (só UX): `can()` ganha `"goal.manage"` e **`"settlement.register"` (v1.1)**, ambas owner/admin. `settlement.register` decide só a forma do formulário de acerto: com ela, De e Para livres; sem ela (member), um dos dois lados fica travado no próprio vínculo. A autorização real é a policy `settlements_insert`. Novas: `canContributeFor(role, myMemberId, memberId)` (owner/admin: qualquer; member: só o próprio), `canDeleteContribution(role, createdBy, userId)` e `canSetSplits(role, createdBy, userId)` (= regra de `canManageTransaction`), `canRegisterSettlement(role, myMemberId, fromId, toId)` (owner/admin ou parte).
 **`family/domain/member-name.ts`** · `memberDisplayName(name: string | null): string` → `"Ex-integrante"` quando o perfil não é legível. Usado por todas as queries novas desta etapa.
 **`proxy.ts`/`safe-redirect.ts`**: `/metas`, `/planejamento`, `/divisao`.
 
@@ -214,7 +221,7 @@ Integrantes inativos são aceitos (dívida histórica, ADR-0026 §6). Auditoria:
 | `goals/actions.ts` · `createGoal` / `updateGoal` / `changeGoalStatus` | `{ id }` / `null` / `null` | RLS; 0 linhas: visível → `FORBIDDEN`, senão `NOT_FOUND`; idempotente pela chave |
 | `addContribution` / `deleteContribution` | `{ id }` / `null` | `memberId` omitido → `requireMembership().memberId`; `GOAL_NOT_ACTIVE`, `GOAL_NEGATIVE_PROGRESS`, `FORBIDDEN`; idempotente |
 | `splits/actions.ts` · `setTransactionSplits(input)` | `null` | RPC `set_transaction_splits` (`amounts` com `toDbNumeric`) |
-| `createSettlement` / `deleteSettlement` | `{ id }` / `null` | RLS; idempotente |
+| `createSettlement` / `deleteSettlement` | `{ id }` / `null` | RLS; idempotente. `revalidatePath` com `"layout"` em `/divisao`, `/transacoes` e `/compromissos` (e `/inicio`) em todas as actions de `splits` |
 
 **Queries** (`server-only`; `Cents`, `ISODate`; nomes de integrante por `memberDisplayName`):
 
@@ -226,7 +233,7 @@ Integrantes inativos são aceitos (dívida histórica, ADR-0026 §6). Auditoria:
 | `splits/queries.ts` · `listSharedExpenses(filters)` | `{ items: SharedExpenseItem[]; total; page; pageSize; pageCount }`. Despesas com divisão, não canceladas nem excluídas; `pendentes` = `pending`, `pagas` = `paid`; data desc. `SharedExpenseItem` = `{ id; description; amount; date: ISODate; status: "pending" \| "paid"; payer: { id; displayName } \| null; category: { id; name; color; icon }; parts: { member: { id; displayName }; amount: Cents }[]; myShare: Cents \| null }` |
 | `getTransactionSplit(transactionId)` | `SplitDetail \| null` = `{ transaction: { id; description; amount; status; date; payer \| null; isPending: boolean }; splittable: boolean; parts; mode: "equal" \| "amounts" \| null (derivado: igual a `previewEqualSplit` → `equal`); candidates: { id; displayName; active: boolean }[] (ativos + ex-integrantes já na divisão); canEdit }`. Inexistente, de outra família, excluído, transferência ou receita → `null` |
 | `getMemberBalances()` | `{ pairs: { debtor; creditor: { id; displayName }; amount: Cents }[]; myMemberId: string }` (via `member_balances`) |
-| `listSettlements({ page })` | `{ items: { id; from; to: { id; displayName }; amount; date; notes; canDelete }[]; total; page; pageCount }` |
+| `listSettlements({ page })` | `{ items: { id; from; to: { id; displayName }; amount; date; notes; recordedBy: string (v1.1; `memberDisplayName` de quem registrou); canDelete }[]; total; page; pageCount }` (20 por página). `canDelete` = owner/admin ou autor; as **partes** do acerto podem excluir no banco (SEC-25), mas a UI ainda não mostra "Excluir" a elas — ver pendência na §7 |
 | `planning/queries.ts` · `getPlanningBaseline()` | `PlanningBaseline` = `{ today; hasAccounts: boolean; consolidatedBalance: Cents; averageWindow: { from; to: ISODate }; averageMonthly: { income; expense; result: Cents }; categoryAverages: { categoryId; name; color; icon; average: Cents }[] (despesa, > 0, decrescente); goals: { id; name; saved; target; pace: Cents; targetDate }[]; projection: { month: ISODate; label; pendingIncome; pendingExpense; recurringIncome; recurringExpense: Cents }[] (12) }`. Chama `ensureRecurrencesMaterialized()` primeiro; usa `account_balances`, `monthly_cash_flow` (3 meses completos), `category_totals`, `goal_summary` e `projected_cash_flow(12)` em paralelo |
 
 **Mudanças em módulos existentes**
@@ -295,6 +302,7 @@ Aceite: CA-E6-50..62; RTL do `GoalForm`, do `ContributionDialog` (member com int
 
 Ordem: `pnpm install` → `pnpm db:reset` → `pnpm db:types` (sem diff) → `pnpm check` → `pnpm build` → `pnpm db:test` → `pnpm test:integration` → `pnpm test:e2e` → `pnpm outdated`/`audit` → `node ~/.claude/factory/security/gate.mjs "<projeto>"` → revisão (reviewer + security; mudança `structural`: 4 tabelas, RLS, RPC `security definer`, trigger novo em `transactions`).
 Etapa 6 concluída = CA-E6-* verdes + regra de conclusão. O architect atualiza `data-model.md` §5.6–5.8 e o catálogo de auditoria, e o roadmap.
+**Estado (2026-10-27):** concluída **no código** (migrations, módulos, telas, SEC-23 e SEC-25 corrigidos). Falta o **E2E final**, que depende do Docker Desktop (também `db:reset`/`db:test` a reexecutar do zero com a `101700`); a etapa só é dada como fechada quando esse passo passar e o gate (`gate.mjs`) responder `PASSA`.
 
 ## 7. Bloqueadores e riscos
 
@@ -308,6 +316,8 @@ Etapa 6 concluída = CA-E6-* verdes + regra de conclusão. O architect atualiza 
 | Simulação com `number` | arredondamento | conversão única por meio para longe do zero, totais do valor exato (D15), R19 |
 | Bottom nav com 5 itens em 360px | rolagem horizontal | decisão do frontend registrada; CA-E6-58 |
 | Spec truncada na §15 | — | segue aberto |
+| (v1.1) `canDelete` de acerto em `listSettlements` não inclui as partes, que o banco já autoriza (SEC-25) | a parte vê o acerto, mas não o botão "Excluir" | ajuste de UI pequeno (backend: `canDelete`; frontend: ação); decisão do orchestrator. Não é lacuna de segurança: o banco é mais permissivo que a UI, não o contrário |
+| (v1.1) SEC-24: sem limite de quantidade de aportes, parcelas e acertos por família | degradação de `goal_summary`/`member_balances` por volume | aberta, baixa; Etapa 9 (limite de volume e de taxa por família), junto com o resíduo de SEC-18 |
 
 ## 8. Pedido de mudança
 

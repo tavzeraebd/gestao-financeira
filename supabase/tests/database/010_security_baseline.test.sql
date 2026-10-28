@@ -11,7 +11,7 @@ select is(
 select is(
   (select count(*)::int from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind in ('r', 'p')),
-  14, 'CA-E2-01: public tem exatamente as 14 tabelas (5 da Etapa 2 + accounts, categories, transactions da Etapa 3 + recurrences, budgets da Etapa 5 + goals, goal_contributions, expense_splits, settlements da Etapa 6)');
+  15, 'CA-E2-01: public tem exatamente as 15 tabelas (5 da Etapa 2 + accounts, categories, transactions da Etapa 3 + recurrences, budgets da Etapa 5 + goals, goal_contributions, expense_splits, settlements da Etapa 6 + notifications da Etapa 7)');
 
 -- CA-E2-02
 select is(
