@@ -184,12 +184,29 @@ fica no banco, e o Next apenas repete por UX.
 | AB-118 | Member lê a auditoria pela tela de atividade ou pela API; metadata com PII | RLS select owner/admin; página `notFound()` para member; catálogo fechado sem nome, e-mail, descrição; descrição por lista fechada | pgTAP CA-E7-15; E2E CA-E7-56 |
 | AB-119 | Corrida: owner transfere enquanto remove o mesmo integrante; remoção dupla; dois owners transferindo | `for update` nos dois vínculos em ordem de `id`; alvo precisa estar `active`; índice único de owner | pgTAP CA-E7-05 (duas sessões) |
 
+### 3.13 Hardening e entrega (Etapa 9; [ADR-0033](adr/0033-limites-de-volume-e-frequencia-no-banco.md)–[ADR-0039](adr/0039-ci-github-actions-e-gate-de-seguranca-portatil.md))
+
+| Id | Caso de abuso | Defesa | Teste |
+|---|---|---|---|
+| AB-120 | **Força bruta e credential stuffing sem rastro** (login falho sem IP nem identificador da conta) | log `warn` com `ip` e `emailHmac`; balde `auth_failure` (IP + e-mail) e `auth_ip`; mensagem igual para conta existente e inexistente | CA-E9-33, 35 |
+| AB-121 | **Troca de senha silenciosa** após sessão roubada | trigger em `auth.users` grava `security_events` (não forjável pelo cliente); o titular vê em `/configuracoes` | CA-E9-09..11, 43 |
+| AB-122 | **Inundação de volume** pela API direta (aportes, acertos, lançamentos, notificações) até degradar a família ou estourar o inteiro seguro | triggers com teto ativo e frequência por usuário (excluídas contam), valores em `private.volume_limits`; teto de 500 notificações e intervalo de 30 s | CA-E9-01..08, 45 |
+| AB-123 | **Oráculo de volume entre famílias** (inserir com `family_id` alheio para saber se a outra família está no teto) | a verificação só conta quando `is_family_member`; senão a RLS/FK nega como antes | CA-E9-05 |
+| AB-124 | **Tentativa negada de auto-promoção/remoção do owner sem rastro**, ou poluição da trilha com negações em massa | negação devolve código e grava `member.action_denied`; 20 por ator/hora; metadata sem PII | CA-E9-12..15 |
+| AB-125 | **XSS** (script injetado, inline ou de terceiros) | CSP com nonce por requisição e `strict-dynamic`; sem `unsafe-inline`/`unsafe-eval` em `script-src`; `object-src 'none'`, `base-uri`, `form-action` | CA-E9-50, 51, 53, 55 |
+| AB-126 | **CSP derruba o app ou o service worker** (disponibilidade) | `worker-src 'self'` explícito; `/offline` com política própria estática; testes de violação e hidratação; reversão por commit | CA-E9-53..55, 57 |
+| AB-127 | **IP forjado** (`X-Forwarded-For` ou `x-client-ip` do cliente) para driblar o limite ou envenenar o log | IP só do `proxy`, pela entrada confiável contada da direita; cabeçalho do cliente sobrescrito; IP nulo ignora baldes por IP (não trava ninguém) | CA-E9-31, 36, 52 |
+| AB-128 | **Exclusão de conta indevida** (sessão roubada, owner que deixa a família sem dono, apagar dado de terceiros, resíduo de PII) | reautenticação com `amr` de senha em 5 min exigida no banco; `OWNER_MUST_TRANSFER`; só dado do titular é anonimizado, a família permanece; família sem ninguém é apagada por mapa verificado; `auth.users` neutralizado; limite 3/h | CA-E9-17..22, 40, 41, 44 |
+| AB-129 | **E-mail em massa a terceiro** pelos fluxos de cadastro, reenvio e recuperação | baldes `auth_email_ip` e `auth_email_target`; excedente responde neutro sem chamar o Auth (a parte do provedor é pendência do usuário, SEC-10) | CA-E9-36 |
+| AB-130 | **Cadeia de suprimentos no CI** (ação alterada, `pull_request_target`, segredo em PR de fork, permissões amplas) | ações por SHA, `permissions: contents: read`, sem `pull_request_target`, sem segredo de produção, migrations de produção fora do CI | CA-E9-60, 62..64 |
+| AB-131 | **Backup com PII fora de controle** (dump em repositório, em artefato do CI ou sem criptografia) | runbook: dump só local/cofre, criptografado, nunca versionado; `security:check` varre segredos; restauração ensaiada em projeto descartável | CA-E9-70, 71 |
+
 ## 4. Riscos residuais aceitos (Etapas 1–2)
 
 - Token de convite trafega no caminho da URL (logs de hospedagem/proxy reverso podem registrá-lo). Mitigado por uso único, 7 dias e revogação. Revisar na Etapa 9 com a plataforma de deploy.
-- Rate limit de Server Actions próprias não existe; depende do Auth (login/cadastro/recuperação) e de limites no banco (convites). Reavaliar na Etapa 9.
+- Rate limit de Server Actions próprias não existia nas Etapas 1–8. **Tratado na Etapa 9** (ADR-0034, em memória do processo, uma instância; vira decisão pendente se houver mais de uma) e, para a API direta, ADR-0033.
 - Sem MFA e sem proteção contra senhas vazadas (recurso de plano pago do Supabase) — fora do escopo da spec.
-- Exclusão de conta (LGPD) não implementada; FKs `restrict` bloqueiam remoção acidental.
+- Exclusão de conta (LGPD) não implementada nas Etapas 1–8; FKs `restrict` bloqueiam remoção acidental. **Tratada na Etapa 9** (ADR-0038: anonimização + apagar a família sem integrantes). Portabilidade (exportar dados) continua fora do escopo.
 
 ## 5. Requisitos de segurança derivados (entram nos pedidos aos implementadores)
 

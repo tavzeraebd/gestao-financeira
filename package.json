@@ -23,6 +23,8 @@
     "db:test": "supabase test db",
     "db:lint": "supabase db lint --level warning",
     "db:types": "supabase gen types typescript --local > src/types/database.ts",
+    "security:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/security-checks.ts",
+    "security:checks": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/security-checks.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "dependencies": {

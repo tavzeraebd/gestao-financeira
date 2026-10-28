@@ -472,6 +472,101 @@ Verificação adicional: **E-pub** = Playwright sem banco (`playwright.publico.c
 | CA-E8-72 | `public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` e `src/app/apple-icon.png`: marca do `Logo` em `--primary-foreground` sobre `--primary`; maskable com a marca dentro da zona segura (círculo central de 80% do lado); procedência registrada em `docs/design-system.md` | inspeção |
 | CA-E8-73 | Correções de componente que a auditoria apontar (rótulo, alvo, foco, movimento) feitas em `ui/` e `shared/` sem mudar contrato público, cada uma com teste de regressão | U |
 
+## Etapa 9 — Hardening e entrega (contrato `contracts/etapa-9.md`; ADR-0033..0039)
+
+Verificação: **DB** = pgTAP (exige Docker local ou `ci-docker.yml`) · **I** = integração (Docker; título do `describe` com `@docker`) · **U** = Vitest · **G** = grep/gate (`pnpm security:check`) · **E-pub** = `pnpm test:e2e:publico` (sem banco) · **E-docker** = Playwright com Supabase local · **L** = Lighthouse · **H** = homologação em produção (`docs/runbooks/checklist-entrega.md`) · **D** = inspeção de documento. Itens de `contracts/etapa-9.md` §9 (SMTP, OAuth Google, SEC-10, URLs de redirect, SEC-27, domínio) **não têm critério aqui**.
+
+### E9-DB — pgTAP (`pnpm db:reset && pnpm db:test`; hospedado: `supabase db lint --linked --level warning` depois do push)
+
+| Id | Critério | AB / SEC |
+|---|---|---|
+| CA-E9-01 | Objetos novos (M1–M4): `private.volume_limits`, `private.notification_refresh_state` e `private.account_erasure_log` sem grant a `anon`/`authenticated` e fora do schema exposto; `security_events` só com `select` e RLS própria; `delete_my_account`, `refresh_notifications` e as três RPCs de integrantes `security definer` com `search_path=""`, `execute` só a `authenticated`; `refresh_notifications` **sem parâmetros**; `anon` sem privilégio em nada novo | AB-122 |
+| CA-E9-02 | `transactions`: com `volume_limits` baixado, o lançamento acima de `max_active` (não excluídos) → `VOLUME_LIMIT_REACHED`; acima de `max_per_hour` do usuário (excluídos lógicos contam) → `RATE_LIMITED`; exclusão lógica de um lançamento reabre vaga de volume, mas **não** de frequência; outro usuário da mesma família não é afetado pela frequência | SEC-18, AB-122 |
+| CA-E9-03 | `goal_contributions`: teto por meta, teto por família e frequência por usuário, cada um com seu erro; aporte em outra meta não é afetado pelo teto da primeira | SEC-24 |
+| CA-E9-04 | `settlements`: teto por família e frequência por usuário; exclusão lógica reabre volume, não frequência | SEC-24 |
+| CA-E9-05 | Sem oráculo: com a família B no teto, inserir em B com `family_id` de B por quem não é integrante dá o erro de antes (`42501`/`23503`), **nunca** `VOLUME_LIMIT_REACHED` nem `RATE_LIMITED`; a mesma resposta para família inexistente | AB-123 |
+| CA-E9-06 | Linhas com `recurrence_id` contam no volume ativo e não no teste de frequência; `materialize_recurrences` (até 60 por chamada) segue exata: R5 e R13 inalterados com limites normais | SEC-20, SEC-21 |
+| CA-E9-07 | `refresh_notifications`: segunda chamada em menos de 30 s devolve 0 e **não gera** mesmo com dado novo qualificado; depois de 30 s gera; a **limpeza** (compromisso pago, mais de 90 dias) acontece também dentro da janela; duas chamadas concorrentes do mesmo usuário geram uma única execução; usuário B não é limitado pela janela de A | SEC-28 |
+| CA-E9-08 | Teto de notificações: com 500 existentes, a geração insere 0; com 497, no máximo 3; nunca negativo; o teto é por usuário (a família e os outros integrantes não são afetados); `financial_event` em massa (lançamentos com responsável = vítima) para em 500 | SEC-28 |
+| CA-E9-09 | `security_events`: RLS — cada usuário lê só os próprios; outro integrante da mesma família lê 0; insert, update e delete → `42501`; `anon` sem acesso; `action` fora de `password.changed` → `23514` | AB-121 |
+| CA-E9-10 | Trigger: trocar `encrypted_password` no `auth.users` grava exatamente 1 evento `password.changed` para aquele usuário; atualizar com o mesmo hash, sem tocar a coluna, ou para nulo não grava; vale para troca logada e para o caminho de recuperação (ambos só alteram a coluna) | AB-121, SEC-4 |
+| CA-E9-11 | Troca de senha de um usuário sem linha em `profiles` não falha (o evento é omitido); `metadata` com mais de 1024 bytes → `23514` | AB-121 |
+| CA-E9-12 | `change_member_role`, `transfer_ownership` e `remove_family_member`: cada negação (`FORBIDDEN`, `CANNOT_TARGET_SELF`, `NOT_FOUND`) **devolve o código**, não lança, e grava `member.action_denied` com `metadata {operation, reason}` sem e-mail, nome ou papel de terceiro; `entity_id` só quando o alvo é da família do chamador | AB-124, SEC-26 |
+| CA-E9-13 | Chamador sem família ativa → `'FORBIDDEN'` e nenhuma linha em `audit_events`; acima de 20 negações por ator em 1 hora a RPC ainda nega e **não** grava o 21º; `INVALID_INPUT` e `NOT_AUTHENTICATED` continuam exceção | AB-124 |
+| CA-E9-14 | Caminho de sucesso inalterado: CA-E7-02, 03, 05 e 06 passam com o novo retorno (`null`); transferência e remoção concorrentes (duas sessões) nunca deixam 0 ou 2 owners; os `for update` são liberados após a negação (a segunda sessão não bloqueia) | AB-119 |
+| CA-E9-15 | `member.action_denied`: owner e admin leem; member lê 0; `anon` nada; metadata de ações de integrantes continua sem `email`, `name`, `display_name`, `description` (CA-E7-15 estendido) | AB-118 |
+| CA-E9-17 | `delete_my_account`: sem `auth.uid()` → `NOT_AUTHENTICATED`; JWT sem `amr` de senha dentro de 5 min → `REAUTH_REQUIRED` e **nada muda**; com `amr` fresco → executa; `anon` sem `execute` | AB-128 |
+| CA-E9-18 | Admin e member: viram `left` com `ended_at`; `profiles` com `Conta excluída` e sem `avatar_url`; notificações e `security_events` do usuário apagadas; convites pendentes que criou revogados e `invited_email` dos criados por ele nulo; lançamentos, metas, aportes, parcelas e acertos que registrou **intactos e legíveis** para quem fica; R1 inalterado; `member.left` com `"reason":"account_deleted"` | AB-128 |
+| CA-E9-19 | Owner com outro integrante ativo → `OWNER_MUST_TRANSFER` e **nenhuma** alteração (nem perfil, nem auth, nem log) | AB-111, AB-128 |
+| CA-E9-20 | Owner sozinho: a família e **todas** as linhas dela deixam de existir (contas, categorias, lançamentos, séries, orçamentos, metas, aportes, parcelas, acertos, notificações, convites, vínculos, auditoria); outra família de teste permanece idêntica; `account_erasure_log` ganha 1 linha com `family_erased = true` e sem PII | AB-128 |
+| CA-E9-21 | Completude: teste sobre `pg_constraint` falha se existir tabela com FK para `public.families` (direta ou por tabela da família) que não esteja no mapa de `erase_family`; o mapa é lido do cabeçalho da migration ou de lista no próprio teste | AB-128 |
+| CA-E9-22 | `auth.users` neutralizado (e-mail inerte único, senha nula, `banned_until` no infinito, `deleted_at`), `auth.identities`/`sessions`/`mfa_factors` do usuário apagados; o e-mail antigo pode cadastrar nova conta sem erro; segunda chamada com o mesmo token → `NOT_AUTHENTICATED` ou `FORBIDDEN`, sem efeito | AB-128 |
+| CA-E9-23 | Regressão: `010_security_baseline`, 100–560 e R1–R20 continuam verdes depois de M1–M4 (saída, exclusão e limites ativos com os valores de produção); `pnpm db:lint` sem aviso; `git diff` mostra só migrations **novas** (nenhuma antiga alterada) | — |
+
+### E9-BE — servidor (U/I/G)
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E9-16 | `family/repository.ts`: retorno `'FORBIDDEN'`/`'CANNOT_TARGET_SELF'`/`'NOT_FOUND'` vira `AppError` com o mesmo código; `null`/`undefined` é sucesso; as Server Actions devolvem as mesmas mensagens de CA-E7-36; `describeAuditEvent` cobre `member.action_denied` (o teste do catálogo percorre a lista) e a metadata crua não aparece | U + I |
+| CA-E9-30 | Logger: `ip` (IPv4/IPv6 válido), `emailHmac` (16 hex) e `inviteId` (uuid) passam; valor fora do padrão (texto livre, e-mail, uuid malformado) é descartado; nenhum outro campo novo existe; `requestId`, `module`, `operation` seguem validados | U |
+| CA-E9-31 | `resolveClientIp`: com `hops = 1` e `X-Forwarded-For: a, b, c` usa `c`; entrada à esquerda forjada é ignorada; IPv6 aceito; valor inválido, vazio ou ausente → `null`; `hops = 0` → `null`. `proxy` descarta `x-client-ip` do cliente e define o seu; `getClientIp()` fora de requisição → `null` | U (AB-127) |
+| CA-E9-32 | `emailHmac`: determinístico, igual para maiúsculas/minúsculas e espaços, diferente entre e-mails, 16 hex; sem `LOG_HMAC_KEY` devolve `undefined` e **não** devolve hash simples; a saída não contém o e-mail | U |
+| CA-E9-33 | `runAction`: linhas `warn`/`error` incluem `ip`; falha de `signIn`/`signUp`/`requestPasswordReset`/`resendConfirmation` inclui `emailHmac`; ações de convite incluem `inviteId` quando está na entrada; linhas `info` de sucesso **não** incluem `ip`; varredura das linhas capturadas em todos os testes de auth não encontra e-mail, senha nem token | U (AB-120) |
+| CA-E9-34 | `rate-limit`: janela fixa, contagem por balde e chave, `retryAfterSeconds` correto com relógio injetado, `isRateLimited` não incrementa, expiração libera, teto de 50000 chaves não cresce (descarte), estado sobrevive a recarga de módulo | U |
+| CA-E9-35 | `signIn`: 6ª falha de credencial do par IP+e-mail em 15 min → `RATE_LIMITED` **sem chamar o Auth**; 31ª tentativa de um IP em 5 min → `RATE_LIMITED`; outro IP e outro e-mail não são afetados; a mensagem é igual para e-mail existente e inexistente | U + E-pub (AB-120) |
+| CA-E9-36 | `signUp`, `requestPasswordReset`, `resendConfirmation`: acima de 5 por IP/10 min ou 3 por e-mail/hora respondem o **mesmo sucesso neutro** de hoje sem chamar o Auth e com `warn RATE_LIMITED`; com IP `null` os baldes por IP são ignorados e o log avisa uma vez, sem travar usuários | U (AB-129, AB-127) |
+| CA-E9-37 | `runAction`: ação autenticada acima de 120/min por `userId` e anônima acima de 60/min por IP → `RATE_LIMITED` **sem executar o handler**; `rateLimit: false` ignora; o limite de um usuário não afeta outro | U |
+| CA-E9-38 | `ErrorCode` ganha `VOLUME_LIMIT_REACHED` e `REAUTH_REQUIRED` com mensagens pt-BR com próximo passo; `errors.ts` mapeia `P0001` com esses textos; `RATE_LIMITED` do banco usa a mensagem existente | U |
+| CA-E9-39 | `grep`: `SUPABASE_SECRET_KEY` e `service_role` ausentes de `src/`; nenhum `insert`/`update`/`delete` em `security_events`, `audit_events` ou `account_erasure_log` em `src/`; nenhum `console.*` com e-mail ou senha; `LOG_HMAC_KEY` nunca importado em código de cliente | G |
+| CA-E9-40 | `deleteAccount`: senha errada → `INVALID_CREDENTIALS` sem chamar a RPC; `confirmation` diferente de `EXCLUIR` → `VALIDATION_ERROR`; owner com outros → `OWNER_MUST_TRANSFER`; sucesso → sessão encerrada, cookies limpos e redirecionamento a `/login?conta=excluida`; a senha e o e-mail nunca aparecem no log; o log registra `module: "account"`, `operation: "deleteAccount"` | U |
+| CA-E9-41 | `deleteAccount` acima de 3 por hora por usuário → `RATE_LIMITED` sem executar a reautenticação | U |
+| CA-E9-42 | `getAccountDeletionPreview`: member/admin → `willEraseFamily = false`, `canDelete = true`; owner com outros → `canDelete = false`; owner sozinho → `willEraseFamily = true`; sem identidade de senha → `hasPassword = false` e `canDelete = false`; sem família → `role = null`, `canDelete = true` | U + I |
+| CA-E9-43 | `listSecurityEvents` devolve só os 10 últimos do próprio usuário, mais recentes primeiro; outro usuário não os vê | I (AB-121) |
+| CA-E9-44 | Integração (`@docker`): excluir a conta pelas actions nos quatro cenários (member, admin, owner com outros, owner sozinho) com os mesmos resultados de CA-E9-18..20; depois, o login com a senha antiga falha com `INVALID_CREDENTIALS` | I |
+| CA-E9-45 | Integração (`@docker`): inserção acima do teto pela API direta (publishable key + JWT) e pelas Server Actions devolve a mesma falha e a mesma mensagem; o app mostra `VOLUME_LIMIT_REACHED` com o próximo passo | I (SEC-24) |
+
+### E9-FE — telas
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E9-46 | `/configuracoes`: "Atividade de segurança" lista "Senha alterada em dd/mm/aaaa hh:mm" e tem estado vazio "Nenhum evento registrado"; "Excluir conta" mostra o texto certo para cada preview (sozinho: família e dados apagados; com outros membros ou admin/member: registros continuam com a família), `AlertDialog` com senha e "Digite EXCLUIR", botão destrutivo com `loading`, erro geral com próximo passo; owner com outros: botão desabilitado + link para `/familia`; sem identidade de senha: só texto; nenhum token novo, nenhum hex | U (RTL) + axe + inspeção |
+| CA-E9-47 | E2E `@docker` `conta-excluida`: os quatro cenários de CA-E9-44 pela interface em desktop e 390px; após excluir, `/login?conta=excluida` mostra "Sua conta foi excluída."; voltar com o botão do navegador não mostra dado; acessibilidade da seção (axe) | E-docker |
+| CA-E9-48 | `/login?conta=excluida` mostra o aviso informativo; `?conta=x` e qualquer outro valor são ignorados; o formulário de login continua igual (CA-E8-30) | U + E-pub |
+
+### E9-CSP — política de segurança de conteúdo (ADR-0037)
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E9-50 | `buildCsp`: contém `default-src 'self'`, `script-src` com nonce e `'strict-dynamic'`, `worker-src 'self'`, `manifest-src 'self'`, `connect-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`; **sem** `'unsafe-inline'` e `'unsafe-eval'` em `script-src` com `isDev = false`; `unsafe-eval` só em dev; `upgrade-insecure-requests` só em produção; nonces de chamadas diferentes diferem | U |
+| CA-E9-51 | Cada resposta HTML das rotas públicas e do 404 traz `Content-Security-Policy` (e não duplica a diretiva `script-src`); todo `<script>` do documento (inline e externo) tem `nonce` igual ao do cabeçalho; dois pedidos seguidos têm nonces diferentes; redirects do proxy também carregam a política | E-pub |
+| CA-E9-52 | `proxy`: define `x-client-ip` e sobrescreve o enviado pelo cliente; repassa `Content-Security-Policy` e `x-nonce` na requisição ao Next e a CSP na resposta, também depois de o Auth renovar cookies (`forward()` reaplicado); o `matcher` exclui `offline` e continua excluindo estáticos, `sw.js` e `webmanifest` | U |
+| CA-E9-53 | Sem violações: em `/login`, `/cadastro`, `/recuperar-senha`, `/redefinir-senha` (redireciona), `/offline` e 404, nos quatro viewports e nos dois temas, **zero** eventos `securitypolicyviolation` e **zero** erros de CSP no console; a hidratação ocorre (o botão de envio deixa de estar desabilitado; a troca de tema funciona; o script do tema recebe o nonce) | E-pub |
+| CA-E9-54 | Service worker e `/offline` sob a CSP: CA-E8-07, 08, 09 e 12 continuam verdes com as políticas ligadas; `/offline` responde com a política própria do ADR-0037 §4 (uma única CSP, com `frame-ancestors 'none'`) e **sem** nonce; `/sw.js` mantém a sua CSP e os cabeçalhos de CA-E8-06 | E-pub |
+| CA-E9-55 | Telas autenticadas: percorrer o inventário de `etapa-8.md` §3.3 (claro e escuro, com `Dialog`, `AlertDialog`, `Sheet`, `DropdownMenu`, calendário, gráficos, toasts e o seletor de tema abertos) sem nenhum `securitypolicyviolation` e com hidratação | E-docker |
+| CA-E9-56 | Evidência no `docs/log-execucao.md`: (a) resultado do spike (rotas dinâmicas no build, nonce no `_not-found`); (b) decisão de `style-src-elem` com a medição; (c) `pnpm build` sem rota de página prerenderizada além de `/offline` (e do 404 se ficar estático, com a degradação do ADR-0037 §5); (d) cabeçalhos HSTS, `nosniff`, `Referrer-Policy`, `Permissions-Policy` e `X-Frame-Options` preservados (CA-E8-13) | D + E-pub |
+| CA-E9-57 | Lighthouse (acessibilidade e boas práticas) nas quatro públicas continua em 100 com a CSP ligada; nenhuma auditoria nova reprovada | L |
+
+### E9-CI — integração contínua e gate portátil (ADR-0039)
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E9-60 | `pnpm security:check` existe e implementa as verificações do ADR-0039 §3; passa no repositório atual; reprova (código 1, arquivo e linha) quando se introduz: segredo versionado, `SUPABASE_SECRET_KEY` em `src/`, hex fora dos arquivos permitidos, `unstable_cache`, `dangerouslySetInnerHTML` fora da lista, `'unsafe-inline'` em `script-src` de `csp.ts`, ação sem SHA, `pull_request_target` | U + G |
+| CA-E9-61 | `tests/ci/security-checks.test.ts` cobre cada verificação com um exemplo reprovado e um aprovado; roda em `pnpm test` | U |
+| CA-E9-62 | `.github/workflows/ci.yml`: gatilhos `push` em `main` e `pull_request`; jobs `quality`, `build`, `e2e-publico`, `security` e `outdated` (informativo); usa `.nvmrc`, `packageManager` e `--frozen-lockfile`; `build` e `e2e-publico` com variáveis públicas **fictícias**; relatório do Playwright como artefato em falha | D + G |
+| CA-E9-63 | `.github/workflows/ci-docker.yml`: `workflow_dispatch` e `pull_request` condicionado a `vars.CI_DOCKER == 'true'`; `supabase start`, `db:lint`, `db:test`, `db:types` + `git diff --exit-code`, `test:integration`, `test:e2e`; só segredos do Supabase **local**; desligado por padrão | D + G |
+| CA-E9-64 | Endurecimento dos workflows: `permissions: contents: read` (e nada mais), `timeout-minutes` e `concurrency` em todo job, ações fixadas por SHA de 40 caracteres com a versão em comentário, nenhum `pull_request_target`, nenhum segredo de produção, nenhum `supabase db push` | G |
+| CA-E9-65 | `README.md` tem a seção "CI" (jobs, como ligar `ci-docker.yml`, que migrations de produção são manuais); a primeira execução real no GitHub é registrada no log (verde ou os ajustes feitos) | D + H |
+
+### E9-DOC — entrega
+
+| Id | Critério | Verificação |
+|---|---|---|
+| CA-E9-70 | `docs/runbooks/backup-recuperacao.md`, `migracoes-producao.md` e `checklist-entrega.md` existem, com os campos "Registro" para evidência; nenhum procedimento afirma backup, retenção ou plano do Supabase sem a marca "confirmar no painel" até o registro existir | D |
+| CA-E9-71 | Ensaio de restauração executado e registrado (data, origem, destino, tempo, validações do runbook). **Sem o registro, "backup verificado" não é declarado**; o item aparece no roadmap como pendente do usuário (U-8) | H |
+| CA-E9-72 | `checklist-entrega.md` executado na homologação em produção: CSP no navegador real sem violação, IP e `emailHmac` no log do Render com valores plausíveis, `TRUSTED_PROXY_HOPS` conferido, conta descartável criada e excluída (inclui `auth.users`), `db lint --linked` limpo, `migration list --linked` coerente, retenção de logs anotada | H |
+| CA-E9-73 | Documentos atualizados pelo architect na Fase C: `architecture.md` §8 e §10 (CSP, IP, rate limit; remove "CSP completa fica para a Etapa 9"), `data-model.md` (tabelas e RPCs novas, `member.action_denied` no catálogo §4.6), `permissions.md` ("Excluir a própria conta"), `threat-model.md` §3.13 conferido, `README.md` (variáveis novas) | D |
+| CA-E9-74 | `achados.md` atualizado pelo security: SEC-4, SEC-18 (resíduo), SEC-24, SEC-26 e SEC-28 com status e evidência; SEC-10 e SEC-27 continuam `aberto` com a referência a `contracts/etapa-9.md` §9; gate `PASSA` | D |
+
 ## Cenários ponta a ponta da spec §12 (por etapa de conclusão)
 
 | Cenário | Critérios verificáveis | Etapa |

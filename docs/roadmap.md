@@ -2,7 +2,7 @@
 
 Versão 1.0 (Etapa 0). Etapas da spec §11. Prioridade: P0 = bloqueia a etapa; P1 = necessário para a
 saída da etapa; P2 = desejável na etapa. Critérios: `acceptance-criteria.md`. Contratos: `contracts/etapas-1-2.md` v1.1
-(Etapas 1–2, com emendas), `contracts/etapa-3.md` (Etapa 3), `contracts/etapa-4.md` (Etapa 4), `contracts/etapa-5.md` (Etapa 5), `contracts/etapa-6.md` (Etapa 6), `contracts/etapa-7.md` (Etapa 7) e `contracts/etapa-8.md` (Etapa 8). Fases do mockup (MVP; Organização e Insights; Planejamento e
+(Etapas 1–2, com emendas), `contracts/etapa-3.md` (Etapa 3), `contracts/etapa-4.md` (Etapa 4), `contracts/etapa-5.md` (Etapa 5), `contracts/etapa-6.md` (Etapa 6), `contracts/etapa-7.md` (Etapa 7), `contracts/etapa-8.md` (Etapa 8) e `contracts/etapa-9.md` (Etapa 9). Fases do mockup (MVP; Organização e Insights; Planejamento e
 Futuro; Experiência e Comunidade) mapeiam para Etapas 1–5, 4–7, 6, 8+ respectivamente; itens da fase 4 do
 mockup sem requisito na spec (importação bancária, gamificação, comunidade) **não** estão no backlog.
 
@@ -146,7 +146,7 @@ Pendências (não mudam o código entregue; a Etapa 7 só vira "concluída" defi
 Fora das Etapas 6–7 (registrado): aporte ligado a transferência (ADR-0025), notificação "convite recebido", e-mail e push (ADR-0029; Etapa 9 com SMTP),
 exportação de relatório, evolução do patrimônio mês a mês, excluir família.
 
-## Etapa 8 — PWA, acessibilidade e responsividade (contrato `contracts/etapa-8.md`; ADR-0031, ADR-0032) — **em andamento (2026-10-28)**
+## Etapa 8 — PWA, acessibilidade e responsividade (contrato `contracts/etapa-8.md`; ADR-0031, ADR-0032) — **concluída em produção (2026-10-28)**; pendências: **E-docker** e CA-E8-33 (ver abaixo)
 
 Manifest + service worker sem cache de dados financeiros entre sessões/famílias; auditoria WCAG 2.2 AA (teclado,
 leitores de tela, alternativas textuais de gráficos, reduced motion); revisão mobile de todas as telas (360, 390, 768, 1280).
@@ -163,7 +163,8 @@ Verificação em duas camadas (ADR-0032): **sem Docker** (build local sem banco,
 | E8-06 | Specs `@docker`: `a11y-telas`, `responsivo-telas`, `pwa-autenticado` (todas as rotas do inventário, claro e escuro, vazio e com dados) | qa | P1 | E8-02 |
 | E8-07 | Integração, security gate, revisão (reviewer + security, `structural`) | orchestrator | P0 | todos |
 
-Pendência da etapa: **E8-06 só roda com Docker** (critérios `E-docker` de `acceptance-criteria.md`), junto com o pgTAP/integração/E2E da Etapa 7. Leitor de tela (CA-E8-33) sem leitor disponível fica "não verificado".
+Estado: PWA, acessibilidade e responsividade das telas públicas entregues e em produção; camada 1 (sem Docker) verificada: `pnpm test:e2e:publico`, axe, Lighthouse (acessibilidade 100). Achados A-1 (foco 2,04:1 no tema claro) e A-2 (404 sem `main`) registrados em `docs/log-execucao.md` (estado da correção não reconferido nesta atualização).
+Pendência da etapa (a Etapa 8 só vira "concluída" definitivamente depois dela): **E8-06 só roda com Docker** (critérios `E-docker` de `acceptance-criteria.md`), junto com o pgTAP/integração/E2E das Etapas 6 e 7; a Etapa 9 oferece `ci-docker.yml` (ADR-0039) como caminho sem Docker Desktop. Leitor de tela (CA-E8-33) sem leitor disponível fica "não verificado".
 
 ## Incremento planejado — OAuth Google
 
@@ -172,12 +173,32 @@ O botão "Continuar com Google" do mockup **só aparece quando o provedor estive
 de servidor; sem ela a tela de login continua sem OAuth). Depende de o usuário criar as credenciais no Google Cloud
 (client id/secret e URIs de redirect). Apple fica fora do plano. Entra na primeira etapa depois de as credenciais existirem.
 
-## Etapa 9 — Hardening, homologação e entrega
+## Etapa 9 — Hardening, homologação e entrega (contrato `contracts/etapa-9.md`; ADR-0033..0039) — **em andamento (2026-10-28)**
 
-Projeto Supabase em nuvem, SMTP real (provedor a escolher pelo usuário), URLs de redirect, OAuth Google (incremento acima),
-SEC-4 (IP e HMAC de e-mail no log; troca de senha como evento de auditoria), SEC-10 (limites de e-mail e `max_frequency` de produção; os limites de 300 do `config.toml` são só locais), CSP completa, rate limit de
-actions, revisão de dependências, backup/recuperação documentados e verificados, CI (GitHub Actions se houver
-repositório), deploy, exclusão de conta (LGPD), checklist final.
+Escopo autônomo (sem depender do usuário): SEC-4, SEC-24/SEC-28/SEC-18 (resíduo), SEC-26, CSP completa, rate limit de Server Actions, exclusão de conta (LGPD), CI, backup/recuperação e checklist final.
+Dependências novas: nenhuma; sem serviço externo novo. Mudanças de banco só por migrations novas (`20261028100000`..`100300`), aplicadas com `supabase db push --linked`; validação sem Docker por lint remoto, com Docker por pgTAP (600–660) e integração `@docker`.
+Todas as tarefas têm mudança `structural` (security revisa). Lista de tarefas por agente, ordem e dependências: `contracts/etapa-9.md` §5.
+
+| Id | Item | Dono | P | Depende |
+|---|---|---|---|---|
+| E9-01 | M1: limites de volume e frequência (`volume_limits`, triggers em `transactions`, `goal_contributions`, `settlements`), intervalo de 30 s e teto de 500 em `refresh_notifications`; pgTAP 600/610/620 (SEC-24, SEC-28, SEC-18) | database | P0 | — |
+| E9-02 | M2: `security_events` + trigger de troca de senha em `auth.users`; pgTAP 630 (SEC-4) | database | P0 | — |
+| E9-03 | M3: `change_member_role`, `transfer_ownership`, `remove_family_member` devolvem código e gravam `member.action_denied`; ajuste de pgTAP 510/520/560 (SEC-26) | database | P0 | — |
+| E9-04 | M4: `delete_my_account`, `erase_family`, `require_recent_auth`, `account_erasure_log`; pgTAP 650/660 (LGPD) | database | P0 | E9-02, E9-03 |
+| E9-05 | `client-ip`, `log-identity`, logger com `ip`/`emailHmac`/`inviteId`, `runAction` (SEC-4) | backend | P0 | — |
+| E9-06 | `rate-limit` em memória + `runAction` + `auth/actions` + `ErrorCode` novos | backend | P0 | E9-05 |
+| E9-07 | `csp.ts` + `proxy` (nonce, `x-client-ip`, `matcher`) | backend | P0 | E9-05 |
+| E9-08 | Spike e ligação da CSP: layout raiz, `ThemeProvider`, regra de `/offline`; `describeAuditEvent` para `member.action_denied` | frontend | P0 | E9-07 (em par) |
+| E9-09 | Repositório de integrantes tolerante ao novo retorno; `deleteAccount`, preview, `listSecurityEvents` | backend | P0 | E9-03, E9-04 |
+| E9-10 | `/configuracoes`: Atividade de segurança e Excluir conta; aviso em `/login?conta=excluida` | frontend | P0 | E9-09 |
+| E9-11 | `scripts/security-checks.ts`, `tests/ci`, `ci.yml`, `ci-docker.yml`, seção CI do README | qa | P0 | — |
+| E9-12 | E2E público de CSP e rate limit; specs `@docker` (`csp-telas`, `conta-excluida`) | qa | P0 | E9-06..E9-08, E9-10 |
+| E9-13 | Runbooks de backup/recuperação, migrações em produção e checklist de entrega | architect | P0 | — (entregues com o contrato) |
+| E9-14 | Integração, gate de segurança, revisão (reviewer + security, `structural`), atualização de `architecture.md`, `data-model.md`, `permissions.md`, `achados.md` | orchestrator | P0 | todos |
+| E9-15 | Homologação em produção (checklist), ensaio de restauração, primeira execução do CI no GitHub | usuário + orchestrator | P0 | E9-14, itens de "Pendências do usuário" |
+
+**Pendências do usuário da Etapa 9** (não bloqueiam a implementação; detalhes em `contracts/etapa-9.md` §9): SMTP (U-1), OAuth Google (U-2), SEC-10 no painel do Supabase (U-3), Site URL e redirect URLs (U-4), SEC-27 (U-5), domínio próprio (U-6), variáveis `TRUSTED_PROXY_HOPS` e `LOG_HMAC_KEY` no Render (U-7), plano de backup e ensaio de restauração (U-8), configurações do GitHub e do Render (U-9), ratificações (U-10) e pendências anteriores (U-11).
+Fora da Etapa 9 por decisão (registrado): portabilidade/exportação de dados do titular (LGPD), "convite recebido" por e-mail, preferências de notificação, limite de quantidade de contas/categorias/metas/orçamentos (sem achado), exclusão de família como funcionalidade.
 
 ## Pendências registradas
 
@@ -186,11 +207,14 @@ repositório), deploy, exclusão de conta (LGPD), checklist final.
 | 1 | Spec truncada na §15 ("Regras de execução", item 2+) | aberta; confirmar com o usuário |
 | 2 | Aprovação da matriz de permissões das Etapas 3+ | **resolvida** (2026-10-24): a matriz das Etapas 4–7 foi aprovada como está (o usuário pediu execução autônoma) |
 | 3 | OAuth Google (incremento planejado acima; Apple fora) | quando o usuário fornecer as credenciais do Google Cloud |
-| 7 | Provedor de SMTP de produção | usuário; Etapa 9 |
-| 8 | SEC-4 e SEC-10 | Etapa 9 |
+| 7 | Provedor de SMTP de produção | usuário; Etapa 9 (U-1, `contracts/etapa-9.md` §9) |
+| 8 | SEC-4 (**tratado na Etapa 9**, ADR-0035) e SEC-10 (depende do usuário, U-3) | Etapa 9 |
 | 4 | Imagem de capa de metas (mockup) — ícone no MVP; upload exige Storage + ADR | **resolvida** (ADR-0025 §6): ícone de lista fechada; upload fora |
-| 10 | "Convite recebido" (spec §7.14) sem e-mail não tem destinatário na família | Etapa 9, com SMTP (ADR-0029 §5) |
+| 10 | "Convite recebido" (spec §7.14) sem e-mail não tem destinatário na família | depois do SMTP (U-1); fora da Etapa 9 autônoma (ADR-0029 §5) |
 | 11 | Acerto entre integrantes declarado por uma parte, sem aceite da outra | risco aceito (auditoria + notificação); reavaliar com uso real |
-| 5 | Exclusão de conta / anonimização (LGPD) | Etapa 9 |
+| 5 | Exclusão de conta / anonimização (LGPD) | **especificada na Etapa 9** (ADR-0038); ratificar exclusão sem carência (U-10) |
 | 6 | `member` vê atividade recente da família? | **resolvida** (ADR-0020 §5): não; a atividade é tela da Etapa 7, e a auditoria segue só para owner/admin, como na matriz |
 | 9 | `data-model.md` §2 e §5.1–5.5 ainda descrevem a Etapa 0 (cores antigas, RPCs `create_transfer`/`reverse_transaction`) | architect, na Fase C da Etapa 4 (até lá prevalecem os contratos) |
+| 12 | Backup verificado do Supabase hospedado: plano, retenção e ensaio de restauração | usuário (U-8); `docs/runbooks/backup-recuperacao.md` |
+| 13 | SEC-27: reautenticação ao transferir propriedade / remover administrador | usuário (U-5) |
+| 14 | Armazenamento compartilhado do rate limit (Redis/KV) | só se houver mais de uma instância (ADR-0034 §7) |

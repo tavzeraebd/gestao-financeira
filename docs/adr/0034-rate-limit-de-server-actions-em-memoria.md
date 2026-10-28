@@ -1,0 +1,22 @@
+# ADR-0034 — Rate limit de Server Actions em memória do processo, sem Redis/KV
+
+Status: aceita (2026-10-28, Etapa 9) · Escopo: `src/server/rate-limit.ts`, `src/server/action.ts` (`runAction`), `src/modules/auth/actions.ts`, `src/lib/client-ip.ts`, `src/proxy.ts` (cálculo do IP) · Complementa ADR-0014, ADR-0033 · Registra decisão pendente sobre armazenamento compartilhado
+
+**Contexto.** Não há rate limit nas Server Actions próprias (`threat-model.md` §4, residual aceito nas Etapas 1–2). O Auth do Supabase limita login/cadastro/e-mail por IP e por projeto, mas: (a) o limite não é aplicado pelo CLI local; (b) não existe limite por usuário nas demais ações; (c) o envio de e-mail (cadastro, reenvio, recuperação) pode ser usado para encher a caixa de um terceiro (SEC-10 do lado do projeto; aqui, do lado do app). O app roda em **uma instância** (Render) e já tem o limite de volume no banco para a API direta (ADR-0033). Um serviço externo (Redis, KV, Upstash) é dependência nova, credencial nova e ponto de falha novo.
+
+**Decisão.**
+1. **Janela fixa em memória do processo**, em `src/server/rate-limit.ts`: `hitRateLimit(bucket, key)` incrementa e devolve `{ allowed, retryAfterSeconds }`; `isRateLimited(bucket, key)` consulta sem incrementar. Estado em `Map` preso a `globalThis` (sobrevive a recarga de módulo), no máximo **50000 chaves**; ao estourar, varre as expiradas e, se ainda cheio, descarta as mais antigas. Relógio injetável (testes). Nenhuma dependência nova.
+2. **Baldes** (valores iniciais, em constante única `RATE_LIMIT_BUCKETS`): `user_actions` 120 por 60 s por `userId`; `anon_actions` 60 por 60 s por IP; `auth_ip` 30 por 300 s por IP (tentativas de login); `auth_failure` 5 por 900 s por IP + hash do e-mail (só falhas de login); `auth_email_ip` 5 por 600 s por IP e `auth_email_target` 3 por 3600 s por hash do e-mail (cadastro, reenvio, recuperação); `account_deletion` 3 por 3600 s por `userId`.
+3. **`runAction`** aplica `user_actions` (autenticada) ou `anon_actions` (sem sessão) antes do handler, salvo `rateLimit: false` explícito e justificado. Estourou: `RATE_LIMITED` (código e mensagem existentes), com log `warn` (`code: "RATE_LIMITED"`, `ip`).
+4. **Ações de e-mail respondem neutro** (anti-enumeração, SEC-2/SEC-13): se `auth_email_*` estourar, **não chamam o Auth** e devolvem o mesmo sucesso neutro de hoje; só o log diz o motivo. `signIn` estourado devolve `RATE_LIMITED` (vale para qualquer e-mail, não revela conta).
+5. **Chave do e-mail é `sha256` em memória**, nunca logada nem persistida (o `emailHmac` do log é outro valor, ADR-0035).
+6. **IP**: calculado uma vez no `proxy` por `resolveClientIp(x-forwarded-for, TRUSTED_PROXY_HOPS)` e gravado no cabeçalho de requisição `x-client-ip`, **sobrescrevendo** qualquer valor vindo do cliente. Sem IP confiável (`null`), os baldes por IP são **ignorados** (jamais uma chave compartilhada, que travaria todos) e o log avisa uma vez; os baldes por hash de e-mail e por `userId` continuam.
+7. **Decisão pendente (registrada, não bloqueia)**: se o serviço passar a ter mais de uma instância, o limite em memória vira N vezes mais frouxo e a decisão sobre armazenamento compartilhado (Redis/KV ou tabela no Postgres) volta ao usuário, com ADR nova. Enquanto houver uma instância, não há serviço externo.
+
+**Alternativas.**
+- Redis/Upstash/KV: coerente com várias instâncias, mas é conta, credencial, custo e dependência de rede em todo `signIn`; sem requisito hoje. Fica como decisão pendente (item 7).
+- Contador no Postgres por RPC: uma ida ao banco por ação e RPC exposta a `anon` para limitar login (superfície de enchimento da tabela). Para ações autenticadas o ganho sobre o limite do ADR-0033 é pequeno.
+- Bloqueio por e-mail (lockout após N falhas): permite negar login de uma vítima de qualquer IP. Descartado; o balde de falha usa IP + e-mail.
+- CAPTCHA no login: depende de conta de provedor (Turnstile/hCaptcha) e de configuração no Supabase; registrado nas pendências do usuário como opcional.
+
+**Consequências.** Reiniciar o processo zera os contadores (aceito). Um atacante distribuído por muitos IPs contra uma conta só é contido pelo limite do próprio Auth hospedado, não por este. O limite protege contra rajada e abuso de e-mail, não contra adversário distribuído. A premissa "uma instância" e a topologia de proxy (`TRUSTED_PROXY_HOPS`) entram no checklist de entrega e são verificadas em produção.
