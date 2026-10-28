@@ -87,8 +87,9 @@ describe("planejamento: base conhecida (D15)", () => {
     const goal = await fam.owner.client
       .from("goals")
       .insert({
-        family_id: (await fam.owner.client.from("families").select("id").single())
-          .data!.id,
+        family_id: (
+          await fam.owner.client.from("families").select("id").single()
+        ).data!.id,
         name: "Viagem",
         target_amount: "1000.00" as unknown as number,
         idempotency_key: randomUUID(),
@@ -99,8 +100,9 @@ describe("planejamento: base conhecida (D15)", () => {
     const contribution = await fam.owner.client
       .from("goal_contributions")
       .insert({
-        family_id: (await fam.owner.client.from("families").select("id").single())
-          .data!.id,
+        family_id: (
+          await fam.owner.client.from("families").select("id").single()
+        ).data!.id,
         goal_id: goal.data!.id,
         member_id: meId!,
         kind: "deposit",

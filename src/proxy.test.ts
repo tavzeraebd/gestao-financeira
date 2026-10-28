@@ -43,17 +43,14 @@ describe("proxy", () => {
     "/metas",
     "/planejamento",
     "/divisao",
-  ])(
-    "GET %s sem sessão redireciona para /login com next",
-    async (path) => {
-      mockSession(null);
-      const res = await proxy(req(path));
-      expect(res.status).toBe(307);
-      expect(res.headers.get("location")).toContain(
-        `/login?next=${encodeURIComponent(path)}`,
-      );
-    },
-  );
+  ])("GET %s sem sessão redireciona para /login com next", async (path) => {
+    mockSession(null);
+    const res = await proxy(req(path));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain(
+      `/login?next=${encodeURIComponent(path)}`,
+    );
+  });
 
   it("POST de Server Action sem sessão NÃO é redirecionado", async () => {
     mockSession(null);

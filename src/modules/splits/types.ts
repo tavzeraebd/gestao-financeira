@@ -1,6 +1,9 @@
 import type { ISODate } from "@/lib/dates";
 import type { Cents } from "@/lib/money";
-import type { CategoryColor, CategoryIconName } from "@/modules/categories/constants";
+import type {
+  CategoryColor,
+  CategoryIconName,
+} from "@/modules/categories/constants";
 import type { MemberRef } from "@/modules/goals/types";
 import type { SplitMode } from "./constants";
 

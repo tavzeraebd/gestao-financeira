@@ -1,8 +1,5 @@
 import { asAggregateCents, type Cents } from "@/lib/money";
-import {
-  PROJECTION_MONTHS_MAX,
-  PROJECTION_MONTHS_MIN,
-} from "../constants";
+import { PROJECTION_MONTHS_MAX, PROJECTION_MONTHS_MIN } from "../constants";
 import type {
   PlanningBaseline,
   ProjectionResult,

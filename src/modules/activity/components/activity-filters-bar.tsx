@@ -64,7 +64,9 @@ export function ActivityFiltersBar({ state, today }: ActivityFiltersBarProps) {
   return (
     <FiltersPanel
       activeCount={activeCount}
-      onClear={() => navigate({ grupo: undefined, de: undefined, ate: undefined })}
+      onClear={() =>
+        navigate({ grupo: undefined, de: undefined, ate: undefined })
+      }
     >
       <div className={FIELD_CLASS}>
         <Label htmlFor="atividade-grupo">Grupo</Label>
@@ -105,7 +107,9 @@ export function ActivityFiltersBar({ state, today }: ActivityFiltersBarProps) {
           onValueChange={(value) =>
             navigate({
               por_pagina:
-                Number(value) === DEFAULT_ACTIVITY_PAGE_SIZE ? undefined : value,
+                Number(value) === DEFAULT_ACTIVITY_PAGE_SIZE
+                  ? undefined
+                  : value,
             })
           }
         />

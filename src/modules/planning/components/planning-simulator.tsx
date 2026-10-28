@@ -9,7 +9,12 @@ import { MoneyInput } from "@/components/shared/money-input";
 import { ValueSourceBadge } from "@/components/shared/value-source-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { asCents } from "@/lib/money";
 import {
@@ -56,37 +61,79 @@ const FIELDS: Record<Scenario, FieldDef[]> = {
   financiamento: [
     { name: "value", label: "Valor do bem", kind: "money" },
     { name: "downPayment", label: "Entrada", kind: "money", initial: "0,00" },
-    { name: "months", label: "Prazo em meses", kind: "text", inputMode: "numeric" },
-    { name: "monthlyRate", label: "Taxa mensal (%)", kind: "text", inputMode: "decimal", help: RATE_HELP },
+    {
+      name: "months",
+      label: "Prazo em meses",
+      kind: "text",
+      inputMode: "numeric",
+    },
+    {
+      name: "monthlyRate",
+      label: "Taxa mensal (%)",
+      kind: "text",
+      inputMode: "decimal",
+      help: RATE_HELP,
+    },
   ],
   objetivo: [
     { name: "target", label: "Valor do objetivo", kind: "money" },
     { name: "saved", label: "Já guardado (opcional)", kind: "money" },
-    { name: "monthlyContribution", label: "Aporte mensal (opcional)", kind: "money", help: "Informe o aporte mensal ou o prazo." },
-    { name: "months", label: "Prazo em meses (opcional)", kind: "text", inputMode: "numeric" },
+    {
+      name: "monthlyContribution",
+      label: "Aporte mensal (opcional)",
+      kind: "money",
+      help: "Informe o aporte mensal ou o prazo.",
+    },
+    {
+      name: "months",
+      label: "Prazo em meses (opcional)",
+      kind: "text",
+      inputMode: "numeric",
+    },
   ],
   prazo_meta: [
     { name: "goalId", label: "Meta", kind: "goal" },
-    { name: "monthly", label: "Aporte mensal (opcional)", kind: "money", help: "Em branco, usamos o ritmo atual da meta." },
+    {
+      name: "monthly",
+      label: "Aporte mensal (opcional)",
+      kind: "money",
+      help: "Em branco, usamos o ritmo atual da meta.",
+    },
   ],
   novo_compromisso: [
     { name: "monthly", label: "Valor mensal do compromisso", kind: "money" },
   ],
   reducao_despesas: [
     { name: "categoryId", label: "Categoria", kind: "category" },
-    { name: "percent", label: "Redução em % (opcional)", kind: "text", inputMode: "decimal", help: "Informe o percentual ou o valor." },
+    {
+      name: "percent",
+      label: "Redução em % (opcional)",
+      kind: "text",
+      inputMode: "decimal",
+      help: "Informe o percentual ou o valor.",
+    },
     { name: "amount", label: "Redução em valor (opcional)", kind: "money" },
   ],
   saldo_futuro: [
-    { name: "months", label: "Quantos meses projetar", kind: "text", inputMode: "numeric", initial: "6" },
-    { name: "monthlyAdjustment", label: "Ajuste mensal (opcional)", kind: "money", help: "Some ou subtraia um valor por mês. Aceita valor negativo." },
+    {
+      name: "months",
+      label: "Quantos meses projetar",
+      kind: "text",
+      inputMode: "numeric",
+      initial: "6",
+    },
+    {
+      name: "monthlyAdjustment",
+      label: "Ajuste mensal (opcional)",
+      kind: "money",
+      help: "Some ou subtraia um valor por mês. Aceita valor negativo.",
+    },
   ],
 };
 
 type Values = Record<string, string>;
 type RunResult =
-  | { errors: Record<string, string> }
-  | { outcome: ScenarioOutcome };
+  { errors: Record<string, string> } | { outcome: ScenarioOutcome };
 
 function initialValues(scenario: Scenario): Values {
   return Object.fromEntries(
@@ -94,9 +141,9 @@ function initialValues(scenario: Scenario): Values {
   );
 }
 
-function fail(
-  error: { issues: readonly { path: PropertyKey[]; message: string }[] },
-): RunResult {
+function fail(error: {
+  issues: readonly { path: PropertyKey[]; message: string }[];
+}): RunResult {
   const errors: Record<string, string> = {};
   for (const issue of error.issues) {
     const key = String(issue.path[0] ?? "");
@@ -106,7 +153,11 @@ function fail(
 }
 
 /** Valida com o schema do cenário e chama a função de domínio; nenhum cálculo é feito aqui. */
-function run(scenario: Scenario, values: Values, baseline: PlanningBaseline): RunResult {
+function run(
+  scenario: Scenario,
+  values: Values,
+  baseline: PlanningBaseline,
+): RunResult {
   const today = baseline.today;
   switch (scenario) {
     case "financiamento": {
@@ -129,7 +180,10 @@ function run(scenario: Scenario, values: Values, baseline: PlanningBaseline): Ru
       return {
         outcome:
           r.data.monthlyContribution !== undefined
-            ? simulateSaving({ ...base, monthlyContribution: r.data.monthlyContribution })
+            ? simulateSaving({
+                ...base,
+                monthlyContribution: r.data.monthlyContribution,
+              })
             : simulateSaving({ ...base, months: r.data.months as number }),
       };
     }
@@ -157,7 +211,10 @@ function run(scenario: Scenario, values: Values, baseline: PlanningBaseline): Ru
         outcome:
           r.data.percent !== undefined
             ? simulateReduction({ ...base, percent: r.data.percent })
-            : simulateReduction({ ...base, amount: r.data.amount as NonNullable<typeof r.data.amount> }),
+            : simulateReduction({
+                ...base,
+                amount: r.data.amount as NonNullable<typeof r.data.amount>,
+              }),
       };
     }
     case "saldo_futuro": {
@@ -178,9 +235,15 @@ function scenarioOptions(): SelectOption[] {
   return SCENARIOS.map((s) => ({ value: s, label: SCENARIO_LABELS[s] }));
 }
 
-export function PlanningSimulator({ baseline }: { baseline: PlanningBaseline }) {
+export function PlanningSimulator({
+  baseline,
+}: {
+  baseline: PlanningBaseline;
+}) {
   const [scenario, setScenario] = useState<Scenario>("financiamento");
-  const [values, setValues] = useState<Values>(() => initialValues("financiamento"));
+  const [values, setValues] = useState<Values>(() =>
+    initialValues("financiamento"),
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [outcome, setOutcome] = useState<ScenarioOutcome | null>(null);
 
@@ -218,10 +281,14 @@ export function PlanningSimulator({ baseline }: { baseline: PlanningBaseline }) 
       title: "Nenhuma meta ativa",
       description: "Crie uma meta em Metas para simular o prazo dela.",
     };
-  } else if (scenario === "reducao_despesas" && baseline.categoryAverages.length === 0) {
+  } else if (
+    scenario === "reducao_despesas" &&
+    baseline.categoryAverages.length === 0
+  ) {
     blocked = {
       title: "Ainda não há despesas para reduzir",
-      description: "Registre despesas por alguns meses para termos uma média por categoria.",
+      description:
+        "Registre despesas por alguns meses para termos uma média por categoria.",
     };
   }
 
@@ -229,10 +296,12 @@ export function PlanningSimulator({ baseline }: { baseline: PlanningBaseline }) 
     value: g.id,
     label: g.name,
   }));
-  const categoryOptions: SelectOption[] = baseline.categoryAverages.map((c) => ({
-    value: c.categoryId,
-    label: c.name,
-  }));
+  const categoryOptions: SelectOption[] = baseline.categoryAverages.map(
+    (c) => ({
+      value: c.categoryId,
+      label: c.name,
+    }),
+  );
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -241,9 +310,16 @@ export function PlanningSimulator({ baseline }: { baseline: PlanningBaseline }) 
           <CardTitle className="text-base">Simulador de cenários</CardTitle>
         </CardHeader>
         <CardContent>
-          <form method="post" noValidate onSubmit={submit} className="flex flex-col gap-4">
+          <form
+            method="post"
+            noValidate
+            onSubmit={submit}
+            className="flex flex-col gap-4"
+          >
             <Field>
-              <FieldLabel htmlFor="cenario">Qual objetivo você quer simular?</FieldLabel>
+              <FieldLabel htmlFor="cenario">
+                Qual objetivo você quer simular?
+              </FieldLabel>
               <OptionSelect
                 id="cenario"
                 value={scenario}
@@ -253,20 +329,30 @@ export function PlanningSimulator({ baseline }: { baseline: PlanningBaseline }) 
             </Field>
 
             {blocked ? (
-              <EmptyState icon={WalletIcon} title={blocked.title} description={blocked.description} />
+              <EmptyState
+                icon={WalletIcon}
+                title={blocked.title}
+                description={blocked.description}
+              />
             ) : (
               <>
                 {FIELDS[scenario].map((def) => {
                   const id = `cenario-${def.name}`;
                   const error = errors[def.name];
                   const describedBy =
-                    [error ? `${id}-erro` : null, def.help ? `${id}-ajuda` : null]
+                    [
+                      error ? `${id}-erro` : null,
+                      def.help ? `${id}-ajuda` : null,
+                    ]
                       .filter(Boolean)
                       .join(" ") || undefined;
                   const set = (value: string) =>
                     setValues((current) => ({ ...current, [def.name]: value }));
                   return (
-                    <Field key={`${scenario}-${def.name}`} data-invalid={Boolean(error)}>
+                    <Field
+                      key={`${scenario}-${def.name}`}
+                      data-invalid={Boolean(error)}
+                    >
                       <FieldLabel htmlFor={id}>{def.label}</FieldLabel>
                       {def.kind === "money" ? (
                         <MoneyInput
@@ -292,14 +378,26 @@ export function PlanningSimulator({ baseline }: { baseline: PlanningBaseline }) 
                           id={id}
                           value={values[def.name] ?? ""}
                           onValueChange={set}
-                          options={def.kind === "goal" ? goalOptions : categoryOptions}
-                          placeholder={def.kind === "goal" ? "Selecione a meta" : "Selecione a categoria"}
+                          options={
+                            def.kind === "goal" ? goalOptions : categoryOptions
+                          }
+                          placeholder={
+                            def.kind === "goal"
+                              ? "Selecione a meta"
+                              : "Selecione a categoria"
+                          }
                           invalid={Boolean(error)}
                           describedBy={describedBy}
                         />
                       )}
-                      {def.help ? <FieldDescription id={`${id}-ajuda`}>{def.help}</FieldDescription> : null}
-                      {error ? <FieldError id={`${id}-erro`}>{error}</FieldError> : null}
+                      {def.help ? (
+                        <FieldDescription id={`${id}-ajuda`}>
+                          {def.help}
+                        </FieldDescription>
+                      ) : null}
+                      {error ? (
+                        <FieldError id={`${id}-erro`}>{error}</FieldError>
+                      ) : null}
                     </Field>
                   );
                 })}
@@ -339,7 +437,11 @@ export function PlanningSimulator({ baseline }: { baseline: PlanningBaseline }) 
             <CardContent className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <p>
                 Seu resultado médio nos últimos 3 meses foi{" "}
-                <Money cents={baseline.averageMonthly.result} className="font-semibold" />.
+                <Money
+                  cents={baseline.averageMonthly.result}
+                  className="font-semibold"
+                />
+                .
               </p>
               <ValueSourceBadge source="known" />
             </CardContent>

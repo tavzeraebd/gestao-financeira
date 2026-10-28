@@ -37,7 +37,12 @@ export function simulateSaving(input: SavingInput): SimulationResult {
 
   const missing = Math.max(target - saved, 0);
   const common: ResultLine[] = [
-    { label: "Valor do objetivo", value: target, format: "brl", source: "informed" },
+    {
+      label: "Valor do objetivo",
+      value: target,
+      format: "brl",
+      source: "informed",
+    },
     { label: "Já guardado", value: saved, format: "brl", source: "informed" },
     {
       label: "Falta juntar",

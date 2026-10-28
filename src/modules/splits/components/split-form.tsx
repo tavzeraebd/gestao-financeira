@@ -209,7 +209,10 @@ export function SplitForm({ detail }: SplitFormProps) {
                 <span>
                   {candidate.displayName}
                   {!candidate.active ? (
-                    <span className="text-muted-foreground"> (saiu da família)</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      (saiu da família)
+                    </span>
                   ) : null}
                 </span>
               </label>
@@ -273,7 +276,9 @@ export function SplitForm({ detail }: SplitFormProps) {
           type="submit"
           loading={pending}
           disabled={!hydrated || !canSave}
-          aria-describedby={disabledReason ? "split-disabled-reason" : undefined}
+          aria-describedby={
+            disabledReason ? "split-disabled-reason" : undefined
+          }
         >
           Salvar divisão
         </Button>

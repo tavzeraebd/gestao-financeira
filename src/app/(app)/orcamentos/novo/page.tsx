@@ -22,7 +22,10 @@ export default async function NewBudgetPage() {
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
       <Link
         href="/orcamentos"
-        className={buttonVariants({ variant: "ghost", className: "self-start" })}
+        className={buttonVariants({
+          variant: "ghost",
+          className: "self-start",
+        })}
       >
         <ChevronLeftIcon aria-hidden="true" data-icon="inline-start" />
         Orçamentos

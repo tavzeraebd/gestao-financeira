@@ -51,7 +51,11 @@ async function openMenu(name: string) {
 describe("MemberActionsMenu", () => {
   it("não renderiza nada quando nenhuma ação é permitida", () => {
     const { container } = render(
-      <MemberActionsMenu memberId={MEMBER_ID} displayName="Bruno" actions={NONE} />,
+      <MemberActionsMenu
+        memberId={MEMBER_ID}
+        displayName="Bruno"
+        actions={NONE}
+      />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -61,7 +65,12 @@ describe("MemberActionsMenu", () => {
       <MemberActionsMenu
         memberId={MEMBER_ID}
         displayName="Bruno"
-        actions={{ ...NONE, makeAdmin: true, transferOwnership: true, remove: true }}
+        actions={{
+          ...NONE,
+          makeAdmin: true,
+          transferOwnership: true,
+          remove: true,
+        }}
       />,
     );
     await openMenu("Bruno");
@@ -74,7 +83,9 @@ describe("MemberActionsMenu", () => {
     expect(
       screen.getByRole("menuitem", { name: "Remover da família" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Tornar integrante" })).toBeNull();
+    expect(
+      screen.queryByRole("menuitem", { name: "Tornar integrante" }),
+    ).toBeNull();
   });
 
   it("admin sobre integrante: só remover", async () => {
@@ -102,19 +113,27 @@ describe("MemberActionsMenu", () => {
       />,
     );
     const user = await openMenu("Bruno");
-    await user.click(screen.getByRole("menuitem", { name: "Remover da família" }));
+    await user.click(
+      screen.getByRole("menuitem", { name: "Remover da família" }),
+    );
 
     expect(
-      await screen.findByText(/Bruno perde o acesso aos dados da família na hora/),
+      await screen.findByText(
+        /Bruno perde o acesso aos dados da família na hora/,
+      ),
     ).toBeInTheDocument();
     expect(removeMember).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Remover da família" }));
+    await user.click(
+      screen.getByRole("button", { name: "Remover da família" }),
+    );
     await waitFor(() =>
       expect(removeMember).toHaveBeenCalledWith({ memberId: MEMBER_ID }),
     );
     await waitFor(() =>
-      expect(toastSuccess).toHaveBeenCalledWith("Bruno foi removido da família."),
+      expect(toastSuccess).toHaveBeenCalledWith(
+        "Bruno foi removido da família.",
+      ),
     );
   });
 
@@ -131,8 +150,12 @@ describe("MemberActionsMenu", () => {
       />,
     );
     const user = await openMenu("Bruno");
-    await user.click(screen.getByRole("menuitem", { name: "Remover da família" }));
-    await user.click(await screen.findByRole("button", { name: "Remover da família" }));
+    await user.click(
+      screen.getByRole("menuitem", { name: "Remover da família" }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Remover da família" }),
+    );
 
     await waitFor(() =>
       expect(toastError).toHaveBeenCalledWith(
@@ -152,7 +175,9 @@ describe("MemberActionsMenu", () => {
       />,
     );
     const user = await openMenu("Bruno");
-    await user.click(screen.getByRole("menuitem", { name: "Tornar administrador" }));
+    await user.click(
+      screen.getByRole("menuitem", { name: "Tornar administrador" }),
+    );
     await waitFor(() =>
       expect(changeMemberRole).toHaveBeenCalledWith({
         memberId: MEMBER_ID,

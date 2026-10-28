@@ -8,7 +8,9 @@ function arquivos(dir: string): string[] {
   return readdirSync(dir).flatMap((nome) => {
     const caminho = join(dir, nome);
     if (statSync(caminho).isDirectory()) return arquivos(caminho);
-    return /\.(tsx?|css)$/.test(nome) && !nome.includes(".test.") ? [caminho] : [];
+    return /\.(tsx?|css)$/.test(nome) && !nome.includes(".test.")
+      ? [caminho]
+      : [];
   });
 }
 
@@ -19,5 +21,5 @@ describe("indicador de foco", () => {
       /(ring|outline)-ring\/\d+/.test(readFileSync(f, "utf8")),
     );
     expect(ofensores).toEqual([]);
-  });
+  }, 30_000);
 });

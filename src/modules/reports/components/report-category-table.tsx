@@ -67,7 +67,9 @@ export function ReportCategoryTable({
                   size="sm"
                 />
                 <span className="min-w-0 break-words">{row.name}</span>
-                {row.archived ? <Badge variant="outline">Arquivada</Badge> : null}
+                {row.archived ? (
+                  <Badge variant="outline">Arquivada</Badge>
+                ) : null}
               </span>
             </TableCell>
             <TableCell className="text-right">

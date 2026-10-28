@@ -64,7 +64,12 @@ type GoalIconProps = {
   className?: string;
 };
 
-export function GoalIcon({ icon, size = "md", label, className }: GoalIconProps) {
+export function GoalIcon({
+  icon,
+  size = "md",
+  label,
+  className,
+}: GoalIconProps) {
   const Icon = GOAL_ICON_COMPONENTS[icon] ?? Target;
   const sizes = SIZE_CLASSES[size];
   return (
@@ -73,7 +78,7 @@ export function GoalIcon({ icon, size = "md", label, className }: GoalIconProps)
         ? { role: "img", "aria-label": label }
         : { "aria-hidden": true as const })}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary",
+        "bg-primary/10 text-primary inline-flex shrink-0 items-center justify-center rounded-lg",
         sizes.box,
         className,
       )}

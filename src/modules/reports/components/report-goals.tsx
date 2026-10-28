@@ -53,7 +53,10 @@ export function ReportGoals({ report, canManage }: ReportGoalsProps) {
                   <div className="flex min-w-0 items-center gap-3">
                     <GoalIcon icon={goal.icon} />
                     <h2 className="min-w-0 text-base font-semibold break-words">
-                      <Link href={`/metas/${goal.id}`} className="hover:underline">
+                      <Link
+                        href={`/metas/${goal.id}`}
+                        className="hover:underline"
+                      >
                         {goal.name}
                       </Link>
                     </h2>
@@ -67,7 +70,9 @@ export function ReportGoals({ report, canManage }: ReportGoalsProps) {
                       <Money cents={goal.saved} className="font-semibold" /> de{" "}
                       <Money cents={goal.target} />
                     </span>
-                    <span className="font-semibold tabular-nums">{percent}</span>
+                    <span className="font-semibold tabular-nums">
+                      {percent}
+                    </span>
                   </p>
                   <ProgressMeter
                     value={goal.percent}

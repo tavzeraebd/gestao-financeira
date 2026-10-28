@@ -53,7 +53,10 @@ export default async function RecurrencesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <SubNav items={SUB_NAV} aria-label="Lançamentos, compromissos e recorrências" />
+      <SubNav
+        items={SUB_NAV}
+        aria-label="Lançamentos, compromissos e recorrências"
+      />
       <PageHeader
         title="Recorrências"
         description="Contas que se repetem: o app cria as próximas ocorrências sozinho."
@@ -67,7 +70,8 @@ export default async function RecurrencesPage({
       <SituationTabs
         aria-label="Situação das recorrências"
         items={RECURRENCE_SITUATIONS.map((s) => ({
-          href: s === "ativas" ? "/recorrencias" : `/recorrencias?situacao=${s}`,
+          href:
+            s === "ativas" ? "/recorrencias" : `/recorrencias?situacao=${s}`,
           label: SITUATION_LABELS[s],
           active: filters.situacao === s,
         }))}

@@ -45,6 +45,7 @@ select public.set_transaction_splits('f7550000-0000-0000-0000-000000000002', 'eq
 insert into public.settlements (family_id, from_member_id, to_member_id, amount, settlement_date)
   values (tests.fid('A'), tests.mem('ad'), tests.mem('a'), 10, private.today());
 
+select tests.logout();  -- criar função no schema tests exige o papel dono (authenticated só tem USAGE)
 create function tests.snap() returns jsonb language sql stable as $$
   select jsonb_build_object(
     'bal', (select jsonb_agg(to_jsonb(b) order by to_jsonb(b)::text) from public.account_balances() b),
@@ -61,6 +62,7 @@ create function tests.snap() returns jsonb language sql stable as $$
     'met', (select jsonb_agg(to_jsonb(f) order by to_jsonb(f)::text) from public.member_expense_totals('2025-03-01', '2025-03-31') f)
   ) $$;
 grant execute on function tests.snap() to authenticated;
+select tests.login_as('a');
 select set_config('tests.snap1', tests.snap()::text, true);
 
 -- valores de referência

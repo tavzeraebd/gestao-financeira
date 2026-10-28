@@ -135,7 +135,11 @@ export function addMonths(d: ISODate, n: number): ISODate {
   const leap =
     (targetYear % 4 === 0 && targetYear % 100 !== 0) || targetYear % 400 === 0;
   const lengths = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return build(targetYear, targetMonth, Math.min(day, lengths[targetMonth - 1] ?? 28));
+  return build(
+    targetYear,
+    targetMonth,
+    Math.min(day, lengths[targetMonth - 1] ?? 28),
+  );
 }
 
 /** Dias corridos de `a` até `b` (`b − a`). */

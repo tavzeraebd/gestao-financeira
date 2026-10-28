@@ -28,8 +28,7 @@ export default async function EditBudgetPage({
 
   const active = await listCategoryOptions("expense");
   const categories =
-    budget.categoryId &&
-    !active.some((c) => c.id === budget.categoryId)
+    budget.categoryId && !active.some((c) => c.id === budget.categoryId)
       ? [
           ...active,
           {
@@ -46,7 +45,10 @@ export default async function EditBudgetPage({
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
       <Link
         href="/orcamentos"
-        className={buttonVariants({ variant: "ghost", className: "self-start" })}
+        className={buttonVariants({
+          variant: "ghost",
+          className: "self-start",
+        })}
       >
         <ChevronLeftIcon aria-hidden="true" data-icon="inline-start" />
         Orçamentos

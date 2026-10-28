@@ -41,7 +41,10 @@ function ref(
   m: { id: string; profiles: { display_name: string | null } | null } | null,
 ): MemberRef | null {
   return m
-    ? { id: m.id, displayName: memberDisplayName(m.profiles?.display_name ?? null) }
+    ? {
+        id: m.id,
+        displayName: memberDisplayName(m.profiles?.display_name ?? null),
+      }
     : null;
 }
 
@@ -190,7 +193,9 @@ export async function getMemberBalances(): Promise<MemberBalances> {
   };
 }
 
-export async function listSettlements(options: { page?: number } = {}): Promise<{
+export async function listSettlements(
+  options: { page?: number } = {},
+): Promise<{
   items: SettlementView[];
   total: number;
   page: number;

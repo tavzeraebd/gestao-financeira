@@ -295,8 +295,12 @@ test.describe("Família: gestão de integrantes (Etapa 7)", () => {
     await expect(
       page.getByRole("button", { name: "Sair da família" }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Ações para / })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Ver atividade" })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /^Ações para / }),
+    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Ver atividade" })).toHaveCount(
+      0,
+    );
     await expect(page.getByRole("button", { name: /^Editar/ })).toHaveCount(0);
 
     // Cancelar a confirmação não tira ninguém da família.

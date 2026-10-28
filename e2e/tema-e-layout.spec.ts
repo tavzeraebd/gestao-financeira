@@ -96,9 +96,7 @@ test.describe("Layout responsivo (CA-E1-09)", () => {
     const bottomNav = page.locator("nav[aria-label='Navegação principal']");
     await expect(bottomNav).toBeVisible();
     await expect(bottomNav.getByRole("link", { name: "Início" })).toBeVisible();
-    await expect(
-      bottomNav.getByRole("link", { name: "Metas" }),
-    ).toBeVisible();
+    await expect(bottomNav.getByRole("link", { name: "Metas" })).toBeVisible();
     await expect(page.locator('[data-slot="sidebar"]')).toBeHidden();
     expect(await hasHorizontalScroll(page)).toBe(false);
 

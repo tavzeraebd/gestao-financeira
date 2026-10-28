@@ -12,8 +12,10 @@ import {
 } from "./helpers/cenario";
 import { adminClient } from "./helpers/users";
 
-const visivel = (page: import("@playwright/test").Page, texto: string | RegExp) =>
-  page.getByText(texto).filter({ visible: true }).first();
+const visivel = (
+  page: import("@playwright/test").Page,
+  texto: string | RegExp,
+) => page.getByText(texto).filter({ visible: true }).first();
 
 /** Despesa pendente de 200,00 criada pelo próprio dono (cliente do usuário: passa pela RLS e pelos gatilhos). */
 async function semearDespesa(
@@ -44,7 +46,8 @@ async function semearDespesa(
     })
     .select("id")
     .single();
-  if (error || !data) throw new Error(`Falha ao semear despesa: ${error?.message}`);
+  if (error || !data)
+    throw new Error(`Falha ao semear despesa: ${error?.message}`);
   return data.id as string;
 }
 
@@ -69,7 +72,9 @@ test("CA-E6-54: dividir igualmente mostra a prévia, aparece em /divisao e atual
   ).toBeVisible();
   await expect(visivel(page, reais("100,00"))).toBeVisible();
   await page.getByRole("button", { name: "Salvar divisão" }).click();
-  await expect(page.getByRole("button", { name: "Remover divisão" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Remover divisão" }),
+  ).toBeVisible();
 
   await page.goto("/divisao");
   await expect(visivel(page, /Dividida entre 2/)).toBeVisible();
@@ -119,12 +124,17 @@ test("CA-E6-59: integrante registra acerto com um lado travado nele e o saldo at
   page,
 }, testInfo) => {
   const c = await criarCenario(`c59-${testInfo.project.name}`);
-  const bruno = await criarIntegrante(c.familyId, `c59b-${testInfo.project.name}`);
+  const bruno = await criarIntegrante(
+    c.familyId,
+    `c59b-${testInfo.project.name}`,
+  );
   const id = await semearDespesa(c);
   await entrar(page, c.owner);
   await page.goto(`/divisao/${id}`);
   await page.getByRole("button", { name: "Salvar divisão" }).click();
-  await expect(page.getByRole("button", { name: "Remover divisão" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Remover divisão" }),
+  ).toBeVisible();
 
   await page.context().clearCookies();
   await entrar(page, bruno);
@@ -132,7 +142,9 @@ test("CA-E6-59: integrante registra acerto com um lado travado nele e o saldo at
   await expect(visivel(page, /deve/)).toBeVisible();
 
   await page.goto("/divisao/acertos/novo");
-  await expect(page.getByRole("combobox", { name: "De (quem pagou)" })).toBeDisabled();
+  await expect(
+    page.getByRole("combobox", { name: "De (quem pagou)" }),
+  ).toBeDisabled();
   await escolher(page, "Para (quem recebeu)", "Ana Souza");
   await page.getByLabel("Valor", { exact: true }).fill("20");
   await page.getByRole("button", { name: "Salvar acerto" }).click();
@@ -160,16 +172,26 @@ test("CA-E6-60: despesa de outra família devolve 'Página não encontrada'", as
 test("CA-E6-58: /divisao e /planejamento em celular sem rolagem horizontal", async ({
   page,
 }, testInfo) => {
-  test.skip(!/mobile|celular/i.test(testInfo.project.name), "só no projeto de celular");
+  test.skip(
+    !/mobile|celular/i.test(testInfo.project.name),
+    "só no projeto de celular",
+  );
   const c = await criarCenario(`c58d-${testInfo.project.name}`);
   await criarIntegrante(c.familyId, `c58db-${testInfo.project.name}`);
   const id = await semearDespesa(c);
   await entrar(page, c.owner);
   await page.goto(`/divisao/${id}`);
   await page.getByRole("button", { name: "Salvar divisão" }).click();
-  await expect(page.getByRole("button", { name: "Remover divisão" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Remover divisão" }),
+  ).toBeVisible();
 
-  for (const rota of ["/divisao", `/divisao/${id}`, "/divisao/acertos", "/planejamento"]) {
+  for (const rota of [
+    "/divisao",
+    `/divisao/${id}`,
+    "/divisao/acertos",
+    "/planejamento",
+  ]) {
     await page.goto(rota);
     await expect(page.locator("main")).toBeVisible();
     const estoura = await page.evaluate(
@@ -190,7 +212,9 @@ test("CA-E6-57: compromisso dividido pago com valor diferente reescala as parcel
   await page.goto(`/divisao/${id}`);
   await expect(visivel(page, reais("100,00"))).toBeVisible();
   await page.getByRole("button", { name: "Salvar divisão" }).click();
-  await expect(page.getByRole("button", { name: "Remover divisão" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Remover divisão" }),
+  ).toBeVisible();
 
   await page.goto(`/compromissos/${id}`);
   await page
@@ -253,7 +277,9 @@ test("CA-E6-62: sessão expirada na divisão leva ao login com retorno à rota",
   await entrar(page, c.owner);
 
   await page.goto(`/divisao/${id}`);
-  await expect(page.getByRole("button", { name: "Salvar divisão" })).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Salvar divisão" }),
+  ).toBeEnabled();
   await context.clearCookies();
   await page.getByRole("button", { name: "Salvar divisão" }).click();
   await expect(page).toHaveURL(

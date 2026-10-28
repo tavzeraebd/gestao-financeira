@@ -32,7 +32,11 @@ const OPTIONS: { value: PeriodPreset; label: string }[] = [
 ];
 
 /** Mensagem de erro do intervalo, ou `null` se válido. A regra final é do servidor (`resolvePeriod`). */
-export function validateRange(de: string, ate: string, max: ISODate): string | null {
+export function validateRange(
+  de: string,
+  ate: string,
+  max: ISODate,
+): string | null {
   if (!isISODate(de) || !isISODate(ate)) {
     return "Escolha as datas De e Até para aplicar o período.";
   }

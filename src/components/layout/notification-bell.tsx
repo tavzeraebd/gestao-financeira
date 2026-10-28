@@ -25,7 +25,7 @@ export function NotificationBell({ unread, active }: NotificationBellProps) {
       aria-label={bellLabel(count)}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "hover:bg-muted focus-visible:ring-ring relative flex size-10 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-3",
+        "hover:bg-muted focus-visible:ring-ring relative flex size-10 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-3",
         active && "bg-muted",
       )}
     >

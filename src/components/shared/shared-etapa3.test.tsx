@@ -1,10 +1,27 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 
-import { CategoryIcon, CATEGORY_ICON_COMPONENTS } from "@/components/shared/category-icon";
+import {
+  CategoryIcon,
+  CATEGORY_ICON_COMPONENTS,
+} from "@/components/shared/category-icon";
 import { DatePicker } from "@/components/shared/date-picker";
 import { FiltersPanel } from "@/components/shared/filters-panel";
 import { Money } from "@/components/shared/money";
@@ -117,9 +134,7 @@ describe("Money", () => {
       </>,
     );
     expect(screen.getByText(/^\+/)).toHaveTextContent(/^\+\s*R\$\s*123,45$/);
-    expect(screen.getByText(/^−/)).toHaveTextContent(
-      /^−\s*R\$\s*123,45$/,
-    );
+    expect(screen.getByText(/^−/)).toHaveTextContent(/^−\s*R\$\s*123,45$/);
     const neutral = screen.getAllByText(/R\$\s*123,45/).at(-1)!;
     expect(neutral.textContent).not.toMatch(/^[+−-]/);
   });
@@ -154,17 +169,34 @@ describe.each([
 
   it("mostra Hoje, Ontem e dd/mm/aaaa", () => {
     const { rerender } = render(
-      <DatePicker id="d" value="2026-10-23" onChange={() => {}} today={today} />,
+      <DatePicker
+        id="d"
+        value="2026-10-23"
+        onChange={() => {}}
+        today={today}
+      />,
     );
     expect(screen.getByRole("button", { name: "Hoje" })).toBeInTheDocument();
     rerender(
-      <DatePicker id="d" value="2026-10-22" onChange={() => {}} today={today} />,
+      <DatePicker
+        id="d"
+        value="2026-10-22"
+        onChange={() => {}}
+        today={today}
+      />,
     );
     expect(screen.getByRole("button", { name: "Ontem" })).toBeInTheDocument();
     rerender(
-      <DatePicker id="d" value="2026-03-05" onChange={() => {}} today={today} />,
+      <DatePicker
+        id="d"
+        value="2026-03-05"
+        onChange={() => {}}
+        today={today}
+      />,
     );
-    expect(screen.getByRole("button", { name: "05/03/2026" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "05/03/2026" }),
+    ).toBeInTheDocument();
   });
 
   it("respeita max: dias depois do limite ficam desabilitados", async () => {
@@ -191,7 +223,13 @@ describe.each([
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
-      <DatePicker id="d" value="2026-10-23" onChange={onChange} today={today} max={today} />,
+      <DatePicker
+        id="d"
+        value="2026-10-23"
+        onChange={onChange}
+        today={today}
+        max={today}
+      />,
     );
     await user.tab();
     expect(screen.getByRole("button", { name: "Hoje" })).toHaveFocus();
@@ -210,7 +248,13 @@ describe.each([
   it("ao abrir, o foco vai para o dia selecionado e Esc devolve o foco ao gatilho", async () => {
     const user = userEvent.setup();
     render(
-      <DatePicker id="d" value="2026-10-23" onChange={() => {}} today={today} max={today} />,
+      <DatePicker
+        id="d"
+        value="2026-10-23"
+        onChange={() => {}}
+        today={today}
+        max={today}
+      />,
     );
     const trigger = screen.getByRole("button", { name: "Hoje" });
     await user.click(trigger);
@@ -228,7 +272,12 @@ describe.each([
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
-      <DatePicker id="d" value="2026-10-01" onChange={onChange} today={today} />,
+      <DatePicker
+        id="d"
+        value="2026-10-01"
+        onChange={onChange}
+        today={today}
+      />,
     );
     await user.click(screen.getByRole("button", { name: "01/10/2026" }));
     const dialog = await screen.findByRole("dialog");
@@ -258,7 +307,12 @@ describe.each([
 describe("SegmentedControl", () => {
   type Kind = "expense" | "income" | "transfer";
   const options = [
-    { value: "expense", label: "Despesa", icon: ArrowDownIcon, tone: "expense" },
+    {
+      value: "expense",
+      label: "Despesa",
+      icon: ArrowDownIcon,
+      tone: "expense",
+    },
     { value: "income", label: "Receita", icon: ArrowUpIcon, tone: "income" },
     { value: "transfer", label: "Transferência" },
   ] as const;
@@ -322,7 +376,9 @@ describe("ResponsiveList", () => {
     expect(
       within(table).getByRole("columnheader", { name: "Descrição" }),
     ).toBeInTheDocument();
-    expect(within(table).getByRole("cell", { name: "Mercado" })).toBeInTheDocument();
+    expect(
+      within(table).getByRole("cell", { name: "Mercado" }),
+    ).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Lançamentos" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByText("Cartão Aluguel")).toBeInTheDocument();
@@ -353,10 +409,12 @@ describe("PaginationNav", () => {
     const nav = screen.getByRole("navigation", { name: "Paginação" });
     const current = within(nav).getByRole("link", { name: "Página 3" });
     expect(current).toHaveAttribute("aria-current", "page");
-    expect(within(nav).getByRole("link", { name: "Página 2" })).not.toHaveAttribute(
-      "aria-current",
-    );
-    expect(within(nav).getAllByRole("link", { name: /^Página \d+$/ })).toHaveLength(5);
+    expect(
+      within(nav).getByRole("link", { name: "Página 2" }),
+    ).not.toHaveAttribute("aria-current");
+    expect(
+      within(nav).getAllByRole("link", { name: /^Página \d+$/ }),
+    ).toHaveLength(5);
     expect(within(nav).getByRole("link", { name: "Próxima" })).toHaveAttribute(
       "href",
       href(4),
@@ -410,12 +468,24 @@ describe("SearchInput", () => {
     const user = userEvent.setup();
     const onClear = vi.fn();
     const { rerender } = render(
-      <SearchInput aria-label="Buscar" value="" onChange={() => {}} onClear={onClear} />,
+      <SearchInput
+        aria-label="Buscar"
+        value=""
+        onChange={() => {}}
+        onClear={onClear}
+      />,
     );
-    expect(screen.getByRole("searchbox", { name: "Buscar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("searchbox", { name: "Buscar" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Limpar busca" })).toBeNull();
     rerender(
-      <SearchInput aria-label="Buscar" value="mer" onChange={() => {}} onClear={onClear} />,
+      <SearchInput
+        aria-label="Buscar"
+        value="mer"
+        onChange={() => {}}
+        onClear={onClear}
+      />,
     );
     await user.click(screen.getByRole("button", { name: "Limpar busca" }));
     expect(onClear).toHaveBeenCalledTimes(1);
@@ -464,7 +534,9 @@ describe("FiltersPanel", () => {
     expect(within(dialog).getByLabelText("Conta")).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Limpar" }));
     expect(onClear).toHaveBeenCalled();
-    await user.click(within(dialog).getByRole("button", { name: "Ver resultados" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: "Ver resultados" }),
+    );
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

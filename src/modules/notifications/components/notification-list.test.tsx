@@ -86,7 +86,9 @@ describe("NotificationList", () => {
     render(<NotificationList items={ITEMS} />);
     await user.click(screen.getByRole("button", { name: /Conta a vencer/ }));
     await waitFor(() =>
-      expect(toastInfo).toHaveBeenCalledWith("Este item não está mais disponível."),
+      expect(toastInfo).toHaveBeenCalledWith(
+        "Este item não está mais disponível.",
+      ),
     );
     expect(push).not.toHaveBeenCalled();
   });
@@ -94,12 +96,18 @@ describe("NotificationList", () => {
   it("falha mostra a mensagem do servidor e não navega", async () => {
     openNotification.mockResolvedValue({
       ok: false,
-      error: { code: "INTERNAL_ERROR", message: "Tente de novo.", requestId: "r" },
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Tente de novo.",
+        requestId: "r",
+      },
     });
     const user = userEvent.setup();
     render(<NotificationList items={ITEMS} />);
     await user.click(screen.getByRole("button", { name: /Conta a vencer/ }));
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Tente de novo."));
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith("Tente de novo."),
+    );
     expect(push).not.toHaveBeenCalled();
   });
 });

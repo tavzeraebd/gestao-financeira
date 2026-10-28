@@ -43,7 +43,10 @@ export default async function SplitDetailPage({
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       <Link
         href="/divisao"
-        className={buttonVariants({ variant: "ghost", className: "self-start" })}
+        className={buttonVariants({
+          variant: "ghost",
+          className: "self-start",
+        })}
       >
         <ChevronLeftIcon aria-hidden="true" data-icon="inline-start" />
         Divisão de contas

@@ -90,7 +90,7 @@ export function NotificationList({ items }: { items: NotificationView[] }) {
               disabled={pending}
               aria-busy={openingId === item.id}
               onClick={() => open(item)}
-              className="hover:bg-muted focus-visible:ring-ring flex min-h-16 w-full cursor-pointer items-start gap-3 p-4 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-inset disabled:cursor-wait disabled:opacity-70"
+              className="hover:bg-muted focus-visible:ring-ring flex min-h-16 w-full cursor-pointer items-start gap-3 p-4 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-inset disabled:cursor-wait disabled:opacity-70"
             >
               <span
                 aria-hidden="true"

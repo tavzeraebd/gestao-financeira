@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { formatDateBR } from "@/lib/dates";
 import type { SharedExpenseItem } from "@/modules/splits/types";
 
-
 function StatusBadge({ status }: { status: SharedExpenseItem["status"] }) {
   return status === "paid" ? (
     <Badge variant="success">
@@ -24,7 +23,9 @@ function StatusBadge({ status }: { status: SharedExpenseItem["status"] }) {
 }
 
 function payerText(item: SharedExpenseItem): string {
-  return item.payer ? `Responsável: ${item.payer.displayName}` : "Sem responsável";
+  return item.payer
+    ? `Responsável: ${item.payer.displayName}`
+    : "Sem responsável";
 }
 
 function Title({ item }: { item: SharedExpenseItem }) {
@@ -110,7 +111,11 @@ export function SharedExpenseList({ items }: { items: SharedExpenseItem[] }) {
         <div className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-3">
             <Title item={item} />
-            <Money cents={item.amount} direction="out" className="font-semibold" />
+            <Money
+              cents={item.amount}
+              direction="out"
+              className="font-semibold"
+            />
           </div>
           <div className="text-muted-foreground text-xs">
             {formatDateBR(item.date)} · {payerText(item)}

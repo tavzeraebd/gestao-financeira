@@ -9,8 +9,10 @@ import {
 } from "./helpers/cenario";
 import { createUserWithFamily } from "./helpers/users";
 
-const visivel = (page: import("@playwright/test").Page, texto: string | RegExp) =>
-  page.getByText(texto).filter({ visible: true }).first();
+const visivel = (
+  page: import("@playwright/test").Page,
+  texto: string | RegExp,
+) => page.getByText(texto).filter({ visible: true }).first();
 
 /** Semeia a meta pelo cliente do próprio dono (passa pela RLS e pelos gatilhos). */
 async function semearMeta(
@@ -18,7 +20,9 @@ async function semearMeta(
   nome: string,
   valor = "5000.00",
 ): Promise<string> {
-  const { data, error } = await (await clienteDo(c.owner))
+  const { data, error } = await (
+    await clienteDo(c.owner)
+  )
     .from("goals")
     .insert({
       family_id: c.familyId,
@@ -119,7 +123,9 @@ test("CA-E6-52: pausar, reativar, concluir e meta cancelada sem edição", async
     page.getByRole("button", { name: /^Concluir meta/ }),
   ).toHaveCount(0);
   await page.goto("/metas?situacao=concluidas");
-  await expect(page.getByTestId("meta").filter({ hasText: "Carro" })).toBeVisible();
+  await expect(
+    page.getByTestId("meta").filter({ hasText: "Carro" }),
+  ).toBeVisible();
 
   const id2 = await semearMeta(c, "Casa");
   await page.goto(`/metas/${id2}`);
@@ -137,15 +143,22 @@ test("CA-E6-53: member vê metas sem ações de gestão e registra aporte no pr�
 }, testInfo) => {
   const c = await criarCenario(`m53-${testInfo.project.name}`);
   const id = await semearMeta(c, "Viagem");
-  const membro = await criarIntegrante(c.familyId, `m53m-${testInfo.project.name}`);
+  const membro = await criarIntegrante(
+    c.familyId,
+    `m53m-${testInfo.project.name}`,
+  );
   await entrar(page, membro);
 
   await page.goto("/metas");
-  await expect(page.getByTestId("meta").filter({ hasText: "Viagem" })).toBeVisible();
+  await expect(
+    page.getByTestId("meta").filter({ hasText: "Viagem" }),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Nova meta" })).toHaveCount(0);
 
   await page.goto(`/metas/${id}`);
-  await expect(page.getByRole("button", { name: /^Pausar meta/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Pausar meta/ })).toHaveCount(
+    0,
+  );
   await page.getByRole("button", { name: "Registrar aporte" }).click();
   await expect(page.getByLabel("Integrante")).toBeDisabled();
   await page.getByLabel("Valor").fill("20");
@@ -180,7 +193,10 @@ test("CA-E6-60: outsider em /metas/<id de outra família> vê página não encon
 }, testInfo) => {
   const c = await criarCenario(`m60-${testInfo.project.name}`);
   const id = await semearMeta(c, "Viagem");
-  const outro = await createUserWithFamily(`m60o-${testInfo.project.name}`, "Outro");
+  const outro = await createUserWithFamily(
+    `m60o-${testInfo.project.name}`,
+    "Outro",
+  );
   await entrar(page, outro);
   await page.goto(`/metas/${id}`);
   await expect(

@@ -14,7 +14,9 @@ describe("NotificationBell", () => {
 
   it("aponta para /notificacoes e mostra o selo", () => {
     render(<NotificationBell unread={3} />);
-    const link = screen.getByRole("link", { name: "Notificações, 3 não lidas" });
+    const link = screen.getByRole("link", {
+      name: "Notificações, 3 não lidas",
+    });
     expect(link).toHaveAttribute("href", "/notificacoes");
     expect(link).toHaveTextContent("3");
   });
@@ -26,8 +28,12 @@ describe("NotificationBell", () => {
 
   it("sem não lidas ou sem contagem não mostra selo", () => {
     const { rerender } = render(<NotificationBell unread={0} />);
-    expect(screen.getByRole("link", { name: "Notificações" })).toHaveTextContent("");
+    expect(
+      screen.getByRole("link", { name: "Notificações" }),
+    ).toHaveTextContent("");
     rerender(<NotificationBell unread={null} />);
-    expect(screen.getByRole("link", { name: "Notificações" })).toHaveTextContent("");
+    expect(
+      screen.getByRole("link", { name: "Notificações" }),
+    ).toHaveTextContent("");
   });
 });

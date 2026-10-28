@@ -171,7 +171,10 @@ function ContributionForm({
         router.refresh();
         return;
       }
-      handleFailure({ ...result.error, message: goalErrorMessage(result.error) });
+      handleFailure({
+        ...result.error,
+        message: goalErrorMessage(result.error),
+      });
     });
   });
 

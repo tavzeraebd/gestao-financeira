@@ -42,7 +42,8 @@ async function mkCategory(name: string, parentId?: string): Promise<string> {
     icon: "gift",
     parentId,
   });
-  if (!result.ok) throw new Error(`createCategory falhou: ${result.error.code}`);
+  if (!result.ok)
+    throw new Error(`createCategory falhou: ${result.error.code}`);
   return result.data.id;
 }
 
@@ -245,7 +246,9 @@ describe("dashboard: filtros de período", () => {
     actAs(fam.owner);
     const de = addDays(PREV_DAY, -2);
     const ate = addDays(PREV_DAY, 2);
-    const d = await getDashboard(filters({ periodo: "personalizado", de, ate }));
+    const d = await getDashboard(
+      filters({ periodo: "personalizado", de, ate }),
+    );
     expect(d.period).toMatchObject({
       preset: "personalizado",
       from: de,
@@ -305,9 +308,9 @@ describe("dashboard: despesas por categoria (D16)", () => {
       (s) => s.categoryId === cats[0],
     );
     expect(cat1?.amount).toBe(c(65000)); // 600 + 50 (filha somada à pai)
-    expect(six.expenseByCategory.slices.some((s) => s.categoryId === child)).toBe(
-      false,
-    );
+    expect(
+      six.expenseByCategory.slices.some((s) => s.categoryId === child),
+    ).toBe(false);
 
     // 7ª categoria: 5 maiores + Outras (Cat 6 = 100 + Cat 7 = 20)
     await spend(cats[6]!, "20,00");

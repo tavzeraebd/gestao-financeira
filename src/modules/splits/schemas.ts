@@ -17,7 +17,8 @@ const memberId = z.uuid("Integrante inválido.");
 const partsMessage = `Escolha de ${MIN_PARTS} a ${MAX_PARTS} integrantes.`;
 const distinctMessage = "Cada integrante só pode aparecer uma vez.";
 
-const hasDistinct = (ids: readonly string[]) => new Set(ids).size === ids.length;
+const hasDistinct = (ids: readonly string[]) =>
+  new Set(ids).size === ids.length;
 
 const equalSplit = z.object({
   mode: z.literal("equal"),
@@ -36,7 +37,10 @@ const amountsSplit = z.object({
     .array(z.object({ memberId, amount: brlAmount({ positive: true }) }))
     .min(MIN_PARTS, partsMessage)
     .max(MAX_PARTS, partsMessage)
-    .refine((shares) => hasDistinct(shares.map((s) => s.memberId)), distinctMessage),
+    .refine(
+      (shares) => hasDistinct(shares.map((s) => s.memberId)),
+      distinctMessage,
+    ),
 });
 
 const noSplit = z.object({ mode: z.literal("none"), transactionId });

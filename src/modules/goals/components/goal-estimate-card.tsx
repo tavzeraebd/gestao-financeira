@@ -31,7 +31,10 @@ export function GoalEstimateCard({ goal }: { goal: GoalView }) {
           ) : estimate.requiredMonthly !== null ? (
             <p>
               Para chegar até {formatDateBR(goal.targetDate)}:{" "}
-              <Money cents={estimate.requiredMonthly} className="font-semibold" />{" "}
+              <Money
+                cents={estimate.requiredMonthly}
+                className="font-semibold"
+              />{" "}
               por mês
             </p>
           ) : null

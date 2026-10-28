@@ -98,7 +98,9 @@ function DeleteContributionButton({ item }: { item: ContributionView }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Manter registro</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>
+            Manter registro
+          </AlertDialogCancel>
           <AlertDialogAction loading={pending} onClick={run}>
             Excluir registro
           </AlertDialogAction>
@@ -120,15 +122,21 @@ export function ContributionHistory({ items }: { items: ContributionView[] }) {
       caption="Histórico de aportes e retiradas"
       columns={[
         { id: "date", header: "Data", cell: (i) => formatDateBR(i.date) },
-        { id: "member", header: "Integrante", cell: (i) => i.member.displayName },
-        { id: "kind", header: "Tipo", cell: (i) => <KindBadge kind={i.kind} /> },
+        {
+          id: "member",
+          header: "Integrante",
+          cell: (i) => i.member.displayName,
+        },
+        {
+          id: "kind",
+          header: "Tipo",
+          cell: (i) => <KindBadge kind={i.kind} />,
+        },
         {
           id: "amount",
           header: "Valor",
           align: "end",
-          cell: (i) => (
-            <Money cents={i.amount} direction={direction(i.kind)} />
-          ),
+          cell: (i) => <Money cents={i.amount} direction={direction(i.kind)} />,
         },
         {
           id: "notes",
@@ -139,14 +147,12 @@ export function ContributionHistory({ items }: { items: ContributionView[] }) {
           id: "actions",
           header: "Ações",
           align: "end",
-          cell: (i) => (i.canDelete ? <DeleteContributionButton item={i} /> : null),
+          cell: (i) =>
+            i.canDelete ? <DeleteContributionButton item={i} /> : null,
         },
       ]}
       renderCard={(i) => (
-        <div
-          className="flex flex-col gap-2"
-          data-testid="aporte"
-        >
+        <div className="flex flex-col gap-2" data-testid="aporte">
           <div className="flex items-center justify-between gap-2">
             <KindBadge kind={i.kind} />
             <Money

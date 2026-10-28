@@ -17,7 +17,11 @@ function isActive(pathname: string, href: string, exact = false): boolean {
   return pathname === path || (!exact && pathname.startsWith(`${path}/`));
 }
 
-export function SubNav({ items, "aria-label": ariaLabel, className }: SubNavProps) {
+export function SubNav({
+  items,
+  "aria-label": ariaLabel,
+  className,
+}: SubNavProps) {
   const pathname = usePathname();
   return (
     <nav aria-label={ariaLabel} className={cn("max-w-full", className)}>

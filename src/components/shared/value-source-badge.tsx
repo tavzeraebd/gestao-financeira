@@ -16,7 +16,10 @@ type ValueSourceBadgeProps = {
 export function ValueSourceBadge({ source }: ValueSourceBadgeProps) {
   const { label, variant, Icon } = SOURCES[source];
   return (
-    <Badge variant={variant} className={source === "estimated" ? "italic" : undefined}>
+    <Badge
+      variant={variant}
+      className={source === "estimated" ? "italic" : undefined}
+    >
       <Icon aria-hidden="true" />
       {label}
     </Badge>

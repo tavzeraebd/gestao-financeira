@@ -40,7 +40,10 @@ export default async function GoalDetailPage({
     <div className="flex flex-col gap-6">
       <Link
         href="/metas"
-        className={buttonVariants({ variant: "ghost", className: "self-start" })}
+        className={buttonVariants({
+          variant: "ghost",
+          className: "self-start",
+        })}
       >
         <ChevronLeftIcon aria-hidden="true" data-icon="inline-start" />
         Metas
@@ -54,7 +57,9 @@ export default async function GoalDetailPage({
         </div>
       </header>
       {goal.description ? (
-        <p className="text-muted-foreground -mt-3 text-sm">{goal.description}</p>
+        <p className="text-muted-foreground -mt-3 text-sm">
+          {goal.description}
+        </p>
       ) : null}
 
       <GoalActions goal={goal} today={today()} />
@@ -111,7 +116,10 @@ export default async function GoalDetailPage({
         <GoalEstimateCard goal={goal} />
       </div>
 
-      <section aria-labelledby="historico-titulo" className="flex flex-col gap-3">
+      <section
+        aria-labelledby="historico-titulo"
+        className="flex flex-col gap-3"
+      >
         <h2 id="historico-titulo" className="text-base font-semibold">
           Histórico de aportes
         </h2>

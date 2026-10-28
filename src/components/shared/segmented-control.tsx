@@ -23,7 +23,8 @@ type SegmentedControlProps<T extends string> = {
 };
 
 const CHECKED_TONE = {
-  default: "data-checked:bg-card data-checked:text-foreground data-checked:shadow-sm",
+  default:
+    "data-checked:bg-card data-checked:text-foreground data-checked:shadow-sm",
   income:
     "data-checked:bg-success-soft data-checked:text-foreground data-checked:shadow-sm",
   expense:

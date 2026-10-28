@@ -55,7 +55,11 @@ export const financingSchema = z
   .object({
     value: money,
     downPayment: brlAmount(),
-    months: wholeMonths(FINANCING_MONTHS_MIN, FINANCING_MONTHS_MAX, "o prazo em meses"),
+    months: wholeMonths(
+      FINANCING_MONTHS_MIN,
+      FINANCING_MONTHS_MAX,
+      "o prazo em meses",
+    ),
     monthlyRate: rate,
   })
   .refine((d) => d.downPayment < d.value, {

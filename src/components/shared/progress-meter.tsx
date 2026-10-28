@@ -28,7 +28,9 @@ export function ProgressMeter({
   className,
 }: ProgressMeterProps) {
   const clamped =
-    value === null || Number.isNaN(value) ? 0 : Math.min(100, Math.max(0, value));
+    value === null || Number.isNaN(value)
+      ? 0
+      : Math.min(100, Math.max(0, value));
   return (
     <Progress
       value={clamped}

@@ -691,7 +691,11 @@ test("CA-E6-61: card Metas mostra até 3 metas com % e link; vazio oferece Criar
   const c = await criarCenario(`i61-${testInfo.project.name}`);
   const conta = await criarContaNoBanco(c, "Corrente", "checking", "1000");
   await semearDespesas(c, conta, [
-    { descricao: "Feira", valor: "10.00", data: iso(agora().ano, agora().mes, 1) },
+    {
+      descricao: "Feira",
+      valor: "10.00",
+      data: iso(agora().ano, agora().mes, 1),
+    },
   ]);
   await entrar(page, c.owner);
   await page.goto("/inicio");

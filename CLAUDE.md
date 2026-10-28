@@ -1,4 +1,3 @@
-
 ## Agentic Software Factory
 
 Este projeto usa a fábrica global: `~/.claude/factory/CONTROL-PLANE.md`.

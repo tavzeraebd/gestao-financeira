@@ -32,7 +32,9 @@ test("DatePicker: setas movem o foco entre dias; PageDown muda de mês; Esc devo
   await expect(grade.locator(":focus")).toHaveCount(1);
 
   const mesAntes = await page
-    .locator("[role=status], .rdp-caption_label, [data-slot=calendar] [aria-live]")
+    .locator(
+      "[role=status], .rdp-caption_label, [data-slot=calendar] [aria-live]",
+    )
     .first()
     .textContent()
     .catch(() => null);
@@ -42,7 +44,9 @@ test("DatePicker: setas movem o foco entre dias; PageDown muda de mês; Esc devo
   if (mesAntes) {
     await expect(
       page
-        .locator("[role=status], .rdp-caption_label, [data-slot=calendar] [aria-live]")
+        .locator(
+          "[role=status], .rdp-caption_label, [data-slot=calendar] [aria-live]",
+        )
         .first(),
     ).not.toHaveText(mesAntes);
   }

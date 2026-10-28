@@ -1,4 +1,9 @@
-import { ChevronLeftIcon, ChevronRightIcon, PiggyBankIcon, PlusIcon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PiggyBankIcon,
+  PlusIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 

@@ -12,7 +12,9 @@ export type GoalDeadlineInput = {
 };
 
 /** D15 (prazo de meta): D9 com o aporte mensal informado (padrão: o ritmo atual da meta). */
-export function simulateGoalDeadline(input: GoalDeadlineInput): SimulationResult {
+export function simulateGoalDeadline(
+  input: GoalDeadlineInput,
+): SimulationResult {
   const { goal, monthly, today } = input;
   if (monthly !== undefined && !isPositiveCents(monthly)) {
     return { ok: false, error: "OUT_OF_RANGE" };
@@ -33,7 +35,12 @@ export function simulateGoalDeadline(input: GoalDeadlineInput): SimulationResult
   const remaining = asAggregateCents(Math.max(goal.target - goal.saved, 0));
 
   const lines: ResultLine[] = [
-    { label: "Valor da meta", value: goal.target, format: "brl", source: "known" },
+    {
+      label: "Valor da meta",
+      value: goal.target,
+      format: "brl",
+      source: "known",
+    },
     { label: "Já guardado", value: goal.saved, format: "brl", source: "known" },
     { label: "Falta", value: remaining, format: "brl", source: "known" },
     {

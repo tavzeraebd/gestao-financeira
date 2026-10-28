@@ -43,7 +43,7 @@ function BudgetRow({ row }: { row: BudgetReportRow }) {
                 size="sm"
               />
             ) : null}
-            <span className="min-w-0 break-words font-medium">{name}</span>
+            <span className="min-w-0 font-medium break-words">{name}</span>
           </span>
           <span className="flex flex-wrap items-center gap-1.5">
             <Badge variant={view.variant}>

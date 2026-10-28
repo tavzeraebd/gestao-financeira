@@ -65,7 +65,9 @@ export function SettlementForm({
   const [idempotencyKey] = useState(() => crypto.randomUUID());
 
   const form = useForm<SettlementValues>({
-    resolver: zodResolver(settlementSchema) as unknown as Resolver<SettlementValues>,
+    resolver: zodResolver(
+      settlementSchema,
+    ) as unknown as Resolver<SettlementValues>,
     defaultValues: {
       fromMemberId: canManage ? "" : myMemberId,
       toMemberId: "",

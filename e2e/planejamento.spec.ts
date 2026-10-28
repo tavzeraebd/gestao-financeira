@@ -54,7 +54,10 @@ test("CA-E6-56: saldo futuro e novo compromisso usam a base conhecida", async ({
   await escolher(page, CENARIO, "Saldo futuro");
   await page.getByRole("button", { name: "Simular" }).click();
   await expect(
-    page.getByRole("columnheader", { name: "Saldo projetado" }).filter({ visible: true }).first(),
+    page
+      .getByRole("columnheader", { name: "Saldo projetado" })
+      .filter({ visible: true })
+      .first(),
   ).toBeVisible();
 
   await escolher(page, CENARIO, "Novo compromisso mensal");

@@ -114,7 +114,10 @@ export function ReportMembers({ report }: { report: MemberReport }) {
         </Table>
       )}
 
-      <p className="text-muted-foreground text-sm" data-testid="nota-integrantes">
+      <p
+        className="text-muted-foreground text-sm"
+        data-testid="nota-integrantes"
+      >
         {MEMBER_REPORT_NOTE}
       </p>
     </div>

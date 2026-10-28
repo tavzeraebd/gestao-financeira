@@ -58,11 +58,7 @@ export function GoalActions({
               name={goal.name}
               to="completed"
             />
-            <GoalStatusButton
-              goalId={goal.id}
-              name={goal.name}
-              to="canceled"
-            />
+            <GoalStatusButton goalId={goal.id} name={goal.name} to="canceled" />
           </>
         ) : null}
       </div>

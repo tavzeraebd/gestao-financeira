@@ -68,7 +68,9 @@ export function DeleteSettlementButton({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Manter acerto</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>
+            Manter acerto
+          </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             loading={pending}

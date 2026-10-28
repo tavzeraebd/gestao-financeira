@@ -136,7 +136,9 @@ describe("ReportPeriodFilter (CA-E7-50)", () => {
   it("trocar o preset atualiza a URL com replace e preserva outros parâmetros", async () => {
     search = "tipo=receitas&periodo=30_dias&de=2026-01-01";
     renderFilter();
-    await userEvent.setup().click(screen.getByRole("radio", { name: "3 meses" }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("radio", { name: "3 meses" }));
     expect(replace).toHaveBeenCalledOnce();
     const url = new URL(replace.mock.calls[0]?.[0] as string, "http://x");
     expect(url.pathname).toBe("/relatorios");
@@ -168,7 +170,9 @@ describe("ReportPeriodFilter (CA-E7-50)", () => {
         today={TODAY}
       />,
     );
-    await userEvent.setup().click(screen.getByRole("button", { name: "Aplicar" }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Aplicar" }));
     expect(screen.getByRole("alert")).toHaveTextContent(
       "A data De não pode ser depois da data Até.",
     );
@@ -181,7 +185,9 @@ describe("ReportsSubNav", () => {
     search = "periodo=7_dias&tipo=receitas";
     pathname = "/relatorios/categorias";
     render(<ReportsSubNav />);
-    const nav = screen.getByRole("navigation", { name: "Seções dos relatórios" });
+    const nav = screen.getByRole("navigation", {
+      name: "Seções dos relatórios",
+    });
     const links = within(nav).getAllByRole("link");
     expect(links.map((l) => l.textContent)).toEqual([
       "Visão geral",
@@ -199,9 +205,9 @@ describe("ReportsSubNav", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByRole("link", { name: "Visão geral" })).not.toHaveAttribute(
-      "aria-current",
-    );
+    expect(
+      screen.getByRole("link", { name: "Visão geral" }),
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("visão geral fica ativa só em /relatorios", () => {
@@ -221,7 +227,9 @@ describe("ReportCategoryTypeSwitch", () => {
   it("troca o tipo na URL e mantém o período", async () => {
     search = "periodo=12_meses";
     render(<ReportCategoryTypeSwitch value="despesas" />);
-    await userEvent.setup().click(screen.getByRole("radio", { name: "Receitas" }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("radio", { name: "Receitas" }));
     const url = new URL(replace.mock.calls[0]?.[0] as string, "http://x");
     expect(url.searchParams.get("tipo")).toBe("receitas");
     expect(url.searchParams.get("periodo")).toBe("12_meses");
@@ -323,10 +331,7 @@ describe("ReportAccounts (CA-E7-52)", () => {
 
   it("sem contas: estado vazio com atalho para quem administra", () => {
     render(
-      <ReportAccounts
-        report={{ ...report, accounts: [] }}
-        canManageAccounts
-      />,
+      <ReportAccounts report={{ ...report, accounts: [] }} canManageAccounts />,
     );
     expect(
       screen.getByRole("heading", { name: "Nenhuma conta com movimento" }),
@@ -374,7 +379,9 @@ describe("ReportMembers (CA-E7-52)", () => {
   });
 
   it("sem despesas: estado vazio e sem tabela", () => {
-    render(<ReportMembers report={{ ...report, total: asCents(0), rows: [] }} />);
+    render(
+      <ReportMembers report={{ ...report, total: asCents(0), rows: [] }} />,
+    );
     expect(
       screen.getByRole("heading", { name: `Sem despesas em ${period.label}` }),
     ).toBeInTheDocument();
@@ -423,17 +430,18 @@ describe("ReportBudgets (CA-E7-53)", () => {
     expect(row).toHaveTextContent("Limite estourado");
     expect(row).toHaveTextContent("112%");
     expect(
-      within(row).getByRole("progressbar", { name: "Uso do orçamento Mercado" }),
+      within(row).getByRole("progressbar", {
+        name: "Uso do orçamento Mercado",
+      }),
     ).toHaveAttribute("aria-valuetext", "112% do limite");
   });
 
   it("vazio: Criar orçamento só para owner/admin", () => {
     const empty = { ...report, months: [] };
     const { unmount } = render(<ReportBudgets report={empty} canManage />);
-    expect(screen.getByRole("link", { name: "Criar orçamento" })).toHaveAttribute(
-      "href",
-      "/orcamentos/novo",
-    );
+    expect(
+      screen.getByRole("link", { name: "Criar orçamento" }),
+    ).toHaveAttribute("href", "/orcamentos/novo");
     unmount();
     render(<ReportBudgets report={empty} canManage={false} />);
     expect(screen.queryByRole("link", { name: "Criar orçamento" })).toBeNull();
@@ -467,7 +475,9 @@ describe("ReportGoals (CA-E7-53)", () => {
     expect(goal).toHaveTextContent("Aportes no período");
     expect(goal).toHaveTextContent("Retiradas no período");
     expect(
-      within(goal).getByRole("progressbar", { name: "Progresso da meta Viagem" }),
+      within(goal).getByRole("progressbar", {
+        name: "Progresso da meta Viagem",
+      }),
     ).toHaveAttribute("aria-valuetext", "25% da meta");
     expect(screen.getByRole("link", { name: "Viagem" })).toHaveAttribute(
       "href",

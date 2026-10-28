@@ -2,7 +2,11 @@
 
 import type { ComponentProps } from "react";
 
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
 import { parseBRL, toBRLInput } from "@/lib/money";
 

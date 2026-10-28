@@ -11,7 +11,10 @@ import { DEFAULT_SPLIT_FILTER } from "@/modules/splits/constants";
 import { BalancesCard } from "@/modules/splits/components/balances-card";
 import { SharedExpenseList } from "@/modules/splits/components/shared-expense-list";
 import { SplitFilterTabs } from "@/modules/splits/components/split-filter-tabs";
-import { getMemberBalances, listSharedExpenses } from "@/modules/splits/queries";
+import {
+  getMemberBalances,
+  listSharedExpenses,
+} from "@/modules/splits/queries";
 import { splitFiltersSchema } from "@/modules/splits/schemas";
 
 export const metadata: Metadata = { title: "Divisão de contas" };

@@ -101,6 +101,8 @@ export async function deleteSettlement(
   if (updated > 0) return;
   // 0 linhas: visível e não excluído → a RLS negou (não é autor/owner/admin); senão não existe para o chamador.
   throw new AppError(
-    (await settlementExists(supabase, settlementId)) ? "FORBIDDEN" : "NOT_FOUND",
+    (await settlementExists(supabase, settlementId))
+      ? "FORBIDDEN"
+      : "NOT_FOUND",
   );
 }

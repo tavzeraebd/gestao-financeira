@@ -14,7 +14,11 @@ import {
 } from "@/components/ui/table";
 import { formatMonthBR, type ISODate } from "@/lib/dates";
 import { formatBRL, type Cents } from "@/lib/money";
-import type { ProjectionResult, ResultLine, SimulationResult } from "@/modules/planning/types";
+import type {
+  ProjectionResult,
+  ResultLine,
+  SimulationResult,
+} from "@/modules/planning/types";
 
 export type ScenarioOutcome = SimulationResult | ProjectionResult;
 
@@ -88,7 +92,9 @@ export function ScenarioResult({ outcome }: { outcome: ScenarioOutcome }) {
       {rows ? (
         <div className="overflow-x-auto rounded-lg border">
           <Table>
-            <TableCaption className="sr-only">Saldo futuro por mês</TableCaption>
+            <TableCaption className="sr-only">
+              Saldo futuro por mês
+            </TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead scope="col">Mês</TableHead>
@@ -106,7 +112,9 @@ export function ScenarioResult({ outcome }: { outcome: ScenarioOutcome }) {
             <TableBody>
               {rows.map((row) => (
                 <TableRow key={row.month}>
-                  <TableCell className="whitespace-nowrap">{row.label}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {row.label}
+                  </TableCell>
                   <TableCell className="text-right">
                     <Money cents={row.income} />
                   </TableCell>
@@ -124,7 +132,10 @@ export function ScenarioResult({ outcome }: { outcome: ScenarioOutcome }) {
       ) : null}
 
       {outcome.premises.length > 0 ? (
-        <section aria-labelledby="premissas-titulo" className="flex flex-col gap-2">
+        <section
+          aria-labelledby="premissas-titulo"
+          className="flex flex-col gap-2"
+        >
           <h3 id="premissas-titulo" className="text-sm font-semibold">
             Premissas
           </h3>

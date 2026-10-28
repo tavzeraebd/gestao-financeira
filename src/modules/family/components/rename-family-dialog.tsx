@@ -61,12 +61,14 @@ function RenameForm({
   const [pending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
 
-  const form = useForm<RenameInput, unknown, z.output<typeof renameFamilySchema>>(
-    {
-      resolver: zodResolver(renameFamilySchema),
-      defaultValues: { name: currentName },
-    },
-  );
+  const form = useForm<
+    RenameInput,
+    unknown,
+    z.output<typeof renameFamilySchema>
+  >({
+    resolver: zodResolver(renameFamilySchema),
+    defaultValues: { name: currentName },
+  });
 
   const onSubmit = form.handleSubmit((values) => {
     setFormError(null);
@@ -110,7 +112,9 @@ function RenameForm({
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="familia-novo-nome">Nome da família</FieldLabel>
+              <FieldLabel htmlFor="familia-novo-nome">
+                Nome da família
+              </FieldLabel>
               <Input
                 {...field}
                 id="familia-novo-nome"

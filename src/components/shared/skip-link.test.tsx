@@ -41,7 +41,9 @@ describe("SkipLink", () => {
       </>,
     );
     await user.tab();
-    expect(screen.getByRole("link", { name: "Pular para o conteúdo" })).toHaveFocus();
+    expect(
+      screen.getByRole("link", { name: "Pular para o conteúdo" }),
+    ).toHaveFocus();
     const main = screen.getByRole("main");
     main.focus();
     expect(main).toHaveFocus();

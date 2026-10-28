@@ -23,8 +23,7 @@ export type SimulationSuccess = {
 };
 
 export type SimulationResult =
-  | SimulationSuccess
-  | { ok: false; error: SimulationError };
+  SimulationSuccess | { ok: false; error: SimulationError };
 
 export type ProjectionRow = {
   month: ISODate;

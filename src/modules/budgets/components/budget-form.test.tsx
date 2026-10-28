@@ -63,9 +63,7 @@ describe("BudgetForm", () => {
     render(<BudgetForm mode="create" today={TODAY} categories={categories} />);
     const field = screen.getByLabelText("Limite mensal");
     await user.click(screen.getByRole("button", { name: "Criar orçamento" }));
-    await waitFor(() =>
-      expect(field).toHaveAttribute("aria-invalid", "true"),
-    );
+    await waitFor(() => expect(field).toHaveAttribute("aria-invalid", "true"));
     expect(createBudget).not.toHaveBeenCalled();
   });
 
@@ -108,7 +106,8 @@ describe("BudgetForm", () => {
       ok: false,
       error: {
         code: "BUDGET_ALREADY_EXISTS",
-        message: "Já existe um orçamento ativo para esta categoria. Edite o existente.",
+        message:
+          "Já existe um orçamento ativo para esta categoria. Edite o existente.",
         fieldErrors: {
           categoryId: [
             "Já existe um orçamento ativo para esta categoria. Edite o existente.",

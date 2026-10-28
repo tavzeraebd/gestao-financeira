@@ -60,7 +60,11 @@ export function ReportAccounts({
           caption: `Líquido por conta em ${period.label}`,
           columns: [
             { id: "conta", header: "Conta" },
-            { id: "liquido", header: "Líquido (entradas − saídas)", align: "end" },
+            {
+              id: "liquido",
+              header: "Líquido (entradas − saídas)",
+              align: "end",
+            },
           ],
           rows: accounts.map((a) => ({
             key: a.id,
@@ -97,7 +101,10 @@ export function ReportAccounts({
       </ChartCard>
 
       {accounts.length > 0 ? (
-        <section aria-labelledby="contas-detalhe" className="flex flex-col gap-3">
+        <section
+          aria-labelledby="contas-detalhe"
+          className="flex flex-col gap-3"
+        >
           <h2 id="contas-detalhe" className="text-base font-semibold">
             Entradas e saídas por conta
           </h2>
@@ -128,7 +135,7 @@ export function ReportAccounts({
                 <TableRow key={a.id} data-testid="linha-conta">
                   <TableCell>
                     <span className="flex min-w-0 flex-col items-start gap-0.5">
-                      <span className="break-words font-medium">{a.name}</span>
+                      <span className="font-medium break-words">{a.name}</span>
                       <span className="text-muted-foreground text-xs">
                         {ACCOUNT_TYPE_LABELS[a.type]}
                       </span>

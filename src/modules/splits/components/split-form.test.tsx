@@ -77,8 +77,12 @@ describe("SplitForm", () => {
   it("desabilita Salvar com menos de 2 integrantes e explica o motivo", async () => {
     render(<SplitForm detail={detail()} />);
     await userEvent.click(screen.getByRole("checkbox", { name: "Bianca" }));
-    expect(screen.getByRole("button", { name: "Salvar divisão" })).toBeDisabled();
-    expect(screen.getByText(/Escolha de 2 a 20 integrantes/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Salvar divisão" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/Escolha de 2 a 20 integrantes/),
+    ).toBeInTheDocument();
   });
 
   it("modo Por valores mostra a diferença e só habilita quando fecha", async () => {
@@ -93,7 +97,9 @@ describe("SplitForm", () => {
     await userEvent.clear(bia);
     await userEvent.type(bia, "30");
     expect(screen.getByTestId("split-difference")).toHaveTextContent(/Faltam/);
-    expect(screen.getByRole("button", { name: "Salvar divisão" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Salvar divisão" }),
+    ).toBeDisabled();
 
     await userEvent.clear(bia);
     await userEvent.type(bia, "50");
@@ -123,10 +129,16 @@ describe("SplitForm", () => {
   it("envia a divisão igual e mostra o erro do servidor", async () => {
     setTransactionSplits.mockResolvedValue({
       ok: false,
-      error: { code: "MEMBER_INACTIVE", message: "Atualize a página.", requestId: "r" },
+      error: {
+        code: "MEMBER_INACTIVE",
+        message: "Atualize a página.",
+        requestId: "r",
+      },
     });
     render(<SplitForm detail={detail()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Salvar divisão" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Salvar divisão" }),
+    );
     await waitFor(() =>
       expect(setTransactionSplits).toHaveBeenCalledWith({
         mode: "equal",
@@ -139,18 +151,25 @@ describe("SplitForm", () => {
 
   it("só oferece Remover divisão quando já existe divisão", () => {
     const { rerender } = render(<SplitForm detail={detail()} />);
-    expect(screen.queryByRole("button", { name: "Remover divisão" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Remover divisão" }),
+    ).toBeNull();
     rerender(
       <SplitForm
         detail={detail({
           mode: "equal",
           parts: [
             { member: { id: ANA, displayName: "Ana" }, amount: asCents(5000) },
-            { member: { id: BIA, displayName: "Bianca" }, amount: asCents(5000) },
+            {
+              member: { id: BIA, displayName: "Bianca" },
+              amount: asCents(5000),
+            },
           ],
         })}
       />,
     );
-    expect(screen.getByRole("button", { name: "Remover divisão" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remover divisão" }),
+    ).toBeInTheDocument();
   });
 });

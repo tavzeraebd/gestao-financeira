@@ -17,7 +17,9 @@ describe("GoalIcon", () => {
 
   it("expõe o label como imagem", () => {
     render(<GoalIcon icon="house" label="Casa própria" size="lg" />);
-    expect(screen.getByRole("img", { name: "Casa própria" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Casa própria" }),
+    ).toBeInTheDocument();
   });
 });
 

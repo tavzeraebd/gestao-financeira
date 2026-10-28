@@ -99,7 +99,9 @@ describe("ContributionDialog", () => {
     const user = userEvent.setup();
     renderDialog({});
     await user.click(screen.getByRole("button", { name: "Registrar aporte" }));
-    await user.click(await screen.findByRole("button", { name: "Salvar aporte" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Salvar aporte" }),
+    );
     await waitFor(() =>
       expect(screen.getByLabelText("Valor")).toHaveAttribute(
         "aria-invalid",
@@ -141,7 +143,9 @@ describe("ContributionDialog", () => {
     const user = userEvent.setup();
     addContribution.mockResolvedValue({ ok: true, data: { id: "x" } });
     renderDialog({ kind: "withdrawal" });
-    await user.click(screen.getByRole("button", { name: "Registrar retirada" }));
+    await user.click(
+      screen.getByRole("button", { name: "Registrar retirada" }),
+    );
     await user.type(await screen.findByLabelText("Valor"), "50");
     await user.click(screen.getByRole("button", { name: "Salvar retirada" }));
     await waitFor(() => expect(addContribution).toHaveBeenCalledTimes(1));
@@ -167,7 +171,9 @@ describe("ContributionDialog", () => {
       },
     });
     renderDialog({ kind: "withdrawal" });
-    await user.click(screen.getByRole("button", { name: "Registrar retirada" }));
+    await user.click(
+      screen.getByRole("button", { name: "Registrar retirada" }),
+    );
     await user.type(await screen.findByLabelText("Valor"), "900");
     await user.click(screen.getByRole("button", { name: "Salvar retirada" }));
     expect(

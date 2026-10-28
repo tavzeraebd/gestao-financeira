@@ -61,7 +61,9 @@ export function LeaveFamilyButton() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Ficar na família</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>
+            Ficar na família
+          </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             loading={pending}

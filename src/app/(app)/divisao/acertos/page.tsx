@@ -48,7 +48,10 @@ export default async function SettlementsPage({
     <div className="flex flex-col gap-6">
       <Link
         href="/divisao"
-        className={buttonVariants({ variant: "ghost", className: "self-start" })}
+        className={buttonVariants({
+          variant: "ghost",
+          className: "self-start",
+        })}
       >
         Divisão de contas
       </Link>
@@ -74,7 +77,9 @@ export default async function SettlementsPage({
                 header: "Data",
                 className: "whitespace-nowrap",
                 cell: (item) => (
-                  <span className="tabular-nums">{formatDateBR(item.date)}</span>
+                  <span className="tabular-nums">
+                    {formatDateBR(item.date)}
+                  </span>
                 ),
               },
               {
@@ -87,7 +92,9 @@ export default async function SettlementsPage({
                 header: "Observação",
                 cell: (item) =>
                   item.notes ?? (
-                    <span className="text-muted-foreground">Sem observação</span>
+                    <span className="text-muted-foreground">
+                      Sem observação
+                    </span>
                   ),
               },
               {

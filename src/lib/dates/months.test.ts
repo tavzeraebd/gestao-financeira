@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { addMonths, diffInDays, formatMonthBR, type ISODate } from "@/lib/dates";
+import {
+  addMonths,
+  diffInDays,
+  formatMonthBR,
+  type ISODate,
+} from "@/lib/dates";
 
 const d = (s: string) => s as ISODate;
 

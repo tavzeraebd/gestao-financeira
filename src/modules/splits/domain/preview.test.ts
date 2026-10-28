@@ -25,7 +25,9 @@ describe("previewEqualSplit (D13)", () => {
 
   it("mantém os ids na ordem recebida e a soma é exata (2..20 partes)", () => {
     const ids = ["b", "a", "c"];
-    expect(previewEqualSplit(c(10000), ids).map((p) => p.memberId)).toEqual(ids);
+    expect(previewEqualSplit(c(10000), ids).map((p) => p.memberId)).toEqual(
+      ids,
+    );
     for (let n = 2; n <= 20; n += 1) {
       for (const total of [1, 99, 100, 10001, 9_999_999_999]) {
         expect(sumCents(amounts(total, n))).toBe(total);

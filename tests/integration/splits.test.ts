@@ -296,12 +296,15 @@ describe("divisão de contas e acertos", () => {
       ok: false,
       error: { code: "VALIDATION_ERROR" },
     });
-    expect(
-      await createSettlement(body(ids.member, ids.member)),
-    ).toMatchObject({ ok: false, error: { code: "VALIDATION_ERROR" } });
+    expect(await createSettlement(body(ids.member, ids.member))).toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION_ERROR" },
+    });
 
     const list = await listSettlements({});
-    const mine = list.items.find((i) => i.id === (first.ok ? first.data.id : ""));
+    const mine = list.items.find(
+      (i) => i.id === (first.ok ? first.data.id : ""),
+    );
     expect(mine).toMatchObject({ amount: 2000, canDelete: true });
     expect(mine?.recordedBy).toBeTruthy();
     expect(mine?.from.id).toBe(ids.member);

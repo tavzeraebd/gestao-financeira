@@ -29,7 +29,9 @@ test.describe("Atividade da família (dono)", () => {
 test.describe("Atividade da família (integrante)", () => {
   test.use({ storageState: sessionFile("member") });
 
-  test("CA-E7-56: integrante recebe página não encontrada", async ({ page }) => {
+  test("CA-E7-56: integrante recebe página não encontrada", async ({
+    page,
+  }) => {
     const resposta = await page.goto("/familia/atividade");
     expect(resposta?.status()).toBe(404);
   });

@@ -17,14 +17,28 @@ afterEach(() => {
 
 describe("ProgressMeter", () => {
   it("expõe nome, valor e texto real", () => {
-    render(<ProgressMeter value={40} tone="default" label="Mercado" valueText="40% do limite" />);
+    render(
+      <ProgressMeter
+        value={40}
+        tone="default"
+        label="Mercado"
+        valueText="40% do limite"
+      />,
+    );
     const bar = screen.getByRole("progressbar", { name: "Mercado" });
     expect(bar).toHaveAttribute("aria-valuenow", "40");
     expect(bar).toHaveAttribute("aria-valuetext", "40% do limite");
   });
 
   it("limita a barra a 100 mas mantém o texto real (112%)", () => {
-    render(<ProgressMeter value={112} tone="danger" label="Mercado" valueText="112% do limite" />);
+    render(
+      <ProgressMeter
+        value={112}
+        tone="danger"
+        label="Mercado"
+        valueText="112% do limite"
+      />,
+    );
     const bar = screen.getByRole("progressbar", { name: "Mercado" });
     expect(bar).toHaveAttribute("aria-valuenow", "100");
     expect(bar).toHaveAttribute("aria-valuetext", "112% do limite");
@@ -32,11 +46,29 @@ describe("ProgressMeter", () => {
 
   it("valor nulo ou negativo vira 0", () => {
     const { rerender } = render(
-      <ProgressMeter value={null} tone="default" label="A" valueText="Sem gastos" />,
+      <ProgressMeter
+        value={null}
+        tone="default"
+        label="A"
+        valueText="Sem gastos"
+      />,
     );
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
-    rerender(<ProgressMeter value={-5} tone="default" label="A" valueText="Sem gastos" />);
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
+    rerender(
+      <ProgressMeter
+        value={-5}
+        tone="default"
+        label="A"
+        valueText="Sem gastos"
+      />,
+    );
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
   });
 
   it.each([
@@ -69,24 +101,38 @@ describe("SubNav", () => {
 
   it("marca só o item ativo com aria-current", () => {
     render(<SubNav items={items} aria-label="Seções de lançamentos" />);
-    expect(screen.getByRole("navigation", { name: "Seções de lançamentos" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Lançamentos" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "Compromissos" })).not.toHaveAttribute("aria-current");
+    expect(
+      screen.getByRole("navigation", { name: "Seções de lançamentos" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Lançamentos" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      screen.getByRole("link", { name: "Compromissos" }),
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("casa subrotas, mas não prefixos parciais", () => {
     pathname = "/compromissos/abc/editar";
     const { unmount } = render(<SubNav items={items} aria-label="Seções" />);
-    expect(screen.getByRole("link", { name: "Compromissos" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Compromissos" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     unmount();
     pathname = "/compromissos-x";
     render(<SubNav items={items} aria-label="Seções" />);
-    expect(screen.getByRole("link", { name: "Compromissos" })).not.toHaveAttribute("aria-current");
+    expect(
+      screen.getByRole("link", { name: "Compromissos" }),
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("links têm alvo mínimo de 40px e trilho rola na horizontal", () => {
     render(<SubNav items={items} aria-label="Seções" />);
-    expect(screen.getByRole("link", { name: "Recorrências" }).className).toContain("min-h-10");
+    expect(
+      screen.getByRole("link", { name: "Recorrências" }).className,
+    ).toContain("min-h-10");
     expect(screen.getByRole("list").className).toContain("overflow-x-auto");
   });
 });

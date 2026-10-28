@@ -25,7 +25,9 @@ export default function RelatoriosErrorPage({
       <div className="bg-danger-soft text-danger flex size-12 items-center justify-center rounded-full">
         <AlertCircleIcon aria-hidden="true" className="size-6" />
       </div>
-      <h1 className="text-xl font-bold">Não foi possível carregar o relatório</h1>
+      <h1 className="text-xl font-bold">
+        Não foi possível carregar o relatório
+      </h1>
       <p className="text-muted-foreground max-w-sm text-sm">
         Tente novamente. Se continuar, escolha um período menor ou volte mais
         tarde.

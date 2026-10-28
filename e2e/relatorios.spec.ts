@@ -86,10 +86,9 @@ test("CA-E7-50: visão geral (30 dias) com R1, troca de preset na URL, reload, v
   });
   await expect(legenda).toContainText("Mercado");
   await expect(legenda).toContainText("100,0%");
-  await expect(page.getByRole("link", { name: "Ver detalhes" })).toHaveAttribute(
-    "href",
-    "/relatorios/categorias",
-  );
+  await expect(
+    page.getByRole("link", { name: "Ver detalhes" }),
+  ).toHaveAttribute("href", "/relatorios/categorias");
 
   const evolucao = card(page, "Receitas x despesas por mês");
   await evolucao.getByRole("button", { name: "Ver tabela" }).click();
@@ -119,17 +118,17 @@ test("CA-E7-51: cada gráfico tem título, período, legenda, role=img com aria-
   await cenarioR1(`r51-${testInfo.project.name}`, page);
 
   for (const [rota, titulo, rotulo] of [
-    [
-      "/relatorios",
-      "Por categoria",
-      /Despesas por categoria em .*R\$\s200,00/,
-    ],
+    ["/relatorios", "Por categoria", /Despesas por categoria em .*R\$\s200,00/],
     [
       "/relatorios",
       "Receitas x despesas por mês",
       /Receitas e despesas por mês em .*despesas R\$\s200,00/,
     ],
-    ["/relatorios/contas", "Líquido por conta", /Líquido por conta em .*Corrente/],
+    [
+      "/relatorios/contas",
+      "Líquido por conta",
+      /Líquido por conta em .*Corrente/,
+    ],
     [
       "/relatorios/integrantes",
       "Despesas por integrante",
@@ -139,7 +138,9 @@ test("CA-E7-51: cada gráfico tem título, período, legenda, role=img com aria-
     await page.goto(rota);
     const bloco = card(page, titulo);
     await expect(bloco.getByRole("heading", { name: titulo })).toBeVisible();
-    await expect(bloco.getByRole("img", { name: rotulo }).first()).toBeVisible();
+    await expect(
+      bloco.getByRole("img", { name: rotulo }).first(),
+    ).toBeVisible();
     const alternar = bloco.getByRole("button", { name: "Ver tabela" });
     await expect(alternar).toHaveAttribute("aria-expanded", "false");
     await alternar.focus();
@@ -157,7 +158,9 @@ test("CA-E7-52: contas com os valores de R20 e a nota; integrantes com Total = d
   await cenarioR1(`r52-${testInfo.project.name}`, page);
 
   await page.goto("/relatorios/contas");
-  const corrente = page.getByTestId("linha-conta").filter({ hasText: "Corrente" });
+  const corrente = page
+    .getByTestId("linha-conta")
+    .filter({ hasText: "Corrente" });
   // Corrente: 1000 + 500 − 200 − 100 = 1.200; entradas 500, saídas 300 (inclui a transferência).
   await expect(corrente).toContainText(reais("1.000,00"));
   await expect(corrente).toContainText(reais("500,00"));
@@ -217,7 +220,9 @@ test("CA-E7-53: orçamentos e metas com ProgressMeter e estado em Badge; vazios 
 
   // Vazios: o owner vê a ação de criar.
   await page.goto("/relatorios/orcamentos");
-  await expect(page.getByRole("link", { name: "Criar orçamento" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Criar orçamento" }),
+  ).toBeVisible();
   await page.goto("/relatorios/metas");
   await expect(page.getByRole("link", { name: "Criar meta" })).toBeVisible();
 
@@ -229,24 +234,20 @@ test("CA-E7-53: orçamentos e metas com ProgressMeter e estado em Badge; vazios 
     .eq("name", "Mercado")
     .single();
   const mes = new Date().toLocaleDateString("sv-SE").slice(0, 7);
-  const { error: erroOrcamento } = await admin
-    .from("budgets")
-    .insert({
-      family_id: c.familyId,
-      category_id: categoria?.id,
-      amount_limit: "100.00",
-      start_month: `${mes}-01`,
-      created_by: c.owner.id,
-    });
+  const { error: erroOrcamento } = await admin.from("budgets").insert({
+    family_id: c.familyId,
+    category_id: categoria?.id,
+    amount_limit: "100.00",
+    start_month: `${mes}-01`,
+    created_by: c.owner.id,
+  });
   expect(erroOrcamento).toBeNull();
-  const { error: erroMeta } = await admin
-    .from("goals")
-    .insert({
-      family_id: c.familyId,
-      name: "Viagem",
-      icon: "plane",
-      target_amount: "1000.00",
-    });
+  const { error: erroMeta } = await admin.from("goals").insert({
+    family_id: c.familyId,
+    name: "Viagem",
+    icon: "plane",
+    target_amount: "1000.00",
+  });
   expect(erroMeta).toBeNull();
 
   await page.goto("/relatorios/orcamentos?periodo=3_meses");
@@ -273,7 +274,9 @@ test("visão geral vazia: orientação e Nova transação, sem números", async 
   await expect(
     page.getByRole("heading", { name: /^Sem movimentações em / }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Nova transação" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Nova transação" }),
+  ).toBeVisible();
   await expect(page.getByRole("main")).not.toContainText(/NaN|Infinity/);
 });
 
