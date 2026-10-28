@@ -1133,6 +1133,7 @@ export type Database = {
           token: string;
         }[];
       };
+      delete_my_account: { Args: Record<PropertyKey, never>; Returns: Json };
       get_invite_preview: {
         Args: { p_token: string };
         Returns: {
