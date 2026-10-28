@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { loginPelaTela } from "./helpers/login-pelo-formulario";
-import { sharedUser } from "./helpers/shared-users";
+import { createUserWithFamily } from "./helpers/users";
 
 /**
  * @docker — CA-E8-09 com sessão e troca de usuário no mesmo navegador (AB-117): depois de navegar
@@ -60,11 +60,15 @@ async function conferirInvariante(page: Page, quando: string) {
 test("@docker cache sem dados de (app) após navegar, sair e entrar com outro usuário (AB-117)", async ({
   page,
 }) => {
+  // Usuários próprios: "Sair" revoga TODAS as sessões do usuário (signOut global); com o dono
+  // compartilhado isso mataria o storageState dos demais specs (laço de redirects).
+  const dono = await createUserWithFamily("pwa-dono", "Ana Souza");
+  const outra = await createUserWithFamily("pwa-outra", "Carla Dias");
   await page.goto("/login");
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await page.reload();
 
-  await loginPelaTela(page, sharedUser("owner"));
+  await loginPelaTela(page, dono);
   for (const rota of ["/inicio", "/transacoes", "/relatorios", "/familia"]) {
     await page.goto(rota);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -75,7 +79,7 @@ test("@docker cache sem dados de (app) após navegar, sair e entrar com outro us
   await page.getByRole("menuitem", { name: /Sair/ }).click();
   await expect(page).toHaveURL(/\/login/);
 
-  await loginPelaTela(page, sharedUser("outsider"));
+  await loginPelaTela(page, outra);
   for (const rota of ["/inicio", "/transacoes", "/relatorios", "/familia"]) {
     await page.goto(rota);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -90,7 +94,10 @@ test("@docker offline com sessão ativa mostra /offline e nenhum dado financeiro
   await page.goto("/login");
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await page.reload();
-  await loginPelaTela(page, sharedUser("owner"));
+  await loginPelaTela(
+    page,
+    await createUserWithFamily("pwa-offline", "Ana Souza"),
+  );
   await page.goto("/transacoes");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 

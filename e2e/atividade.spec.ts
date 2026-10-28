@@ -32,7 +32,13 @@ test.describe("Atividade da família (integrante)", () => {
   test("CA-E7-56: integrante recebe página não encontrada", async ({
     page,
   }) => {
-    const resposta = await page.goto("/familia/atividade");
-    expect(resposta?.status()).toBe(404);
+    // Com loading.tsx a resposta já começou como 200 quando notFound() dispara: confira a tela.
+    await page.goto("/familia/atividade");
+    await expect(
+      page.getByRole("heading", { name: "Página não encontrada" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Atividade da família" }),
+    ).toHaveCount(0);
   });
 });

@@ -340,6 +340,8 @@ test.describe("Família: gestão de integrantes (Etapa 7)", () => {
       "perde o acesso aos dados da família na hora",
     );
     await page.getByRole("button", { name: "Manter na família" }).click();
+    // O diálogo sai com animação e repete o nome do integrante: espere sumir antes de conferir.
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
     await expect(page.getByText(member.displayName)).toBeVisible();
 
     await page.getByRole("button", { name: /^Editar/ }).click();

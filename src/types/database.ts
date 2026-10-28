@@ -7,11 +7,6 @@ export type Json =
   | Json[];
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.18";
-  };
   public: {
     Tables: {
       accounts: {
@@ -31,6 +26,7 @@ export type Database = {
           type: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           created_by?: string;
@@ -89,8 +85,9 @@ export type Database = {
           entity_type: string;
           family_id: string;
           id: string;
-          metadata: Json;
+          metadata: NonNullable<Json>;
         };
+        ComputedFields: never;
         Insert: {
           action: string;
           actor_user_id?: string | null;
@@ -99,7 +96,7 @@ export type Database = {
           entity_type: string;
           family_id: string;
           id?: string;
-          metadata?: Json;
+          metadata?: NonNullable<Json>;
         };
         Update: {
           action?: string;
@@ -109,7 +106,7 @@ export type Database = {
           entity_type?: string;
           family_id?: string;
           id?: string;
-          metadata?: Json;
+          metadata?: NonNullable<Json>;
         };
         Relationships: [
           {
@@ -141,6 +138,7 @@ export type Database = {
           start_month: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           amount_limit: number;
           archived_at?: string | null;
@@ -204,6 +202,7 @@ export type Database = {
           type: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           archived_at?: string | null;
           color: string;
@@ -267,6 +266,7 @@ export type Database = {
           transaction_id: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           amount: number;
           created_at?: string;
@@ -327,6 +327,7 @@ export type Database = {
           name: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           base_currency?: string;
           created_at?: string;
@@ -368,6 +369,7 @@ export type Database = {
           role: string;
           token_hash: string;
         };
+        ComputedFields: never;
         Insert: {
           accepted_at?: string | null;
           accepted_by?: string | null;
@@ -439,6 +441,7 @@ export type Database = {
           updated_at: string;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           ended_at?: string | null;
@@ -495,6 +498,7 @@ export type Database = {
           notes: string | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           amount: number;
           contribution_date: string;
@@ -581,6 +585,7 @@ export type Database = {
           target_date: string | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           completed_at?: string | null;
           created_at?: string;
@@ -631,7 +636,7 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string;
-          data: Json;
+          data: NonNullable<Json>;
           dedupe_key: string;
           entity_id: string;
           entity_type: string;
@@ -641,9 +646,10 @@ export type Database = {
           type: string;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
-          data?: Json;
+          data?: NonNullable<Json>;
           dedupe_key: string;
           entity_id: string;
           entity_type: string;
@@ -655,7 +661,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
-          data?: Json;
+          data?: NonNullable<Json>;
           dedupe_key?: string;
           entity_id?: string;
           entity_type?: string;
@@ -690,6 +696,7 @@ export type Database = {
           id: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           avatar_url?: string | null;
           created_at?: string;
@@ -729,6 +736,7 @@ export type Database = {
           type: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           account_id: string;
           amount: number;
@@ -827,6 +835,7 @@ export type Database = {
           to_member_id: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           amount: number;
           created_at?: string;
@@ -920,6 +929,7 @@ export type Database = {
           type: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           account_id: string;
           amount: number;
@@ -1109,10 +1119,13 @@ export type Database = {
           withdrawals: string;
         }[];
       };
-      leave_family: { Args: never; Returns: undefined };
-      materialize_recurrences: { Args: never; Returns: number };
+      leave_family: { Args: Record<PropertyKey, never>; Returns: undefined };
+      materialize_recurrences: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
       member_balances: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           amount: string;
           creditor_member_id: string;
@@ -1145,7 +1158,7 @@ export type Database = {
         Returns: undefined;
       };
       pending_summary: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           overdue_count: number;
           overdue_payable: string;
@@ -1172,7 +1185,10 @@ export type Database = {
           recurring_income: string;
         }[];
       };
-      refresh_notifications: { Args: never; Returns: number };
+      refresh_notifications: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
       remove_family_member: {
         Args: { p_member_id: string };
         Returns: undefined;

@@ -25,11 +25,14 @@ export async function semearDadosDasRotas(): Promise<IdsDinamicos> {
   const familyId = vinculo.family_id as string;
   const base = { family_id: familyId, created_by: dono.id };
 
+  // Lançamentos passam pelo gatilho que chama private.lock_account_share (execute só para
+  // `authenticated`): a secret key (service_role) leva "permission denied". Use o dono, como o app.
+  const cliente = await clienteDo(dono);
   const um = async <T extends { id: string }>(
     tabela: string,
     linha: Record<string, unknown>,
   ): Promise<string> => {
-    const { data, error } = await admin
+    const { data, error } = await (tabela === "transactions" ? cliente : admin)
       .from(tabela)
       .insert(linha)
       .select("id")
@@ -99,7 +102,6 @@ export async function semearDadosDasRotas(): Promise<IdsDinamicos> {
     start_month: `${hoje.slice(0, 7)}-01`,
   });
 
-  const cliente = await clienteDo(dono);
   const { data: convite, error: erroConvite } = await cliente.rpc(
     "create_family_invite",
     { p_role: "member" },

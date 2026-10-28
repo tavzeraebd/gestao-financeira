@@ -72,4 +72,19 @@ describe("proxy", () => {
     const res = await proxy(req("/login"));
     expect(res.headers.get("location")).toContain("/inicio");
   });
+
+  // JWT ainda válido para o proxy (getClaims), mas sessão revogada para requireUser (getUser):
+  // sem esta exceção, /login -> /inicio -> /login seria um laço (ERR_TOO_MANY_REDIRECTS).
+  it("logado em /login com motivo=sessao_expirada NÃO volta para /inicio", async () => {
+    mockSession("u1");
+    const res = await proxy(req("/login?motivo=sessao_expirada"));
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.status).toBe(200);
+  });
+
+  it("outro motivo em /login com sessão continua indo para /inicio", async () => {
+    mockSession("u1");
+    const res = await proxy(req("/login?motivo=outro"));
+    expect(res.headers.get("location")).toContain("/inicio");
+  });
 });

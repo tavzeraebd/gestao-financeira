@@ -100,7 +100,10 @@ test("CA-E7-50: visão geral (30 dias) com R1, troca de preset na URL, reload, v
   await page.reload();
   await expect(page.getByRole("radio", { name: "7 dias" })).toBeChecked();
 
-  await page.getByRole("link", { name: "Contas", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Seções dos relatórios" })
+    .getByRole("link", { name: "Contas", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/relatorios\/contas\?periodo=7_dias/);
   await page.goBack();
   await expect(page).toHaveURL(/\/relatorios\?periodo=7_dias/);
@@ -244,6 +247,7 @@ test("CA-E7-53: orçamentos e metas com ProgressMeter e estado em Badge; vazios 
   expect(erroOrcamento).toBeNull();
   const { error: erroMeta } = await admin.from("goals").insert({
     family_id: c.familyId,
+    created_by: c.owner.id,
     name: "Viagem",
     icon: "plane",
     target_amount: "1000.00",

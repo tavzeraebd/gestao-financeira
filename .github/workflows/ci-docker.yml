@@ -82,10 +82,7 @@ jobs:
       - name: Testes pgTAP
         run: pnpm db:test
 
-      # TEMPORÁRIO: o diff contra o arquivo versionado ainda pode falhar enquanto src/types/database.ts
-      # não for substituído pelo gerado no CI. Quando isso acontecer, remova o continue-on-error.
       - name: Tipos do banco em dia
-        continue-on-error: true
         run: |
           pnpm db:types
           # src/types/database.ts está em .prettierignore; um ignore vazio força a formatação do arquivo gerado.

@@ -61,7 +61,14 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     if (matches(pathname, ["/redefinir-senha"])) {
       return redirectTo("/recuperar-senha");
     }
-  } else if (userId && isNavigation && matches(pathname, GUEST_ONLY)) {
+  } else if (
+    userId &&
+    isNavigation &&
+    matches(pathname, GUEST_ONLY) &&
+    // `getClaims()` só lê o JWT local. Quando requireUser (getUser, no Auth server) manda para cá
+    // com este motivo, a sessão foi revogada: devolver a /inicio fecharia um laço de redirects.
+    request.nextUrl.searchParams.get("motivo") !== "sessao_expirada"
+  ) {
     return redirectTo("/inicio");
   }
 

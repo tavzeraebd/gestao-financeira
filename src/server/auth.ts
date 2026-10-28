@@ -25,9 +25,16 @@ export const getOptionalUser = cache(async (): Promise<AuthUser | null> => {
   return { id: data.user.id, email: data.user.email ?? "" };
 });
 
+/**
+ * O proxy decide por `getClaims()` (JWT local), este guard por `getUser()` (Auth server). Se a sessão
+ * foi revogada (ex.: "Sair" em outro aparelho) com o JWT ainda dentro do prazo, só este guard
+ * percebe. O destino precisa dizer isso: sem `motivo`, o proxy devolveria /login a /inicio, e o
+ * navegador entraria em laço (ERR_TOO_MANY_REDIRECTS) até o JWT expirar. `src/proxy.ts` honra
+ * esse `motivo` e não redireciona o visitante para /inicio.
+ */
 export async function requireUser(): Promise<AuthUser> {
   const user = await getOptionalUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?motivo=sessao_expirada");
   return user;
 }
 
