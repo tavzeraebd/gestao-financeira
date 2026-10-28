@@ -42,6 +42,32 @@ describe("describeAuditEvent", () => {
     expect(r.detail).toBe("Ana: Integrante → Administrador");
   });
 
+  it.each([
+    ["change_role", "Tentativa de alterar papel"],
+    ["transfer_ownership", "Tentativa de transferir propriedade"],
+    ["remove", "Tentativa de remover integrante"],
+  ])(
+    "member.action_denied (%s) mostra só o texto da lista fechada",
+    (op, text) => {
+      const r = ev("member.action_denied", {
+        operation: op,
+        reason: "FORBIDDEN",
+      });
+      expect(r.title).toBe("Ação negada");
+      expect(r.detail).toBe(text);
+    },
+  );
+
+  it("member.action_denied com operation fora da lista não expõe a metadata", () => {
+    const r = ev("member.action_denied", {
+      operation: "constructor",
+      reason: "segredo",
+    });
+    expect(r.title).toBe("Ação negada");
+    expect(r.detail).toBeNull();
+    expect(ev("member.action_denied", null).detail).toBeNull();
+  });
+
   it("remoção e saída citam convites revogados", () => {
     expect(
       ev("member.removed", {

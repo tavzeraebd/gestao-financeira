@@ -90,6 +90,7 @@ select public.refresh_notifications();
 select public.leave_family();  -- m fazia parte da divisão (R16)
 select tests.login_as('a');
 select public.remove_family_member(current_setting('tests.mem_ad')::uuid);  -- ad também
+select tests.reset_refresh_gate('a');  -- Etapa 9 (M1): janela de 30 s zerada para o refresh ser de fato executado
 select is((select public.refresh_notifications()), 0, 'CA-E7-14: refresh de a depois das saídas não cria nada');
 
 select is(tests.snap(), current_setting('tests.snap1')::jsonb,

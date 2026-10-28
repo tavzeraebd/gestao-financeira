@@ -124,6 +124,18 @@ begin
 end;
 $$;
 
+-- Etapa 9 (M1): refresh_notifications tem intervalo mínimo de 30 s por usuário, e dentro de uma transação de teste now() não
+-- avança. Este helper zera a janela do usuário (como dono do banco) e volta a personificá-lo, para os testes que precisam de
+-- uma segunda geração na mesma transação (530, 550, 620). Não existe em produção.
+create or replace function tests.reset_refresh_gate(p_key text) returns void
+language plpgsql as $$
+begin
+  perform tests.logout();
+  delete from private.notification_refresh_state where user_id = tests.uid(p_key);
+  perform tests.login_as(p_key);
+end;
+$$;
+
 grant execute on all functions in schema tests to anon, authenticated;
 
 select plan(3);

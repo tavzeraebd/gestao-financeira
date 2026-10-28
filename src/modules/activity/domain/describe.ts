@@ -190,6 +190,24 @@ export function describeAuditEvent(
         href: "/familia",
       };
     }
+    case "member.action_denied": {
+      // Lista fechada de `operation`; o resto da metadata (reason etc.) nunca é exibido.
+      const operations: Record<string, string> = {
+        change_role: "Tentativa de alterar papel",
+        transfer_ownership: "Tentativa de transferir propriedade",
+        remove: "Tentativa de remover integrante",
+      };
+      const op =
+        typeof meta.operation === "string" &&
+        Object.hasOwn(operations, meta.operation)
+          ? operations[meta.operation]
+          : null;
+      return {
+        title: "Ação negada",
+        detail: op ?? null,
+        href: "/familia",
+      };
+    }
     case "account.archived":
       return { title: "Conta arquivada", detail: null, href: "/contas" };
     case "account.reactivated":

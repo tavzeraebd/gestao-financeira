@@ -7,6 +7,10 @@ const FUNCTIONS = [
   "has_family_role",
   "current_family_id",
   "log_audit",
+  // Etapa 9: funções internas novas (schema private; a API só expõe public)
+  "enforce_volume_limit",
+  "log_member_denial",
+  "log_password_changed",
 ];
 
 async function callRpc(name: string, bearer: string): Promise<number> {

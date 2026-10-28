@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppError } from "@/server/errors";
+import { AppError, toAppError } from "@/server/errors";
 import type { Database } from "@/types/database";
 import type { FamilyRole } from "@/modules/family/permissions";
 import type {
@@ -173,36 +173,56 @@ export async function rpcGetInvitePreview(
   };
 }
 
+/**
+ * As RPCs de integrantes têm dois formatos: a antiga lança erro; a nova (`returns text`) devolve o código da
+ * negação (e `null` no sucesso) para que a trilha de tentativas negadas seja gravada. String não vazia = erro de
+ * domínio, com o mesmo mapeamento do caminho de exceção; código fora da lista -> INTERNAL_ERROR (nunca sucesso).
+ */
+function throwIfDenied(data: unknown): void {
+  if (data === null || data === undefined) return;
+  if (typeof data !== "string" || data.trim() === "") {
+    throw new AppError("INTERNAL_ERROR");
+  }
+  const code = data.trim();
+  if (code === "FORBIDDEN") {
+    throw toAppError({ code: "42501", message: code, details: null });
+  }
+  throw toAppError({ code: "P0001", message: code, details: null });
+}
+
 export async function rpcChangeMemberRole(
   supabase: Client,
   memberId: string,
   role: "admin" | "member",
 ): Promise<void> {
-  const { error } = await supabase.rpc("change_member_role", {
+  const { data, error } = await supabase.rpc("change_member_role", {
     p_member_id: memberId,
     p_role: role,
   });
   if (error) throw error;
+  throwIfDenied(data);
 }
 
 export async function rpcTransferOwnership(
   supabase: Client,
   memberId: string,
 ): Promise<void> {
-  const { error } = await supabase.rpc("transfer_ownership", {
+  const { data, error } = await supabase.rpc("transfer_ownership", {
     p_member_id: memberId,
   });
   if (error) throw error;
+  throwIfDenied(data);
 }
 
 export async function rpcRemoveFamilyMember(
   supabase: Client,
   memberId: string,
 ): Promise<void> {
-  const { error } = await supabase.rpc("remove_family_member", {
+  const { data, error } = await supabase.rpc("remove_family_member", {
     p_member_id: memberId,
   });
   if (error) throw error;
+  throwIfDenied(data);
 }
 
 export async function rpcLeaveFamily(supabase: Client): Promise<void> {

@@ -71,6 +71,33 @@ Não verificado: CA-E8-33 (leitor de tela), contraste nas telas autenticadas, fo
 - Não verificado (sem Docker/Playwright): reexecução do E2E; só tsc, eslint e vitest.
 
 
+## Etapa 9 · camada de banco (T-01, T-02, T-03) — database, 2026-10-28
+
+Escrito por leitura contra o schema real; **nada executado** (sem Docker) e nada aplicado no Supabase online. M4/T-09 não feito.
+Migrations: `20261028100000_etapa9_volume_limits.sql`, `20261028100100_etapa9_security_events.sql`, `20261028100200_etapa9_member_denials.sql`.
+pgTAP novos: 600, 610, 620, 630, 640; ajustados: 000 (helper `tests.reset_refresh_gate`), 010 (16 tabelas), 510, 530, 550; 520 e 560 revistos e sem mudança (só sucesso).
+Validação prevista: `CI Docker` (`db reset`, `db test`, `db lint`, `db:types`).
+
+### Decisões pendentes / dúvidas
+
+- **M2 (trigger em `auth.users`)**: a migration confere `has_table_privilege(current_user, 'auth.users', 'TRIGGER')` antes de criar qualquer coisa e aborta com mensagem `ETAPA9_M2` (a CLI roda o arquivo em uma transação: nada fica aplicado, login/cadastro intocados). Evidência a favor: `on_auth_user_created` (20261023100100) já está em produção. Se abortar no `db push`, decidir: conceder o privilégio ao papel das migrations ou rever o ADR-0035 (a alternativa "RPC chamada pela Server Action" foi rejeitada por poder ser forjada). Não há fallback silencioso por desenho.
+- **Ordem de deploy do M3 (corrige contrato §6)**: o `family/repository.ts` atual ignora o `data` das RPCs. Com M3 aplicada e app antigo, uma negação aparece como sucesso na tela (o banco não muda). O app com repositório tolerante (T-13) deve subir **antes ou junto** de M3; app novo + RPC antiga é seguro.
+- Volume não medido: `CREATE INDEX` não concorrente (a CLI usa transação) bloqueia escrita nas 3 tabelas durante a construção; esperado breve pelo porte atual, não medido.
+- Falso positivo possível: se o Auth reescrever o hash por reajuste de custo no login, gera evento `password.changed` sem ação do usuário.
+
+### EXPLAIN pendente (CA de M1; exige banco com Docker/CI)
+
+Rodar com `explain (analyze, buffers)` num banco com algumas milhares de linhas e conferir o índice usado:
+
+```sql
+-- frequência (3): esperado Index Scan/Only em <tabela>_created_by_created_at_idx
+select count(*) from (select 1 from public.transactions t where t.created_by = :uid and t.created_at > now() - interval '1 hour' and t.recurrence_id is null limit 500) s;
+select count(*) from (select 1 from public.goal_contributions c where c.created_by = :uid and c.created_at > now() - interval '1 hour' limit 500) s;
+select count(*) from (select 1 from public.settlements s2 where s2.created_by = :uid and s2.created_at > now() - interval '1 hour' limit 200) s;
+-- volume (existentes): transactions_family_date_idx, goal_contributions_goal_date_idx, settlements_family_date_idx;
+-- goal_contributions por família: prefixo de goal_contributions_family_idempotency_key (sem índice parcial dedicado)
+```
+
 ## Próximas etapas
 
 _(vazio por ora)_

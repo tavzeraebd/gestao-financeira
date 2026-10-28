@@ -111,6 +111,8 @@ select is((select dedupe_key from public.notifications where type = 'goal_near_t
 select is((select dedupe_key from public.notifications where type = 'member_joined'),
   'member_joined:' || current_setting('tests.mem_c'), 'CA-E7-07: member_joined só do que entrou desde (c sim, d não)');
 select is((select data from public.notifications where type = 'member_joined'), '{"role": "member"}'::jsonb, 'CA-E7-07: data de member_joined');
+-- Etapa 9 (M1): a janela de 30 s é zerada para que a idempotência (e não o gate) continue sendo o que se prova aqui
+select tests.reset_refresh_gate('a');
 select is((select public.refresh_notifications()), 0, 'CA-E7-07: segunda chamada devolve 0');
 select is((select count(*)::int from public.notifications), 7, 'CA-E7-07: nada duplicado');
 
@@ -122,6 +124,7 @@ select is((select dedupe_key from public.notifications where type = 'financial_e
 select is((select data from public.notifications where type = 'financial_event'),
   jsonb_build_object('kind', 'income', 'description', 'Reembolso', 'amount', '50.00', 'date', to_char(private.today(), 'YYYY-MM-DD'), 'status', 'paid'),
   'CA-E7-07: data de financial_event (lançamento)');
+select tests.reset_refresh_gate('ad');
 select is((select public.refresh_notifications()), 0, 'CA-E7-07: segunda chamada de ad devolve 0');
 
 -- m (member) ---------------------------------------------------------------------------------------------------------------------------
@@ -153,7 +156,9 @@ select is((select count(*)::int from public.notifications where type = 'member_j
   'CA-E7-07: d vê só c como novo integrante (a, ad e m entraram antes da janela dele)');
 select tests.login_as('b');
 select is((select public.refresh_notifications()), 100, 'CA-E7-07: teto de 100 inserções por chamada (b tem 120)');
+select tests.reset_refresh_gate('b');
 select is((select public.refresh_notifications()), 20, 'CA-E7-07: a chamada seguinte cria o restante');
+select tests.reset_refresh_gate('b');
 select is((select public.refresh_notifications()), 0, 'CA-E7-07: depois, 0');
 select tests.logout();
 select is((select count(*)::int from public.notifications where user_id = tests.uid('b') and family_id <> tests.fid('B')), 0,
@@ -167,6 +172,7 @@ insert into public.notifications (family_id, user_id, type, entity_type, entity_
   (tests.fid('A'), tests.uid('a'), 'member_joined', 'family_member', 'e7530000-0000-0000-0000-0000000000f2', 'member_joined:e7530000-0000-0000-0000-0000000000f2', now() - interval '89 days');
 select tests.login_as('a');
 select public.pay_pending_transaction('f7530000-0000-0000-0000-000000000003', private.today(), 30, 'a7530000-0000-0000-0000-000000000001');
+select tests.reset_refresh_gate('a');
 select is((select public.refresh_notifications()), 0, 'CA-E7-07: refresh após o pagamento não cria nada novo');
 select is((select count(*)::int from public.notifications where dedupe_key like 'bill_overdue:f7530000-0000-0000-0000-000000000003:%'), 0,
   'CA-E7-07: pago → a notificação de vencida some para quem atualizou');
@@ -177,6 +183,7 @@ select is((select count(*)::int from public.notifications where dedupe_key = 'me
 select tests.login_as('ad');
 select is((select count(*)::int from public.notifications where dedupe_key like 'bill_overdue:f7530000-0000-0000-0000-000000000003:%'), 1,
   'CA-E7-07: a limpeza é só do chamador (a de ad ainda existe)');
+select tests.reset_refresh_gate('ad');
 select is((select public.refresh_notifications()), 0, 'CA-E7-07: ad atualiza sem criar nada');
 select is((select count(*)::int from public.notifications where dedupe_key like 'bill_overdue:f7530000-0000-0000-0000-000000000003:%'), 0,
   'CA-E7-07: ...e a dele some na vez dele');
