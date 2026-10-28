@@ -83,7 +83,9 @@ jobs:
       - name: Tipos do banco em dia
         run: |
           pnpm db:types
-          pnpm exec prettier --write src/types/database.ts
+          # src/types/database.ts está em .prettierignore; um ignore vazio força a formatação do arquivo gerado.
+          : > "$RUNNER_TEMP/sem-ignore"
+          pnpm exec prettier --write --ignore-path "$RUNNER_TEMP/sem-ignore" src/types/database.ts
           git diff --exit-code -- src/types/database.ts
 
       - name: Testes de integração
