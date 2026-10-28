@@ -32,7 +32,7 @@ export default async function AppLayout({
           avatarUrl={profile.avatarUrl}
           unreadNotifications={unreadNotifications}
         />
-        <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-28 md:px-6 md:pb-8">
+        <div className="w-full flex-1 px-4 py-6 pb-28 md:px-6 md:pb-8 xl:px-8">
           {children}
         </div>
         <BottomNav />
