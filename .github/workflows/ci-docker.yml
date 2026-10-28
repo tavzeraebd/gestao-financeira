@@ -83,6 +83,7 @@ jobs:
       - name: Tipos do banco em dia
         run: |
           pnpm db:types
+          pnpm exec prettier --write src/types/database.ts
           git diff --exit-code -- src/types/database.ts
 
       - name: Testes de integração

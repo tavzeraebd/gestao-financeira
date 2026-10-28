@@ -82,9 +82,30 @@ test.describe("controle negativo (sem a preferência)", () => {
   }) => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    const restante = await movimentoRestante(page);
-    expect(restante.length, "sem a preferência há transições").toBeGreaterThan(
-      0,
-    );
+    // Estilo computado (não depende de animação em curso): o botão de tema, sempre presente,
+    // tem transition-duration > 0 sem a preferência. Em polling, para esperar o CSS aplicado.
+    const botao = page.getByRole("button", { name: "Alterar tema" });
+    await expect(botao).toBeVisible();
+    await expect
+      .poll(
+        () =>
+          botao.evaluate((el) => {
+            const durs = getComputedStyle(el)
+              .transitionDuration.split(",")
+              .map((t) => t.trim())
+              .map((t) =>
+                t.endsWith("ms") ? parseFloat(t) / 1000 : parseFloat(t),
+              );
+            return Math.max(...durs);
+          }),
+        { message: "sem a preferência o botão de tema tem transição" },
+      )
+      .toBeGreaterThan(TOLERANCIA_S);
+    // E o detector geral enxerga esse movimento.
+    await expect
+      .poll(async () => (await movimentoRestante(page)).length, {
+        message: "sem a preferência há transições",
+      })
+      .toBeGreaterThan(0);
   });
 });
