@@ -113,6 +113,20 @@ Validação prevista: `CI Docker` (`db reset`, `db test`, `db lint`).
 - **Backend**: o código `ACCOUNT_ERASURE_UNAVAILABLE` (P0001) precisa entrar na lista fechada de `errors.ts`/`error-messages.ts`; `FORBIDDEN` (42501) é devolvido numa segunda chamada de conta já excluída.
 - **Custo**: exclusão de família grande (teto 100000 lançamentos) não medida; pode bater no `statement_timeout` do papel (falha limpa, sem efeito).
 
+## Etapa 9 · fechamento (2026-10-28)
+
+**No ar (Render + Supabase):** commits 77ff403 (exclusão de conta, rate limit) e e8c758f (CSP com nonce, "Atividade de segurança" em /configuracoes, `member.action_denied` no histórico, testes de CSP e rate limit). `CI` e `CI Docker` verdes nos dois (pgTAP, integração e E2E completo).
+
+**Verificado:** lint, typecheck, 1083 testes unitários, build, `security:check`, gate `PASSA`, E2E públicos de CSP (60/60 com reflow), CSP real servida pela produção em /login.
+
+**Não verificado:** CSP em telas autenticadas com os diálogos/toasts abertos (T-43 `csp-telas.spec.ts` não escrito; o E2E completo passou, o que indica que não há quebra funcional, mas não prova zero violação); 404 global sob CSP; valor real de `TRUSTED_PROXY_HOPS` no Render.
+
+**Decisões tomadas (ratificar):** `style-src-elem 'self' 'unsafe-inline'` (Sonner 2.0.8 não aceita nonce; `script-src` segue estrito) e `z.config({ jitless: true })` no cliente para evitar `eval` do Zod (emenda ao ADR-0037); `bypassCSP` só no bloco "espaçamento de texto" de `e2e/publico/reflow.spec.ts`.
+
+**Revisão de segurança (T-31):** aprovado com ressalva; nenhum alto/crítico. SEC-4, 18, 24, 26 e 28 → corrigidos. Novos: SEC-30 (baixa: sem teto de quantidade em recorrências/contas/categorias/metas/convites) e SEC-31 (média: `TRUSTED_PROXY_HOPS` e `LOG_HMAC_KEY` não conferidos em produção). SEC-10 e SEC-27 seguem abertos (precisam de você).
+
+**Pendente para você:** definir `TRUSTED_PROXY_HOPS` e `LOG_HMAC_KEY` (≥32 caracteres) no Render; conferir ambiente de homologação da exclusão de conta com conta descartável; Supabase Auth: Site URL/Redirect URLs, limites de e-mail (SEC-10); SMTP e Google OAuth; ratificar desvios do M4; demais itens do roadmap (U-1..U-11).
+
 ## Próximas etapas
 
 _(vazio por ora)_

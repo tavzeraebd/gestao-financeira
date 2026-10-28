@@ -30,6 +30,7 @@ que registrou é apagado ([ADR-0030](adr/0030-gestao-de-integrantes-e-atividade.
 |---|---|:-:|:-:|:-:|:-:|---|
 | Perfil | ver o próprio / editar nome e avatar | ✔ | ✔ | ✔ | 2 | RLS `id = auth.uid()` + grant de coluna |
 | Perfil | ver perfil de quem compartilha família | ✔ | ✔ | ✔ | 2 | `shares_family_with` |
+| Perfil | Excluir a própria conta (anonimiza; apaga a família só se for o único integrante) | ✔ sem outros integrantes ativos | ✔ | ✔ | 9 | RPC `delete_my_account` (definer; reautenticação com senha provada no banco, `amr` até 5 min; ADR-0038) |
 | Família | criar família (sem vínculo ativo) | n/a | n/a | n/a | 2 | RPC `create_family` (qualquer autenticado sem família) |
 | Família | ver família e integrantes | ✔ | ✔ | ✔ | 2 | `is_family_member` |
 | Família | renomear | ✔ | — | — | 2 | RLS update + grant `(name)` |

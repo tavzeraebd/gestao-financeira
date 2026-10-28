@@ -37,6 +37,7 @@ Divergências da implementação voltam para este documento via orchestrator.
 | 5 | `recurrences` (só income/expense; agenda imutável; `next_occurrence_date`, `last_failure_*`, `idempotency_key`; triggers `recurrences_before_write_biu` e `recurrences_after_update_au`), `budgets` (mensal: `start_month`/`end_month`, sem `name`/`period_type`, sem auditoria); `transactions` + `recurrence_id`, `occurrence_date` (`unique`), `due_date` mantido por trigger; trigger `transactions_before_write`/`transactions_audit` redefinidos | definer: `pay_pending_transaction`, `cancel_pending_transaction`, `materialize_recurrences()`; invoker: `pending_summary()`, `budget_progress(p_from_month, p_to_month)`; `private.recurrence_occurrence`, `private.recurrence_first_index` (auxiliar, além do contrato), `private.recurrence_next_on_or_after` (migrations `20261024100700`..`101100`; contrato `etapa-5.md` v1.1 §3.1, ADRs 0022–0024) |
 | 6 | `goals` (status `active\|paused\|completed\|canceled`, ícone de lista fechada, sem `current_amount`), `goal_contributions` (reserva, **sem** `transaction_id`; exclusão lógica), `expense_splits` (sem grant de escrita), `settlements` (exclusão lógica) | definer: `set_transaction_splits(p_transaction_id, p_mode, p_shares)`; invoker: `goal_summary(p_from, p_to)`, `member_balances()`, `projected_cash_flow(p_months)`; `private.allocate_cents`, `private.current_member_id()`, `private.rescale_splits`; `transactions` ganha só o trigger `transactions_rescale_splits` (migrations `20261024101200`..`101700`; contrato `etapa-6.md` v1.1 §3.1, ADRs 0025–0027) |
 | 7 | `notifications` (`data jsonb`, `dedupe_key` obrigatório) | definer: `change_member_role`, `transfer_ownership`, `remove_family_member`, `leave_family`, `refresh_notifications()`; invoker: `account_flows(p_from, p_to)`, `member_expense_totals(p_from, p_to)`; trigger de auditoria em `families` (sem `update_family`) (contrato `etapa-7.md` §3.1, ADRs 0028–0030) |
+| 9 | `security_events` (`password.changed`; leitura só do próprio usuário), `private.volume_limits`, `private.notification_refresh_state`, `private.account_erasure_log` (sem grant) | definer: `delete_my_account()` (público), `private.erase_family(uuid)`, `private.require_recent_auth(interval)`, `private.enforce_volume_limit(...)` e triggers `*_volume_bi`, `private.log_password_changed()` (trigger em `auth.users`), `private.log_member_denial(...)`; `change_member_role`, `transfer_ownership` e `remove_family_member` passam a devolver `text` (`null` = feito; código = negado e registrado); `refresh_notifications()` ganha gate de 30 s e teto de 500 (migrations `20261028100000`..`100300`; contrato `etapa-9.md` §3.1, ADRs 0033–0038) |
 
 Planejamento de cenários (Etapa 6) é **sem persistência** no MVP (cálculo puro no domínio). Contas a
 pagar/receber **não** têm tabela própria: são `transactions` com `status = 'pending'`
@@ -222,11 +223,16 @@ Eventos auditados (catálogo fechado; metadata **sem** e-mail, nome, token, desc
 | `category.archived` | 3 | `{}` |
 | `recurrence.paused` / `recurrence.resumed` | 5 | `{}` |
 | `recurrence.series_updated` | 5 | `{ "changed": [...] }` com nomes de coluna entre `amount, description, account_id, category_id, assigned_member_id, end_date` (nunca valores de texto). A propagação às ocorrências intocadas também grava um `transaction.updated` por ocorrência |
+| `member.action_denied` | 9 | `{ "operation": "change_role" \| "transfer_ownership" \| "remove", "reason": "FORBIDDEN" \| "CANNOT_TARGET_SELF" \| "NOT_FOUND" }`; `entity_type = 'family_member'`, `entity_id` = integrante da família (ou nulo se não existir nela). Gravada pelas três RPCs de integrantes (ADR-0036); teto de 20 por ator e família por hora; sem família ativa, nada é gravado. Visível só a owner/admin (`/familia/atividade`) |
 
 Erros das RPCs (contrato com o backend): `raise exception '<CODE>' using errcode = 'P0001';` com `<CODE>` em
 `NOT_AUTHENTICATED | ALREADY_IN_FAMILY | INVALID_INPUT | INVITE_NOT_FOUND | INVITE_EXPIRED | INVITE_ALREADY_USED | INVITE_REVOKED | INVITE_EMAIL_MISMATCH | INVITE_LIMIT_REACHED`;
 falta de permissão: `raise exception 'FORBIDDEN' using errcode = '42501';`. Mensagens sem dados.
 (`NOT_AUTHENTICATED` → `UNAUTHENTICATED` e `INVALID_INPUT` → `VALIDATION_ERROR` no app.)
+Exceção desde a Etapa 9: `change_member_role`, `transfer_ownership` e `remove_family_member` **devolvem** `text` em vez de
+levantar `FORBIDDEN` (M3, ADR-0036): `null` = feito; `'FORBIDDEN' | 'CANNOT_TARGET_SELF' | 'NOT_FOUND'` = negado e registrado
+em `member.action_denied`. O repositório (`src/modules/family/repository.ts`) converte o código em `AppError`. As demais RPCs
+seguem o contrato de exceção acima.
 
 ### 4.7 Helpers de autorização (schema `private`)
 
@@ -444,3 +450,42 @@ Lembretes de vencimento: gerados sob demanda e idempotentes (`dedupe_key = 'bill
 
 Fora das Etapas 1–7. Se comprovantes forem adotados: bucket privado, caminho `<family_id>/<entity>/<uuid>`,
 policies em `storage.objects` com `private.is_family_member((storage.foldername(name))[1]::uuid)`, URLs assinadas curtas (ADR própria).
+
+### 5.11 Etapa 9 — hardening (migrations `20261028100000`..`20261028100300`; ADR-0033..0038)
+
+- **Limites de volume e frequência (M1, ADR-0033).** `private.volume_limits (kind, max_active, max_per_hour)`, sem grant
+  a `anon`/`authenticated`. Valores iniciais: `transactions` (100000 ativas, 500/h), `goal_contributions_goal` (10000
+  ativos, sem teste de frequência), `goal_contributions_family` (50000, 500/h), `settlements` (20000, 200/h) e
+  `notifications_user` (500, teto por usuário lido por `refresh_notifications`). `max_per_hour = 0` = sem frequência.
+  `private.enforce_volume_limit(...)` roda em triggers `before insert` (`transactions_volume_bi`,
+  `goal_contributions_volume_bi`, `settlements_volume_bi`): (a) volume ativo → `VOLUME_LIMIT_REACHED`; (b) frequência
+  por `created_by` na última hora, contando as excluídas → `RATE_LIMITED`; ambos `P0001`. Sem `auth.uid()` ou sem vínculo
+  com a família, retorna sem erro (sem oráculo entre famílias; a RLS e as FKs continuam decidindo). Lançamentos de
+  recorrência (`recurrence_id` preenchido) entram no volume e ficam fora da frequência. Índices `(created_by, created_at)`
+  em `transactions` (parcial, `where recurrence_id is null`), `goal_contributions` e `settlements`.
+- **Notificações (M1, SEC-18 resíduo).** `private.notification_refresh_state (user_id pk, last_run_at)`. `refresh_notifications()`
+  (mesma assinatura, `integer`): gate atômico de 30 s por usuário que pula só a geração; a limpeza de compromissos
+  resolvidos (mais de 90 dias) roda sempre; o teto de 500 por usuário limita as inserções depois da limpeza.
+- **Trilha de negações de integrantes (M3, ADR-0036).** `change_member_role(uuid, text)`, `transfer_ownership(uuid)` e
+  `remove_family_member(uuid)` devolvem `text`: `null` = feito; `'FORBIDDEN' | 'CANNOT_TARGET_SELF' | 'NOT_FOUND'` = negado.
+  A negação grava `member.action_denied` (catálogo em §4.6) por `private.log_member_denial`, com teto de 20 por ator e
+  família por hora. Sem família ativa, retorna `'FORBIDDEN'` sem gravar. `leave_family` não mudou.
+- **Eventos de segurança (M2, ADR-0035).** `public.security_events (id, user_id → profiles restrict, action check
+  in ('password.changed'), metadata jsonb objeto ≤ 1024 bytes, created_at)`; índice `(user_id, created_at desc)`; RLS com
+  `security_events_select_own` (`user_id = auth.uid()`), `grant select` só a `authenticated`, sem escrita por API. Gravada
+  pelo trigger `on_auth_user_password_changed` em `auth.users` (`private.log_password_changed()`, `after update of
+  encrypted_password`); sem `profiles` correspondente, a troca de senha não falha.
+- **Exclusão de conta (M4, ADR-0038).** `public.delete_my_account() returns jsonb` (`{ "family_erased": boolean }`), só
+  `authenticated`. Erros `P0001`: `NOT_AUTHENTICATED`, `REAUTH_REQUIRED`, `OWNER_MUST_TRANSFER` (owner com outros integrantes
+  ativos); `42501` para conta já excluída. Exige reautenticação com prova no banco: `private.require_recent_auth('5 minutes')`
+  lê `auth.jwt() -> 'amr'` e exige `method = 'password'` com `timestamp` recente. Depois trava o vínculo ativo, então:
+  - **admin ou member**: efeitos de `leave_family` (vínculo `left`, convites pendentes que criou revogados) e `member.left`
+    com `{ "reason": "account_deleted" }`; a família permanece com os lançamentos;
+  - **owner com outros integrantes ativos**: `OWNER_MUST_TRANSFER`, sem nenhuma alteração;
+  - **owner sozinho**: `private.erase_family(family_id)` apaga a família e todas as tabelas dependentes na ordem das FKs;
+  - anonimiza `profiles` (`display_name = 'Conta excluída'`, `avatar_url = null`), apaga `notifications`, `security_events` e
+    `notification_refresh_state` do usuário, zera `invited_email` dos convites criados ou aceitos por ele;
+  - neutraliza `auth.users` (e-mail inerte derivado do id, `encrypted_password = null`, metadados vazios, `banned_until`
+    em `9999-12-31 00:00:00+00` em vez de `infinity`, decisão registrada no cabeçalho da migration, e `deleted_at`) e apaga `auth.identities`, `auth.sessions` e `auth.mfa_factors` do usuário;
+  - grava `private.account_erasure_log (user_id unique, erased_at, role, family_erased)`, sem PII e sem grant.
+  Tudo numa transação: qualquer falha aborta sem efeito parcial. Teste de completude do mapa de `erase_family` em pgTAP 650/660.

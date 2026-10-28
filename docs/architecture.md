@@ -163,9 +163,17 @@ Contrato único (`src/server/action.ts`):
 ```ts
 export type ErrorCode =
   | "VALIDATION_ERROR" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED"
+  | "VOLUME_LIMIT_REACHED" | "REAUTH_REQUIRED" | "ACCOUNT_ERASURE_UNAVAILABLE"
   | "INVALID_CREDENTIALS" | "EMAIL_NOT_CONFIRMED" | "WEAK_PASSWORD" | "SAME_PASSWORD"
   | "ALREADY_IN_FAMILY" | "NO_FAMILY"
   | "INVITE_NOT_FOUND" | "INVITE_EXPIRED" | "INVITE_ALREADY_USED" | "INVITE_REVOKED" | "INVITE_EMAIL_MISMATCH" | "INVITE_LIMIT_REACHED"
+  | "ACCOUNT_ARCHIVED" | "CATEGORY_ARCHIVED" | "CATEGORY_TYPE_MISMATCH" | "DATE_BEFORE_OPENING_BALANCE"
+  | "OPENING_DATE_AFTER_TRANSACTIONS" | "FUTURE_DATE_NOT_ALLOWED" | "INVALID_REVERSAL" | "REVERSAL_EXCEEDS_REMAINING"
+  | "TRANSACTION_HAS_REVERSALS" | "CATEGORY_HAS_CHILDREN" | "INVALID_CATEGORY_PARENT" | "CATEGORY_IN_USE"
+  | "INVALID_STATUS_TRANSITION" | "RECURRENCE_LIMIT_REACHED" | "BUDGET_ALREADY_EXISTS"
+  | "GOAL_NOT_ACTIVE" | "GOAL_NEGATIVE_PROGRESS"
+  | "SPLIT_NOT_ALLOWED" | "SPLIT_SUM_MISMATCH" | "SPLIT_AMOUNT_TOO_SMALL"
+  | "MEMBER_INACTIVE" | "NAME_TAKEN" | "OWNER_MUST_TRANSFER" | "CANNOT_TARGET_SELF"
   | "INTERNAL_ERROR";
 
 export type ActionError = {
@@ -210,10 +218,30 @@ limpos em falha (spec §7.3).
 - `src/server/request-id.ts`: o proxy define `x-request-id` (`crypto.randomUUID()`) no request repassado;
   `getRequestId()` lê de `headers()`; o id volta em `ActionError.requestId` e no rodapé da tela de erro.
 - `src/server/logger.ts`: JSON em stdout, uma linha por evento:
-  `{ ts, level, requestId, module, operation, code, durationMs, userId?, familyId? }`.
-  **Allowlist** de campos: nada fora dela é aceito pela tipagem. Proibido logar: e-mail, nome, senha, token
-  (de sessão ou convite), cookies, headers, URL com token (`/convite/*`, `/auth/confirm?*`), corpo/entrada
-  do usuário, valores monetários, descrições. `userId`/`familyId` são UUIDs pseudônimos permitidos.
+  `{ ts, level, requestId, module, operation, code, durationMs, userId?, familyId?, ip?, emailHmac?, inviteId? }`.
+  **Allowlist** de campos: nada fora dela é aceito pela tipagem, e cada valor passa por padrão estrito (senão é descartado).
+  Proibido logar: e-mail, nome, senha, token (de sessão ou convite), cookies, headers, URL com token (`/convite/*`,
+  `/auth/confirm?*`), corpo/entrada do usuário, valores monetários, descrições. `userId`/`familyId`/`inviteId` são UUIDs
+  pseudônimos permitidos (`inviteId` é o id, nunca o token).
+- Campos de identidade (ADR-0035): `ip` (IP do cliente, só em `warn`/`error`) e `emailHmac` (16 hex de
+  `HMAC-SHA256(LOG_HMAC_KEY, e-mail normalizado)`, `src/server/log-identity.ts`). Sem `LOG_HMAC_KEY` (ou com chave
+  menor que 32 caracteres) o campo é omitido e um `warn` único registra `LOG_HMAC_KEY_MISSING`; **nunca** há hash sem chave.
+- `ip` vem de `src/lib/client-ip.ts` · `resolveClientIp(forwardedFor, hops)`: usa a entrada `length - TRUSTED_PROXY_HOPS`
+  de `x-forwarded-for`, nunca a mais à esquerda (controlada pelo cliente); valida IPv4/IPv6 e descarta loopback e endereço
+  não especificado (`null`). O proxy calcula o IP uma vez e grava `x-client-ip` (descartando o valor vindo do cliente);
+  `src/server/client-ip.ts` · `getClientIp()` lê esse cabeçalho.
+- Rate limit de Server Actions (ADR-0034): `src/server/rate-limit.ts` (janela fixa, **em memória do processo**, uma instância,
+  teto de 50000 chaves). Baldes em `RATE_LIMIT_BUCKETS`: `user_actions` (120/60 s, por `userId`), `anon_actions` (60/60 s, por IP),
+  `auth_ip` (30/300 s, por IP), `auth_failure` (5/900 s, por IP + hash do e-mail), `auth_email_ip` (5/600 s, por IP),
+  `auth_email_target` (3/3600 s, por hash do e-mail) e `account_deletion` (3/3600 s, por `userId`). `runAction` aplica
+  `user_actions`/`anon_actions` (opção `rateLimit: false` desliga) e devolve `RATE_LIMITED` sem chamar o handler. IP `null`
+  ignora os baldes por IP (não trava ninguém). Estouro em cadastro, reenvio e recuperação vira sucesso neutro, sem chamar o Auth.
+  A chave do e-mail do rate limit é `sha256` em memória, nunca a do log.
+- `ErrorCode` novos da Etapa 9: `VOLUME_LIMIT_REACHED` (limite de volume do banco, M1) e `REAUTH_REQUIRED` (reautenticação
+  de exclusão de conta, M4); ambos com mensagem em `error-messages.ts`. `RATE_LIMITED` continua existindo.
+- Negação de integrante (M3): as RPCs `change_member_role`, `transfer_ownership` e `remove_family_member` devolvem
+  `'FORBIDDEN' | 'CANNOT_TARGET_SELF' | 'NOT_FOUND'` e o repositório converte em `AppError`; a negação fica em
+  `audit_events` como `member.action_denied` (`data-model.md` §4.6).
 - Telas: `error.tsx` por grupo com mensagem genérica + `requestId` + ação "Tentar novamente";
   sem stack trace no cliente em produção.
 
@@ -240,7 +268,19 @@ limpos em falha (spec §7.3).
 - Headers em `next.config.ts`: `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`,
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`
   (e `no-referrer` em `/convite/:path*` e `/auth/:path*`), `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
-  CSP completa fica para a Etapa 9.
+  `/offline` e `/sw.js` têm CSP fixa própria no mesmo arquivo (sem nonce, ADR-0037 §4).
+- CSP por requisição (ADR-0037): `src/lib/csp.ts` · `buildCsp({ nonce, isDev })`, chamada pelo `src/proxy.ts`. O nonce
+  (`generateNonce()`, 16 bytes em base64) é novo a cada requisição; o proxy grava `x-nonce` e `content-security-policy`
+  na requisição repassada e o `Content-Security-Policy` na resposta (inclusive em redirects). O `src/app/layout.tsx` lê
+  `x-nonce` e o `ThemeProvider` recebe o mesmo valor. Em produção: `script-src 'self' 'nonce-…' 'strict-dynamic'` (sem
+  `'unsafe-inline'` nem `'unsafe-eval'`; `'unsafe-eval'` só em dev), `style-src 'self' 'nonce-…'`, `style-src-elem 'self'
+  'unsafe-inline'` (exceção documentada para o Sonner, ADR-0037 §3), `style-src-attr 'unsafe-inline'`, `connect-src 'self'`,
+  `worker-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'` e
+  `upgrade-insecure-requests`. `upgrade-insecure-requests` não entra em dev, e `ws://localhost:*` só entra em dev.
+- Proxies e IP: `TRUSTED_PROXY_HOPS` (inteiro 0 a 5, padrão 1 = Render) diz quantos proxies confiáveis acrescentam a
+  `x-forwarded-for`; `0` desativa o IP do cliente (baldes por IP ignorados). Valor conferido em produção com requisição real
+  (ADR-0034). `LOG_HMAC_KEY` (opcional, mínimo 32 caracteres) é segredo de servidor: nunca vai ao log nem à resposta.
+- Rate limit e log dependem de uma instância: o contador está em memória do processo (ADR-0034 §7; Redis/KV só se houver mais de uma instância).
 - Server Actions: proteção de origem nativa do Next (não desligar; sem `allowedOrigins` amplo).
 
 ## 11. Desempenho e operação (direção para Etapas 3+)

@@ -27,6 +27,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY= # Publishable key
 SUPABASE_SECRET_KEY=                 # Secret key (somente testes de integração/E2E)
 APP_URL=http://localhost:3000
 LOG_LEVEL=info
+TRUSTED_PROXY_HOPS=1                 # Proxies confiáveis à frente do app (0 a 5; padrão 1 = Render; 0 desativa o IP do cliente)
+LOG_HMAC_KEY=                        # Opcional, mínimo 32 caracteres (gere com `openssl rand -hex 32`); segredo, nunca versione
 ```
 
 Nunca versione `.env.local`.
@@ -49,6 +51,7 @@ http://127.0.0.1:54324.
 | `pnpm test:integration`                   | Integração com Supabase local (Vitest, node)           |
 | `pnpm test:e2e`                           | Playwright (desktop e mobile); sobe `pnpm dev` sozinho |
 | `pnpm check`                              | `lint` + `typecheck` + `test`                          |
+| `pnpm security:check`                     | Gate portátil de segurança (CI; sem Docker)            |
 | `pnpm db:start` / `db:stop` / `db:status` | Supabase local                                         |
 | `pnpm db:reset` / `db:test` / `db:lint`   | Recriar o banco, pgTAP e lint do schema                |
 | `pnpm db:types`                           | Regenera `src/types/database.ts`                       |
@@ -58,6 +61,19 @@ http://127.0.0.1:54324.
 Exigem o Supabase local no ar (`pnpm db:start`), `.env.local` e Mailpit. O Auth local limita
 30 logins/cadastros a cada 5 minutos por IP: por isso o `global-setup` cria usuários pela Admin API
 e reaproveita a sessão (`e2e/.auth`, ignorado pelo git). Se o limite estourar, aguarde 5 minutos.
+
+## CI
+
+Dois workflows em `.github/workflows/`, ambos com `permissions: contents: read` e sem segredo além do `GITHUB_TOKEN`:
+
+- `ci.yml` (sem Docker, roda em push na `main` e em pull request): qualidade (`lint`, `typecheck`, `test`, `format:check`),
+  build de produção com variáveis fictícias, E2E público (`test:e2e:publico`), gate de segurança (`security:check`, que
+  inclui `pnpm audit`) e `pnpm outdated` informativo.
+- `ci-docker.yml` (Supabase local dentro do runner): `db reset`, pgTAP, lint do banco, tipos gerados sem diff, integração e
+  E2E completo. Roda à mão (`workflow_dispatch`) e em push na `main`; em pull request só com a variável do repositório
+  `CI_DOCKER = true`. Usa só as chaves do Supabase local.
+
+Migrations nunca rodam no CI: elas são aplicadas à mão em produção (`docs/runbooks/migracoes-producao.md`).
 
 ## Estrutura
 

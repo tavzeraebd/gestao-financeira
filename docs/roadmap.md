@@ -173,7 +173,7 @@ O botão "Continuar com Google" do mockup **só aparece quando o provedor estive
 de servidor; sem ela a tela de login continua sem OAuth). Depende de o usuário criar as credenciais no Google Cloud
 (client id/secret e URIs de redirect). Apple fica fora do plano. Entra na primeira etapa depois de as credenciais existirem.
 
-## Etapa 9 — Hardening, homologação e entrega (contrato `contracts/etapa-9.md`; ADR-0033..0039) — **em andamento (2026-10-28)**
+## Etapa 9 — Hardening, homologação e entrega (contrato `contracts/etapa-9.md`; ADR-0033..0039) — **implementada no código (2026-10-28)**; pendências: **usuário** (U-1..U-11, `contracts/etapa-9.md` §9) e **verificação com Docker** (pgTAP 600–660, integração, E2E `@docker`) e homologação em produção ainda não executadas; "concluída" definitiva depende delas
 
 Escopo autônomo (sem depender do usuário): SEC-4, SEC-24/SEC-28/SEC-18 (resíduo), SEC-26, CSP completa, rate limit de Server Actions, exclusão de conta (LGPD), CI, backup/recuperação e checklist final.
 Dependências novas: nenhuma; sem serviço externo novo. Mudanças de banco só por migrations novas (`20261028100000`..`100300`), aplicadas com `supabase db push --linked`; validação sem Docker por lint remoto, com Docker por pgTAP (600–660) e integração `@docker`.
