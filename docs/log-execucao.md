@@ -125,7 +125,9 @@ Validação prevista: `CI Docker` (`db reset`, `db test`, `db lint`).
 
 **Revisão de segurança (T-31):** aprovado com ressalva; nenhum alto/crítico. SEC-4, 18, 24, 26 e 28 → corrigidos. Novos: SEC-30 (baixa: sem teto de quantidade em recorrências/contas/categorias/metas/convites) e SEC-31 (média: `TRUSTED_PROXY_HOPS` e `LOG_HMAC_KEY` não conferidos em produção). SEC-10 e SEC-27 seguem abertos (precisam de você).
 
-**Pendente para você:** definir `TRUSTED_PROXY_HOPS` e `LOG_HMAC_KEY` (≥32 caracteres) no Render; conferir ambiente de homologação da exclusão de conta com conta descartável; Supabase Auth: Site URL/Redirect URLs, limites de e-mail (SEC-10); SMTP e Google OAuth; ratificar desvios do M4; demais itens do roadmap (U-1..U-11).
+**Feito depois, com autorização do usuário (2026-10-28):** `LOG_HMAC_KEY` (chave aleatória de 48 bytes) e `TRUSTED_PROXY_HOPS=3` definidos no Render. Valor medido em produção com tentativas de login inválidas e leitura do log do app: com 1 o IP não resolvia (`CLIENT_IP_UNAVAILABLE`), com 2 o app registrou um IP da Cloudflare (172.64.222.107) e com 3 registrou o IP real do cliente (177.192.19.140). `emailHmac` aparece nos logs. A topologia observada é cliente → Cloudflare → Render → app; se o Render mudar a cadeia, refazer a medição. SEC-31 fica a fechar no `achados.md`.
+
+**Pendente para você:** conferir ambiente de homologação da exclusão de conta com conta descartável; Supabase Auth: Site URL/Redirect URLs, limites de e-mail (SEC-10); SMTP e Google OAuth; ratificar desvios do M4; demais itens do roadmap (U-1..U-11).
 
 ## Próximas etapas
 
