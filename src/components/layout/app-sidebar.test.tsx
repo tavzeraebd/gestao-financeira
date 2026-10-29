@@ -35,8 +35,22 @@ describe("AppSidebar - menu", () => {
     const menu = screen.getByRole("link", { name: "Início" }).closest("ul");
     expect(menu?.className).toContain("gap-1");
     const link = screen.getByRole("link", { name: "Início" });
-    expect(link.className).toMatch(/\bh-10\b/);
+    expect(link.className).toMatch(/\bh-12\b/);
     expect(link.className).not.toMatch(/-m[xytblr]-|scale|translate/);
+  });
+
+  it("expandido: ícone de 24px (mesmo tamanho do recolhido) e gap-3 entre ícone e texto", () => {
+    mockMatchMedia(true);
+    render(
+      <SidebarProvider>
+        <AppSidebar familyName="Silva" />
+      </SidebarProvider>,
+    );
+    const link = screen.getByRole("link", { name: "Início" });
+    expect(link.className).toMatch(/\bgap-3\b/);
+    const icone = link.querySelector("svg");
+    expect(icone?.getAttribute("class")).toMatch(/(^|\s)size-6!(\s|$)/);
+    expect(icone?.getAttribute("class")).not.toMatch(/(^|\s)size-5(\s|$)/);
   });
 
   it("recolhido: ícone centralizado, texto só para leitor de tela, aria-label mantido", () => {
@@ -66,9 +80,7 @@ describe("AppSidebar - menu", () => {
     );
     const link = screen.getByRole("link", { name: "Início" });
     const icone = link.querySelector("svg");
-    expect(icone?.getAttribute("class")).toContain(
-      "group-data-[collapsible=icon]:size-6",
-    );
+    expect(icone?.getAttribute("class")).toMatch(/(^|\s)size-6!(\s|$)/);
     const grupo = link.closest("[data-slot='sidebar-group']");
     expect(grupo?.className).toContain("group-data-[collapsible=icon]:px-3");
   });

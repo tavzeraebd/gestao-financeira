@@ -75,12 +75,9 @@ export function AppSidebar({ familyName }: { familyName: string }) {
                       aria-label={label}
                       isActive={isNavItemActive(item, pathname)}
                       render={<Link href={href} />}
-                      className="h-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!"
+                      className="h-12 gap-3 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!"
                     >
-                      <Icon
-                        aria-hidden="true"
-                        className="size-5 shrink-0 group-data-[collapsible=icon]:size-6"
-                      />
+                      <Icon aria-hidden="true" className="size-6! shrink-0" />
                       <span className="group-data-[collapsible=icon]:sr-only">
                         {label}
                       </span>
