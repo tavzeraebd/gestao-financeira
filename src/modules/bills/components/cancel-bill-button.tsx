@@ -50,7 +50,15 @@ export function CancelBillButton({ transactionId }: { transactionId: string }) {
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger
-        render={<Button variant="outline" disabled={!hydrated} />}
+        render={
+          <Button
+            variant="destructive-outline"
+            size="lg"
+            className="px-2.5 sm:px-4"
+            aria-label="Cancelar compromisso"
+            disabled={!hydrated}
+          />
+        }
       >
         <BanIcon aria-hidden="true" data-icon="inline-start" />
         Cancelar

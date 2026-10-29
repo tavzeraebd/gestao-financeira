@@ -99,13 +99,18 @@ test("CA-E5-52: cancelar pede confirmação e tira o compromisso dos abertos", a
     .first()
     .click();
   await expect(page.getByRole("heading", { name: "Seguro" })).toBeVisible();
-  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Cancelar compromisso", exact: true })
+    .click();
   await expect(
     page.getByText(
       "O compromisso fica no histórico e deixa de aparecer como previsto.",
     ),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Cancelar compromisso" }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Cancelar compromisso" })
+    .click();
   await expect(page.getByText("Cancelado").first()).toBeVisible();
 
   await page.goto(`/compromissos?situacao=abertos&de=${hoje()}`);

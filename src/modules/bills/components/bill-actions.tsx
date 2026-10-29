@@ -46,7 +46,12 @@ export function BillActions({ bill, accounts, today }: BillActionsProps) {
       {bill.canEdit ? (
         <Link
           href={`/compromissos/${bill.id}/editar`}
-          className={buttonVariants({ variant: "outline" })}
+          aria-label="Editar compromisso"
+          className={buttonVariants({
+            variant: "warning",
+            size: "lg",
+            className: "px-2.5 sm:px-4",
+          })}
         >
           <PencilIcon aria-hidden="true" data-icon="inline-start" />
           Editar

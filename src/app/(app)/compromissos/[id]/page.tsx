@@ -86,7 +86,7 @@ export default async function BillDetailPage({
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-2 empty:hidden">
+      <div className="flex flex-wrap gap-2 *:flex-1 empty:hidden sm:*:flex-none">
         <BillActions bill={bill} accounts={accounts} today={today()} />
       </div>
 

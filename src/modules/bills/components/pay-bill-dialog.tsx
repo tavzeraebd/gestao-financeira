@@ -62,9 +62,19 @@ export function PayBillDialog(props: PayBillDialogProps) {
     props.bill.kind === "pagar" ? "Marcar como pago" : "Marcar como recebido";
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" disabled={!hydrated} />}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="success"
+            size="lg"
+            className="px-2.5 sm:px-4"
+            aria-label={label}
+            disabled={!hydrated}
+          />
+        }
+      >
         <CheckIcon aria-hidden="true" data-icon="inline-start" />
-        {label}
+        {props.bill.kind === "pagar" ? "Pago" : "Recebido"}
       </DialogTrigger>
       <DialogContent showCloseButton={false}>
         {open ? (

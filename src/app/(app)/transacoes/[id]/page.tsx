@@ -88,7 +88,7 @@ export default async function TransactionDetailPage({
           {detail.canEdit ? (
             <Link
               href={`/transacoes/${detail.id}/editar`}
-              className={buttonVariants({ variant: "outline" })}
+              className={buttonVariants({ variant: "warning", size: "lg" })}
             >
               <PencilIcon aria-hidden="true" data-icon="inline-start" />
               Editar

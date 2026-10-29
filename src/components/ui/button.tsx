@@ -17,6 +17,13 @@ const buttonVariants = cva(
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/40",
+        // Semânticas (tokens existentes): confirmar/concluir, editar (atenção) e destrutivo em contorno.
+        success:
+          "bg-success text-success-foreground hover:bg-success/90 focus-visible:ring-success/40",
+        warning:
+          "border-warning/60 bg-background text-warning hover:bg-warning-soft focus-visible:ring-warning/40",
+        "destructive-outline":
+          "border-destructive/60 bg-background text-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40",
         link: "text-primary-text underline-offset-4 hover:underline",
       },
       size: {

@@ -161,7 +161,7 @@ export function BillList({ items, accounts, today }: BillListProps) {
               <BillStatusBadge status={item.status} kind={item.kind} />
             </span>
           </Link>
-          <div className="mt-4 flex flex-wrap gap-2 empty:hidden">
+          <div className="mt-4 flex flex-wrap gap-2 *:flex-1 empty:hidden">
             <BillActions bill={item} accounts={accounts} today={today} />
           </div>
         </div>
