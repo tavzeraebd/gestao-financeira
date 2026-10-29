@@ -67,14 +67,14 @@ export function PayBillDialog(props: PayBillDialogProps) {
           <Button
             variant="success"
             size="lg"
-            className="px-2.5 sm:px-4"
+            className="w-11 px-0"
             aria-label={label}
+            title={props.bill.kind === "pagar" ? "Pago" : "Recebido"}
             disabled={!hydrated}
           />
         }
       >
         <CheckIcon aria-hidden="true" data-icon="inline-start" />
-        {props.bill.kind === "pagar" ? "Pago" : "Recebido"}
       </DialogTrigger>
       <DialogContent showCloseButton={false}>
         {open ? (

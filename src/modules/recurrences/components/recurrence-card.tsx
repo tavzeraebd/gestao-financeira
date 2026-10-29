@@ -107,18 +107,18 @@ export function RecurrenceCard({
           </Alert>
         ) : null}
 
-        <div className="flex flex-wrap gap-2 *:flex-1 sm:*:flex-none">
+        <div className="flex justify-end gap-2">
           <Link
             href={`/compromissos?serie=${r.id}&situacao=abertos`}
             aria-label={`Ver ocorrências de ${r.description}`}
+            title="Ocorrências"
             className={buttonVariants({
               variant: "outline",
               size: "lg",
-              className: "px-2.5 sm:px-5",
+              className: "w-11 px-0",
             })}
           >
             <ListIcon aria-hidden="true" data-icon="inline-start" />
-            Ocorrências
           </Link>
           {r.canManage ? (
             <>
@@ -127,12 +127,12 @@ export function RecurrenceCard({
                 className={buttonVariants({
                   variant: "warning",
                   size: "lg",
-                  className: "px-2.5 sm:px-5",
+                  className: "w-11 px-0",
                 })}
                 aria-label={`Editar série ${r.description}`}
+                title="Editar"
               >
                 <PencilIcon aria-hidden="true" data-icon="inline-start" />
-                Editar
               </Link>
               {ended ? null : (
                 <>
