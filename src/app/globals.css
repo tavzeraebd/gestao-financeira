@@ -57,6 +57,12 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
   --color-chart-6: var(--chart-6);
+  --color-chart-green-1: var(--chart-green-1);
+  --color-chart-green-2: var(--chart-green-2);
+  --color-chart-green-3: var(--chart-green-3);
+  --color-chart-green-4: var(--chart-green-4);
+  --color-chart-green-5: var(--chart-green-5);
+  --color-chart-green-6: var(--chart-green-6);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -128,6 +134,13 @@
   --chart-4: #7c3aed;
   --chart-5: #db2777;
   --chart-6: #71717a;
+  /* Escala de verdes só do dashboard (/inicio); contraste >= 3:1 contra --card (#fff). */
+  --chart-green-1: #14532d;
+  --chart-green-2: #0f766e;
+  --chart-green-3: #15803d;
+  --chart-green-4: #0d9488;
+  --chart-green-5: #16a34a;
+  --chart-green-6: #65a30d;
 
   --sidebar: #ffffff;
   --sidebar-foreground: #3f3f46;
@@ -190,6 +203,13 @@
   --chart-4: #c4c4cc;
   --chart-5: #7c7c8a;
   --chart-6: #f75a68;
+  /* Escala de verdes só do dashboard (/inicio); contraste >= 3:1 contra --card (#202024). */
+  --chart-green-1: #0e8a62;
+  --chart-green-2: #00b37e;
+  --chart-green-3: #2dd4bf;
+  --chart-green-4: #4ade80;
+  --chart-green-5: #a3e635;
+  --chart-green-6: #bef264;
 
   --sidebar: #202024;
   --sidebar-foreground: #c4c4cc;

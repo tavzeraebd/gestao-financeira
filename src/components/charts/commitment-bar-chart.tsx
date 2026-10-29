@@ -101,14 +101,14 @@ export default function CommitmentBarChart({
   }));
 
   const legend: ChartLegendItem[] = [
-    { key: "pending", label: "Contas em aberto", color: "chart-expense" },
-    { key: "recurring", label: "Recorrências", color: "chart-3" },
+    { key: "pending", label: "Contas em aberto", color: "chart-green-1" },
+    { key: "recurring", label: "Recorrências", color: "chart-green-5" },
     ...(showIncome
       ? [
           {
             key: "income",
-            label: "Receita esperada (linha)",
-            color: "chart-income" as const,
+            label: "Receita esperada (linha tracejada)",
+            color: "chart-green-6" as const,
           },
         ]
       : []),
@@ -162,14 +162,14 @@ export default function CommitmentBarChart({
               dataKey="pendingReais"
               name="Contas em aberto"
               stackId="commitment"
-              fill={chartColorVar("chart-expense")}
+              fill={chartColorVar("chart-green-1")}
               isAnimationActive={!reduceMotion}
             />
             <Bar
               dataKey="recurringReais"
               name="Recorrências"
               stackId="commitment"
-              fill={chartColorVar("chart-3")}
+              fill={chartColorVar("chart-green-5")}
               radius={[4, 4, 0, 0]}
               isAnimationActive={!reduceMotion}
             />
@@ -178,10 +178,10 @@ export default function CommitmentBarChart({
                 dataKey="incomeReais"
                 name="Receita esperada"
                 type="monotone"
-                stroke={chartColorVar("chart-income")}
+                stroke={chartColorVar("chart-green-6")}
                 strokeWidth={2}
                 strokeDasharray="6 3"
-                dot={{ r: 3, fill: chartColorVar("chart-income") }}
+                dot={{ r: 3, fill: chartColorVar("chart-green-6") }}
                 isAnimationActive={!reduceMotion}
               />
             ) : null}

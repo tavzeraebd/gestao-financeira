@@ -1,7 +1,29 @@
 import type { CategoryColor } from "@/modules/categories/constants";
 
 /** Cor de dado de gráfico: sempre um token `chart-*` (ADR-0019 / ADR-0021). */
-export type ChartColor = CategoryColor | "chart-income" | "chart-expense";
+export type ChartGreenColor =
+  | "chart-green-1"
+  | "chart-green-2"
+  | "chart-green-3"
+  | "chart-green-4"
+  | "chart-green-5"
+  | "chart-green-6";
+
+/** Escala de verdes exclusiva do dashboard, do mais escuro ao mais claro (tema claro). */
+export const CHART_GREEN_SCALE: readonly ChartGreenColor[] = [
+  "chart-green-1",
+  "chart-green-2",
+  "chart-green-3",
+  "chart-green-4",
+  "chart-green-5",
+  "chart-green-6",
+];
+
+export type ChartColor =
+  | CategoryColor
+  | "chart-income"
+  | "chart-expense"
+  | ChartGreenColor;
 
 /**
  * `"chart-3"` -> `"var(--chart-3)"`. Única forma de dar cor a um gráfico.

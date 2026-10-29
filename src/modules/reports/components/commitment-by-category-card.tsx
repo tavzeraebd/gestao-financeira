@@ -1,19 +1,17 @@
 import { ChartCard } from "@/components/charts/chart-card";
 import { ChartLegend } from "@/components/charts/chart-legend";
+import { CHART_GREEN_SCALE } from "@/components/charts/colors";
 import { LazyDonutChart } from "@/components/charts/lazy";
 import { formatPercent } from "@/lib/format";
 import { formatBRL } from "@/lib/money";
-import type {
-  CategorySlice,
-  CommitmentDashboard,
-} from "@/modules/reports/types";
+import type { CommitmentDashboard } from "@/modules/reports/types";
 
 type CommitmentByCategoryCardProps = {
   breakdown: CommitmentDashboard["byCategory"];
   periodLabel: string;
 };
 
-function sliceName(slice: CategorySlice): string {
+function sliceName(slice: { name: string; archived: boolean }): string {
   return slice.archived ? `${slice.name} (arquivada)` : slice.name;
 }
 
@@ -22,7 +20,12 @@ export function CommitmentByCategoryCard({
   breakdown,
   periodLabel,
 }: CommitmentByCategoryCardProps) {
-  const { slices, rows, total } = breakdown;
+  const { rows, total } = breakdown;
+  // Dashboard em tons de verde: a cor da categoria é trocada pela escala verde (relatórios não mudam).
+  const slices = breakdown.slices.map((slice, i) => ({
+    ...slice,
+    color: CHART_GREEN_SCALE[i % CHART_GREEN_SCALE.length] ?? "chart-green-1",
+  }));
   const summary = slices
     .map(
       (slice) =>
