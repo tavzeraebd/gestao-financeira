@@ -3,9 +3,12 @@ import { parseISODate } from "@/lib/dates";
 import {
   dateParam,
   enumParam,
+  firstParam,
   paramsObject,
 } from "@/lib/validation/url-params";
 import {
+  COMMITMENT_HORIZONS,
+  DEFAULT_COMMITMENT_HORIZON,
   DEFAULT_PERIOD_PRESET,
   DEFAULT_REPORT_CATEGORY_TYPE,
   DEFAULT_REPORT_PRESET,
@@ -15,6 +18,7 @@ import {
 } from "./constants";
 import type {
   CategoryReportFilters,
+  CommitmentFilters,
   DashboardFilters,
   PeriodPreset,
   ReportFilters,
@@ -48,6 +52,18 @@ export const dashboardFiltersSchema = z
     if (parsedDe) filters.de = parsedDe;
     if (parsedAte) filters.ate = parsedAte;
     return filters;
+  });
+
+/**
+ * Parâmetro de URL do /inicio (`?horizonte=6|12`). Tolerante: valor inválido ou repetido vira o padrão
+ * (12 meses à frente); nunca lança.
+ */
+export const commitmentFiltersSchema = z
+  .unknown()
+  .transform((raw): CommitmentFilters => {
+    const value = firstParam(paramsObject(raw).horizonte);
+    const found = COMMITMENT_HORIZONS.find((h) => String(h) === value);
+    return { horizonte: found ?? DEFAULT_COMMITMENT_HORIZON };
   });
 
 /**

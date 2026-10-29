@@ -10,6 +10,7 @@ import type { GoalIconName, GoalStatus } from "@/modules/goals/constants";
 import type { BillListItem } from "@/modules/bills/types";
 import type { TransactionListItem } from "@/modules/transactions/types";
 import type {
+  COMMITMENT_HORIZONS,
   PERIOD_PRESETS,
   REPORT_CATEGORY_TYPES,
   REPORT_PRESETS,
@@ -101,6 +102,81 @@ export type Dashboard = {
   upcomingBills: BillListItem[];
   /** Até 3 metas ativas: data-alvo crescente (sem data por último), depois criação. */
   goals: DashboardGoal[];
+};
+
+// --- Comprometimento futuro (/inicio) ---
+
+export type CommitmentHorizon = (typeof COMMITMENT_HORIZONS)[number];
+
+/** Filtros de URL do /inicio já normalizados. */
+export type CommitmentFilters = { horizonte: CommitmentHorizon };
+
+/** Despesa ou receita em aberto, já com a data de vencimento (vencidos entram com a data original). */
+export type CommitmentEntry = {
+  type: "income" | "expense";
+  amount: Cents;
+  date: ISODate;
+  categoryId: string;
+  description: string;
+};
+
+/** Série recorrente ativa (a agenda ainda não materializada vem de `nextOccurrenceDate`). */
+export type CommitmentSeries = {
+  type: "income" | "expense";
+  amount: Cents;
+  description: string;
+  categoryId: string;
+  frequency: "weekly" | "monthly" | "yearly";
+  intervalCount: number;
+  startDate: ISODate;
+  endDate: ISODate | null;
+  nextOccurrenceDate: ISODate;
+};
+
+export type CommitmentMonth = {
+  month: ISODate;
+  label: string;
+  longLabel: string;
+  /** Despesas em aberto (contas a pagar já lançadas) com vencimento no mês. */
+  pending: Cents;
+  /** Ocorrências futuras de despesas recorrentes ainda não lançadas. */
+  recurring: Cents;
+  /** `pending + recurring`. */
+  committed: Cents;
+  /** Receita esperada no mês (a receber + recorrências de receita). */
+  income: Cents;
+  /** `committed / income × 100`; `null` sem receita esperada. */
+  percent: number | null;
+};
+
+export type CommitmentNextDue = {
+  date: ISODate;
+  description: string;
+  amount: Cents;
+  overdue: boolean;
+};
+
+export type CommitmentOverview = {
+  /** Primeiro dia do mês atual e do último mês do horizonte. */
+  from: ISODate;
+  to: ISODate;
+  horizon: CommitmentHorizon;
+  /** `"outubro de 2026 a outubro de 2027"`. */
+  label: string;
+  months: CommitmentMonth[];
+  totalCommitted: Cents;
+  currentMonthCommitted: Cents;
+  /** Mês de maior comprometimento (`null` sem nenhum compromisso). */
+  heaviest: { month: ISODate; longLabel: string; committed: Cents } | null;
+  nextDue: CommitmentNextDue | null;
+  hasIncome: boolean;
+};
+
+export type CommitmentDashboard = {
+  overview: CommitmentOverview;
+  byCategory: CategoryBreakdown;
+  /** Até 5 compromissos em aberto com vencimento em 30 dias (vencidos incluídos), só leitura. */
+  upcomingBills: BillListItem[];
 };
 
 export type ReportPreset = (typeof REPORT_PRESETS)[number];

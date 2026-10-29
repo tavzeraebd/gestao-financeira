@@ -18,6 +18,14 @@ export const LazyHorizontalBarChart = dynamic(
   },
 );
 
+export const LazyCommitmentBarChart = dynamic(
+  () => import("./commitment-bar-chart"),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-72 w-full" />,
+  },
+);
+
 export const LazyCashFlowBarChart = dynamic(
   () => import("./cash-flow-bar-chart"),
   {

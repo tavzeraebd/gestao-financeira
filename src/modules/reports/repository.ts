@@ -2,7 +2,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ISODate } from "@/lib/dates";
 import { fromDbNumeric, type Cents } from "@/lib/money";
+import { dbDate } from "@/lib/supabase/db-values";
+import { toFrequency } from "@/modules/recurrences/repository";
 import type { Database } from "@/types/database";
+import { MAX_COMMITMENT_ROWS } from "./constants";
+import type { CommitmentEntry, CommitmentSeries } from "./types";
 
 type Client = SupabaseClient<Database>;
 
@@ -16,6 +20,87 @@ export async function rpcBalancesAsOf(
   });
   if (error) throw error;
   return new Map(data.map((r) => [r.account_id, fromDbNumeric(r.balance)]));
+}
+
+type CommitmentTypeColumn = "income" | "expense";
+
+function toCommitmentType(value: string): CommitmentTypeColumn {
+  if (value === "income" || value === "expense") return value;
+  throw new Error("Compromisso com tipo inesperado no banco.");
+}
+
+/**
+ * Compromissos em aberto (`pending`, não excluídos, receita ou despesa) com data antes de `before`
+ * (vencidos incluídos). A RLS decide a família; nenhum filtro de família é enviado.
+ */
+export async function selectPendingCommitments(
+  supabase: Client,
+  before: ISODate,
+): Promise<CommitmentEntry[]> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("type, description, amount::text, transaction_date, category_id")
+    .eq("status", "pending")
+    .is("deleted_at", null)
+    .in("type", ["income", "expense"])
+    .lt("transaction_date", before)
+    .order("transaction_date", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(MAX_COMMITMENT_ROWS);
+  if (error) throw error;
+  return (
+    data as unknown as {
+      type: string;
+      description: string;
+      amount: string;
+      transaction_date: string;
+      category_id: string;
+    }[]
+  ).map((row) => ({
+    type: toCommitmentType(row.type),
+    description: row.description,
+    amount: fromDbNumeric(row.amount),
+    date: dbDate(row.transaction_date),
+    categoryId: row.category_id,
+  }));
+}
+
+/** Séries recorrentes ativas (a pausada não compromete o futuro). */
+export async function selectActiveCommitmentSeries(
+  supabase: Client,
+): Promise<CommitmentSeries[]> {
+  const { data, error } = await supabase
+    .from("recurrences")
+    .select(
+      "type, description, amount::text, frequency, interval_count, start_date, end_date, next_occurrence_date, category_id",
+    )
+    .eq("is_active", true)
+    .order("id", { ascending: true })
+    .limit(MAX_COMMITMENT_ROWS);
+  if (error) throw error;
+  return (
+    data as unknown as {
+      type: string;
+      description: string;
+      amount: string;
+      frequency: string;
+      interval_count: number;
+      start_date: string;
+      end_date: string | null;
+      next_occurrence_date: string;
+      category_id: string;
+    }[]
+  ).map((row) => ({
+    type: toCommitmentType(row.type),
+    description: row.description,
+    amount: fromDbNumeric(row.amount),
+    frequency: toFrequency(row.frequency),
+    intervalCount: row.interval_count,
+    startDate: dbDate(row.start_date),
+    endDate: row.end_date ? dbDate(row.end_date) : null,
+    nextOccurrenceDate: dbDate(row.next_occurrence_date),
+    categoryId: row.category_id,
+  }));
 }
 
 /** D4 por categoria (subcategoria somada à pai), em ordem decrescente. */

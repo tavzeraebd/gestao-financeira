@@ -51,9 +51,10 @@ test("CA-E2-50: cadastro, confirmação por e-mail, onboarding e início vazio",
   await expect(page).toHaveURL(/\/inicio$/);
   await expect(page.getByRole("heading", { name: "Olá, Ana!" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Cadastre sua primeira conta" }),
+    page.getByRole("heading", {
+      name: "Nenhum compromisso em aberto neste período",
+    }),
   ).toBeVisible();
-  await expect(page.getByText(/R\$|\d+,\d{2}/)).toHaveCount(0);
 });
 
 test("CA-E2-51: senha errada mostra erro genérico, mantém o e-mail e impede duplo envio", async ({

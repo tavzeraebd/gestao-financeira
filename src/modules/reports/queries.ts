@@ -1,6 +1,6 @@
 import "server-only";
-import { today, type ISODate } from "@/lib/dates";
-import { asCents, fromDbNumeric, type Cents } from "@/lib/money";
+import { addMonths, startOfMonth, today, type ISODate } from "@/lib/dates";
+import { asCents, fromDbNumeric, sumCents, type Cents } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { toGoalIcon, type GoalStatus } from "@/modules/goals/constants";
 import { goalProgress } from "@/modules/goals/domain/progress";
@@ -34,6 +34,7 @@ import { AppError } from "@/server/errors";
 import { DASHBOARD_GOALS_LIMIT, RECENT_TRANSACTIONS_LIMIT } from "./constants";
 import { buildCategoryBreakdown } from "./domain/breakdown";
 import { buildCashFlowMonths } from "./domain/cash-flow";
+import { buildCommitments, totalsByCategory } from "./domain/commitments";
 import { compare } from "./domain/comparison";
 import { cashFlowWindow, resolvePeriod } from "./domain/period";
 import { resolveReportPeriod } from "./domain/report-period";
@@ -50,13 +51,17 @@ import {
   rpcCategoryTotals,
   rpcMemberExpenseTotals,
   rpcMonthlyCashFlow,
+  selectActiveCommitmentSeries,
   selectHasPaidTransaction,
+  selectPendingCommitments,
 } from "./repository";
 import type {
   AccountReport,
   BudgetReport,
   CategoryReport,
   CategoryReportFilters,
+  CommitmentDashboard,
+  CommitmentFilters,
   Dashboard,
   DashboardFilters,
   DashboardGoal,
@@ -204,6 +209,46 @@ export async function getDashboard(
     }
     throw e;
   }
+}
+
+/**
+ * /inicio: acompanhamento do comprometimento futuro (somente leitura). Reaproveita as contas em aberto e
+ * as séries recorrentes ativas; a agregação mensal é `buildCommitments` (domínio puro). Nenhuma consulta
+ * recebe `family_id`: a RLS decide a família.
+ */
+export async function getCommitmentDashboard(
+  filters: CommitmentFilters,
+): Promise<CommitmentDashboard> {
+  await requireMembership();
+  await ensureRecurrencesMaterialized();
+  const supabase = await createClient();
+  const now = today();
+  const end = startOfMonth(addMonths(startOfMonth(now), filters.horizonte + 1));
+
+  return guardAggregates(async () => {
+    const [pending, series, categories, upcomingBills] = await Promise.all([
+      selectPendingCommitments(supabase, end),
+      selectActiveCommitmentSeries(supabase),
+      listCategories({ includeArchived: true }),
+      listUpcomingBills({ limit: UPCOMING_LIMIT }),
+    ]);
+    const { overview, expenses } = buildCommitments({
+      today: now,
+      horizon: filters.horizonte,
+      pending,
+      series,
+    });
+    const total = sumCents(expenses.map((e) => e.amount));
+    return {
+      overview,
+      byCategory: buildCategoryBreakdown(
+        totalsByCategory(expenses),
+        new Map(categories.map((c) => [c.id, c])),
+        total,
+      ),
+      upcomingBills,
+    };
+  });
 }
 
 // --- Relatórios (Etapa 7, ADR-0028): só chamam as funções SQL e a composição de `reports/domain`. ---

@@ -16,10 +16,8 @@ test("CA-E3-50: primeira conta pelo início, saldo em /contas", async ({
 }, testInfo) => {
   const c = await criarCenario(`conta50-${testInfo.project.name}`);
   await entrar(page, c.owner);
-  await expect(
-    page.getByRole("heading", { name: "Cadastre sua primeira conta" }),
-  ).toBeVisible();
-  await page.getByRole("link", { name: "Cadastrar conta" }).click();
+  await page.goto("/contas");
+  await page.getByRole("link", { name: "Cadastrar conta" }).first().click();
   await expect(page).toHaveURL(/\/contas\/nova$/);
   await page.getByLabel("Nome da conta").fill("Conta principal");
   await page.getByLabel("Saldo inicial").fill("1000");

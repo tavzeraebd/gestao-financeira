@@ -4,7 +4,6 @@ import Link from "next/link";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Money } from "@/components/shared/money";
-import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { formatDateBR } from "@/lib/dates";
 import { BillStatusBadge } from "@/modules/bills/components/bill-status-badge";
@@ -32,11 +31,7 @@ export function UpcomingBillsCard({ items }: { items: BillListItem[] }) {
           <EmptyState
             icon={CalendarClockIcon}
             title="Nenhum vencimento nos próximos 30 dias"
-            action={
-              <Link href="/compromissos/novo" className={buttonVariants()}>
-                Novo compromisso
-              </Link>
-            }
+            description="As contas em aberto com vencimento nos próximos 30 dias aparecem aqui."
           />
         ) : (
           <ul className="flex flex-col divide-y">
