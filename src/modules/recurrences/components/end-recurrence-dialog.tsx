@@ -42,15 +42,14 @@ export function EndRecurrenceDialog(props: EndProps) {
         render={
           <Button
             variant="destructive-outline"
-            size="lg"
-            className="w-11 px-0"
+            size="icon-lg"
             disabled={!hydrated}
             aria-label={`Encerrar ${props.description}`}
             title="Encerrar"
           />
         }
       >
-        <CircleStopIcon aria-hidden="true" data-icon="inline-start" />
+        <CircleStopIcon aria-hidden="true" />
       </DialogTrigger>
       <DialogContent showCloseButton={false}>
         {open ? <EndForm {...props} onClose={() => setOpen(false)} /> : null}

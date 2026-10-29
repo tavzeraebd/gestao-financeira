@@ -32,13 +32,12 @@ export function BillActions({ bill, accounts, today }: BillActionsProps) {
         href={`/transacoes/${bill.id}`}
         className={buttonVariants({
           variant: "outline",
-          size: "lg",
-          className: "w-11 px-0",
+          size: "icon-lg",
         })}
         aria-label="Ver lançamento"
         title="Ver lançamento"
       >
-        <ExternalLinkIcon aria-hidden="true" data-icon="inline-start" />
+        <ExternalLinkIcon aria-hidden="true" />
       </Link>
     );
   }
@@ -54,12 +53,11 @@ export function BillActions({ bill, accounts, today }: BillActionsProps) {
           aria-label="Editar compromisso"
           className={buttonVariants({
             variant: "warning",
-            size: "lg",
-            className: "w-11 px-0",
+            size: "icon-lg",
           })}
           title="Editar"
         >
-          <PencilIcon aria-hidden="true" data-icon="inline-start" />
+          <PencilIcon aria-hidden="true" />
         </Link>
       ) : null}
       {bill.canCancel ? <CancelBillButton transactionId={bill.id} /> : null}

@@ -114,11 +114,10 @@ export function RecurrenceCard({
             title="Ocorrências"
             className={buttonVariants({
               variant: "outline",
-              size: "lg",
-              className: "w-11 px-0",
+              size: "icon-lg",
             })}
           >
-            <ListIcon aria-hidden="true" data-icon="inline-start" />
+            <ListIcon aria-hidden="true" />
           </Link>
           {r.canManage ? (
             <>
@@ -126,13 +125,12 @@ export function RecurrenceCard({
                 href={`/recorrencias/${r.id}/editar`}
                 className={buttonVariants({
                   variant: "warning",
-                  size: "lg",
-                  className: "w-11 px-0",
+                  size: "icon-lg",
                 })}
                 aria-label={`Editar série ${r.description}`}
                 title="Editar"
               >
-                <PencilIcon aria-hidden="true" data-icon="inline-start" />
+                <PencilIcon aria-hidden="true" />
               </Link>
               {ended ? null : (
                 <>

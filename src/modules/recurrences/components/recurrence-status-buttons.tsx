@@ -54,15 +54,14 @@ export function PauseResumeButton({
     <Button
       type="button"
       variant={paused ? "success" : "outline"}
-      size="lg"
-      className="w-11 px-0"
+      size="icon-lg"
       loading={pending}
       disabled={!hydrated}
       aria-label={`${paused ? "Reativar" : "Pausar"} ${description}`}
       title={paused ? "Reativar" : "Pausar"}
       onClick={run}
     >
-      {pending ? null : <Icon aria-hidden="true" data-icon="inline-start" />}
+      {pending ? null : <Icon aria-hidden="true" />}
     </Button>
   );
 }

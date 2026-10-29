@@ -53,15 +53,14 @@ export function CancelBillButton({ transactionId }: { transactionId: string }) {
         render={
           <Button
             variant="destructive-outline"
-            size="lg"
-            className="w-11 px-0"
+            size="icon-lg"
             aria-label="Cancelar compromisso"
             title="Cancelar"
             disabled={!hydrated}
           />
         }
       >
-        <BanIcon aria-hidden="true" data-icon="inline-start" />
+        <BanIcon aria-hidden="true" />
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
