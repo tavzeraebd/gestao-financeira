@@ -130,7 +130,7 @@ test("categoria arquivada mostra o selo e edição mantém categoria travada", a
     page.getByText("Categoria arquivada").filter({ visible: true }).first(),
   ).toBeVisible();
   await page.goto(`/orcamentos/${orc.id}/editar`);
-  await expect(page.getByLabel("Categoria")).toBeDisabled();
+  await expect(page.getByLabel("Categoria", { exact: true })).toBeDisabled();
   await page.getByLabel("Limite mensal").fill("350");
   await page.getByRole("button", { name: "Salvar alterações" }).click();
   await expect(page).toHaveURL(/\/orcamentos$/);
