@@ -41,7 +41,9 @@ export function EndRecurrenceDialog(props: EndProps) {
       <DialogTrigger
         render={
           <Button
-            variant="outline"
+            variant="destructive-outline"
+            size="lg"
+            className="px-2.5 sm:px-5"
             disabled={!hydrated}
             aria-label={`Encerrar ${props.description}`}
           />

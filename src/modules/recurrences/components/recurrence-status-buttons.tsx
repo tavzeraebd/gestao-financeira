@@ -53,7 +53,9 @@ export function PauseResumeButton({
   return (
     <Button
       type="button"
-      variant="outline"
+      variant={paused ? "success" : "outline"}
+      size="lg"
+      className="px-2.5 sm:px-5"
       loading={pending}
       disabled={!hydrated}
       aria-label={`${paused ? "Reativar" : "Pausar"} ${description}`}
