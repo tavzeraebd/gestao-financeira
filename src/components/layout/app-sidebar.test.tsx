@@ -51,7 +51,7 @@ describe("AppSidebar - menu", () => {
     expect(link.className).toContain(
       "group-data-[collapsible=icon]:justify-center",
     );
-    expect(link.className).toContain("group-data-[collapsible=icon]:size-8!");
+    expect(link.className).toContain("group-data-[collapsible=icon]:size-10!");
     expect(link.className).toContain("group-data-[collapsible=icon]:p-0!");
     const texto = link.querySelector("span");
     expect(texto?.className).toContain("group-data-[collapsible=icon]:sr-only");

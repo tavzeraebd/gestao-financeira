@@ -62,7 +62,7 @@ export function AppSidebar({ familyName }: { familyName: string }) {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup className="group-data-[collapsible=icon]:px-1">
           <SidebarGroupContent>
             <SidebarMenu aria-label="Navegação principal" className="gap-1">
               {navItems.map((item) => {
@@ -75,9 +75,9 @@ export function AppSidebar({ familyName }: { familyName: string }) {
                       aria-label={label}
                       isActive={isNavItemActive(item, pathname)}
                       render={<Link href={href} />}
-                      className="h-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!"
+                      className="h-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!"
                     >
-                      <Icon aria-hidden="true" className="size-4 shrink-0" />
+                      <Icon aria-hidden="true" className="size-5 shrink-0" />
                       <span className="group-data-[collapsible=icon]:sr-only">
                         {label}
                       </span>
