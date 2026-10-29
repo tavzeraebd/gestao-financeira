@@ -51,9 +51,25 @@ describe("AppSidebar - menu", () => {
     expect(link.className).toContain(
       "group-data-[collapsible=icon]:justify-center",
     );
-    expect(link.className).toContain("group-data-[collapsible=icon]:size-10!");
+    expect(link.className).toContain("group-data-[collapsible=icon]:size-12!");
     expect(link.className).toContain("group-data-[collapsible=icon]:p-0!");
     const texto = link.querySelector("span");
     expect(texto?.className).toContain("group-data-[collapsible=icon]:sr-only");
+  });
+
+  it("recolhido: ícone de 24px e grupo com padding horizontal de 12px (botão de 48px cabe na coluna de 72px)", () => {
+    mockMatchMedia(false);
+    render(
+      <SidebarProvider>
+        <AppSidebar familyName="Silva" />
+      </SidebarProvider>,
+    );
+    const link = screen.getByRole("link", { name: "Início" });
+    const icone = link.querySelector("svg");
+    expect(icone?.getAttribute("class")).toContain(
+      "group-data-[collapsible=icon]:size-6",
+    );
+    const grupo = link.closest("[data-slot='sidebar-group']");
+    expect(grupo?.className).toContain("group-data-[collapsible=icon]:px-3");
   });
 });

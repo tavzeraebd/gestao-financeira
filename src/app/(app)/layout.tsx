@@ -18,7 +18,9 @@ export default async function AppLayout({
   ]);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      style={{ "--sidebar-width-icon": "4.5rem" } as React.CSSProperties}
+    >
       <SkipLink />
       <AppSidebar familyName={membership.familyName} />
       <SidebarInset
