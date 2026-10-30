@@ -85,7 +85,11 @@ test("/inicio sem compromissos: estados vazios informativos e nenhum atalho de c
       name: "Nenhum compromisso por categoria neste período",
     }),
   ).toBeVisible();
-  await expect(main.getByRole("img")).toHaveCount(0);
+  // Sem gráfico desenhado: o <main> inclui o cabeçalho, que no celular tem o logo (role=img "Núcleo"),
+  // por isso a asserção mira só os gráficos do comprometimento.
+  await expect(main.getByRole("img", { name: /Comprometimento/ })).toHaveCount(
+    0,
+  );
   await expect(tid(page, "indicador-saldo-total")).toContainText(
     reais("1.000,00"),
   );
@@ -224,8 +228,14 @@ for (const largura of [390, 320]) {
       )
         .map((el) => ({ el, box: el.getBoundingClientRect() }))
         .filter(
-          ({ box }) =>
-            box.width > 0 && box.height > 0 && Math.round(box.height) < 40,
+          ({ el, box }) =>
+            box.width > 0 &&
+            box.height > 0 &&
+            Math.round(box.height) < 40 &&
+            // ⓘ (InfoHint): ícone de 20px com área de toque de 40px por pseudo-elemento (::after).
+            !/^(Mais informações sobre|Como calculamos)/.test(
+              el.getAttribute("aria-label") ?? "",
+            ),
         )
         .map(
           ({ el, box }) =>

@@ -336,7 +336,8 @@ describe("detalhamento do /inicio", () => {
     const user = userEvent.setup();
     renderAll();
     await user.click(
-      screen.getByRole("button", { name: "Ver itens de Moradia" }),
+      // O nome acessível contém o texto visível da legenda (rótulo + percentual), WCAG 2.5.3.
+      screen.getByRole("button", { name: /^Ver itens de Moradia( [\d,]+%)?$/ }),
     );
     const dialog = await screen.findByRole("dialog", { name: "Moradia" });
     const view = within(dialog);

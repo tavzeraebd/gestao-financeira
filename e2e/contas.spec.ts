@@ -11,13 +11,22 @@ import {
 
 import { reais } from "./helpers/cenario";
 
-test("CA-E3-50: primeira conta pelo início, saldo em /contas", async ({
+test("CA-E3-50: primeira conta criada em /contas/nova, saldo em /contas", async ({
   page,
 }, testInfo) => {
   const c = await criarCenario(`conta50-${testInfo.project.name}`);
   await entrar(page, c.owner);
-  await page.goto("/contas");
-  await page.getByRole("link", { name: "Cadastrar conta" }).first().click();
+  // O /inicio é só de leitura: sem conta, mostra o estado vazio informativo e nenhum atalho de criação.
+  await page.goto("/inicio");
+  await expect(
+    page.getByRole("heading", {
+      name: "Nenhum compromisso em aberto neste período",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("main").getByRole("link", { name: "Cadastrar conta" }),
+  ).toHaveCount(0);
+  await page.goto("/contas/nova");
   await expect(page).toHaveURL(/\/contas\/nova$/);
   await page.getByLabel("Nome da conta").fill("Conta principal");
   await page.getByLabel("Saldo inicial").fill("1000");

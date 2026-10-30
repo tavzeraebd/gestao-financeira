@@ -52,7 +52,9 @@ export function ClickableCategoryLegend(
       onSelect={
         detail ? (key) => detail.open({ kind: "category", key }) : undefined
       }
-      selectLabel={(item) => `Ver itens de ${item.label}`}
+      selectLabel={(item) =>
+        `Ver itens de ${item.label}${item.value ? ` ${item.value}` : ""}`
+      }
     />
   );
 }
