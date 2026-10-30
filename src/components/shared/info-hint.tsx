@@ -45,9 +45,9 @@ export function InfoHint({
         closeDelay={100}
         aria-label={ariaLabel ?? `Mais informações sobre ${label}`}
         className={cn(
-          // Ícone pequeno; a área de toque chega a 40px pelo pseudo-elemento.
-          "text-muted-foreground hover:text-foreground focus-visible:ring-ring relative inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full align-middle transition-colors outline-none focus-visible:ring-3",
-          "after:absolute after:top-1/2 after:left-1/2 after:size-10 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']",
+          // Caixa de toque de 40px (piso do projeto para controle principal). A margem negativa
+          // mantém a ocupação na linha em 24px. O anel de foco fica no próprio botão.
+          "text-muted-foreground hover:text-foreground focus-visible:ring-ring relative -m-2 inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full align-middle transition-colors outline-none focus-visible:ring-3",
           className,
         )}
       >
