@@ -6,12 +6,12 @@ import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { z } from "zod";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { PasswordInput } from "@/components/shared/password-input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -69,11 +69,11 @@ export function UpdatePasswordForm() {
       noValidate
       className="flex flex-col gap-5"
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1">
         <h1 className="text-xl font-bold">Criar nova senha</h1>
-        <p className="text-muted-foreground text-sm">
+        <InfoHint label="criar nova senha">
           Escolha uma senha nova para continuar usando o Núcleo.
-        </p>
+        </InfoHint>
       </div>
 
       {formError ? (
@@ -90,21 +90,22 @@ export function UpdatePasswordForm() {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="nova-senha">Nova senha</FieldLabel>
+              <div className="flex items-center gap-1">
+                <FieldLabel htmlFor="nova-senha">Nova senha</FieldLabel>
+                <InfoHint label="a nova senha">
+                  Use de 8 a 72 caracteres, com pelo menos uma letra e um
+                  número.
+                </InfoHint>
+              </div>
               <PasswordInput
                 {...field}
                 id="nova-senha"
                 autoComplete="new-password"
                 aria-invalid={fieldState.invalid}
                 aria-describedby={
-                  fieldState.invalid
-                    ? "nova-senha-erro nova-senha-ajuda"
-                    : "nova-senha-ajuda"
+                  fieldState.invalid ? "nova-senha-erro" : undefined
                 }
               />
-              <FieldDescription id="nova-senha-ajuda">
-                Use de 8 a 72 caracteres, com pelo menos uma letra e um número.
-              </FieldDescription>
               {fieldState.invalid ? (
                 <FieldError id="nova-senha-erro" errors={[fieldState.error]} />
               ) : null}

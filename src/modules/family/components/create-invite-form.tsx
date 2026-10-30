@@ -7,11 +7,11 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldLabel,
   FieldLegend,
@@ -198,7 +198,15 @@ export function CreateInviteForm({
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="convite-email">E-mail (opcional)</FieldLabel>
+              <div className="flex items-center gap-1">
+                <FieldLabel htmlFor="convite-email">
+                  E-mail (opcional)
+                </FieldLabel>
+                <InfoHint label="o e-mail do convite">
+                  Se informar, só a conta com esse e-mail poderá aceitar. O
+                  Núcleo não envia o convite: você compartilha o link.
+                </InfoHint>
+              </div>
               <Input
                 {...field}
                 value={field.value ?? ""}
@@ -209,15 +217,9 @@ export function CreateInviteForm({
                 placeholder="pessoa@exemplo.com"
                 aria-invalid={fieldState.invalid}
                 aria-describedby={
-                  fieldState.invalid
-                    ? "convite-email-erro convite-email-ajuda"
-                    : "convite-email-ajuda"
+                  fieldState.invalid ? "convite-email-erro" : undefined
                 }
               />
-              <FieldDescription id="convite-email-ajuda">
-                Se informar, só a conta com esse e-mail poderá aceitar. O Núcleo
-                não envia o convite: você compartilha o link.
-              </FieldDescription>
               {fieldState.invalid ? (
                 <FieldError
                   id="convite-email-erro"

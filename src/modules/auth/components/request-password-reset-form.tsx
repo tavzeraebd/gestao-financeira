@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { z } from "zod";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -74,12 +75,12 @@ export function RequestPasswordResetForm() {
       noValidate
       className="flex flex-col gap-5"
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1">
         <h1 className="text-xl font-bold">Recuperar senha</h1>
-        <p className="text-muted-foreground text-sm">
+        <InfoHint label="recuperar senha">
           Informe o e-mail da conta. Enviaremos um link para criar uma nova
           senha.
-        </p>
+        </InfoHint>
       </div>
 
       {formError ? (

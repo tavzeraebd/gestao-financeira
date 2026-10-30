@@ -16,9 +16,10 @@ import type { z } from "zod";
 import { DatePicker } from "@/components/shared/date-picker";
 import { MoneyInput } from "@/components/shared/money-input";
 import { SegmentedControl } from "@/components/shared/segmented-control";
+import { InfoHint } from "@/components/shared/info-hint";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -580,18 +581,17 @@ export function BillForm({
               {kind === "pagar" ? (
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex flex-col gap-1">
-                    <Label
-                      htmlFor="compromisso-desconto-folha"
-                      className="text-sm"
-                    >
-                      {PAYROLL_DEDUCTION_LABEL}
-                    </Label>
-                    <p
-                      id="compromisso-desconto-folha-ajuda"
-                      className="text-muted-foreground text-sm"
-                    >
-                      {PAYROLL_DEDUCTION_HELP}
-                    </p>
+                    <div className="flex items-center gap-1">
+                      <Label
+                        htmlFor="compromisso-desconto-folha"
+                        className="text-sm"
+                      >
+                        {PAYROLL_DEDUCTION_LABEL}
+                      </Label>
+                      <InfoHint label={PAYROLL_DEDUCTION_LABEL}>
+                        {PAYROLL_DEDUCTION_HELP}
+                      </InfoHint>
+                    </div>
                     {form.formState.errors.payrollDeduction ? (
                       <p role="alert" className="text-destructive text-sm">
                         {form.formState.errors.payrollDeduction.message}
@@ -601,7 +601,6 @@ export function BillForm({
                   <Switch
                     id="compromisso-desconto-folha"
                     checked={payrollDeduction}
-                    aria-describedby="compromisso-desconto-folha-ajuda"
                     onCheckedChange={(checked) =>
                       form.setValue("payrollDeduction", checked)
                     }
@@ -610,10 +609,13 @@ export function BillForm({
               ) : null}
 
               {showMonthEndHint ? (
-                <FieldDescription>
-                  Nos meses sem o dia {dueDay}, o vencimento cai no último dia
-                  do mês.
-                </FieldDescription>
+                <p className="text-muted-foreground flex items-center gap-1 text-sm">
+                  Vencimento em meses curtos
+                  <InfoHint label="vencimento em meses curtos">
+                    Nos meses sem o dia {dueDay}, o vencimento cai no último dia
+                    do mês.
+                  </InfoHint>
+                </p>
               ) : null}
             </>
           ) : null}

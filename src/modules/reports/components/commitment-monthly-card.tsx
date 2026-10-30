@@ -1,17 +1,13 @@
 import { ChartCard } from "@/components/charts/chart-card";
 import { formatPercent } from "@/lib/format";
 import { asCents, formatBRL } from "@/lib/money";
-import { TriangleAlertIcon } from "lucide-react";
 
 import type {
   CommitmentOverview,
   ProjectedBalance,
 } from "@/modules/reports/types";
 
-import {
-  ClickableCommitmentBarChart,
-  MonthDetailButtons,
-} from "./commitment-clickable-charts";
+import { ClickableCommitmentBarChart } from "./commitment-clickable-charts";
 import { DetailTrigger } from "./commitment-detail-provider";
 
 /**
@@ -52,7 +48,6 @@ export function CommitmentMonthlyCard({
       : []),
     { id: "saldo", header: "Saldo projetado", align: "end" as const },
   ];
-  const negativeMonths = projection.months.filter((p) => p.negative);
 
   return (
     <ChartCard
@@ -113,31 +108,6 @@ export function CommitmentMonthlyCard({
         showIncome={hasIncome}
         ariaLabel={`Comprometimento mensal de ${label}. ${summary}.`}
       />
-      <div className="mt-3">
-        <MonthDetailButtons
-          months={months.map((m) => ({
-            month: m.month,
-            label: m.label,
-            longLabel: m.longLabel,
-          }))}
-        />
-      </div>
-      {negativeMonths.length > 0 ? (
-        <p
-          role="status"
-          data-testid="alerta-saldo-negativo"
-          className="text-destructive mt-3 flex items-start gap-2 text-sm font-medium"
-        >
-          <TriangleAlertIcon
-            aria-hidden="true"
-            className="mt-0.5 size-4 shrink-0"
-          />
-          <span>
-            Saldo projetado negativo em{" "}
-            {negativeMonths.map((p) => p.longLabel).join(", ")}.
-          </span>
-        </p>
-      ) : null}
     </ChartCard>
   );
 }

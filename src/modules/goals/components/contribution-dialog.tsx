@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { DatePicker } from "@/components/shared/date-picker";
 import { MoneyInput } from "@/components/shared/money-input";
+import { InfoHint } from "@/components/shared/info-hint";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -256,23 +257,19 @@ function ContributionForm({
           </LabeledField>
         ) : (
           <div className="flex flex-col gap-2">
-            <label htmlFor="aporte-integrante" className="text-sm font-medium">
-              Integrante
-            </label>
-            <Input
-              id="aporte-integrante"
-              value="Você"
-              readOnly
-              disabled
-              aria-describedby="aporte-integrante-ajuda"
-            />
-            <p
-              id="aporte-integrante-ajuda"
-              className="text-muted-foreground text-sm"
-            >
-              O registro fica no seu nome. Quem administra a família pode
-              registrar por outro integrante.
-            </p>
+            <div className="flex items-center gap-1">
+              <label
+                htmlFor="aporte-integrante"
+                className="text-sm font-medium"
+              >
+                Integrante
+              </label>
+              <InfoHint label="o integrante">
+                O registro fica no seu nome. Quem administra a família pode
+                registrar por outro integrante.
+              </InfoHint>
+            </div>
+            <Input id="aporte-integrante" value="Você" readOnly disabled />
           </div>
         )}
         <LabeledField

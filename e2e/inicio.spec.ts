@@ -164,9 +164,8 @@ test("/inicio com compromisso maior que o saldo: saldo projetado negativo sinali
   const menor = tid(page, "resumo-menor-saldo-projetado");
   await expect(menor).toContainText("Saldo negativo em");
   await expect(menor).toContainText("200,00");
-  await expect(tid(page, "alerta-saldo-negativo")).toContainText(
-    "Saldo projetado negativo em",
-  );
+  // O aviso fixo saiu da tela: o saldo negativo fica no card e no detalhe do mês.
+  await expect(tid(page, "alerta-saldo-negativo")).toHaveCount(0);
 });
 
 test("horizonte na URL: padrão 12, 6 meses e valor inválido", async ({

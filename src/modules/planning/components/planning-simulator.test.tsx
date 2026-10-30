@@ -77,15 +77,21 @@ describe("PlanningSimulator", () => {
     await userEvent.type(screen.getByLabelText("Valor do bem"), "50000");
     await userEvent.type(screen.getByLabelText("Prazo em meses"), "48");
     await userEvent.type(screen.getByLabelText("Taxa mensal (%)"), "1,5");
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Mais informações sobre Taxa mensal (%)",
+      }),
+    );
     expect(
-      screen.getByText(
+      await screen.findByText(
         "Use a taxa da proposta ou do contrato. O Núcleo não sugere taxas.",
       ),
     ).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
     await userEvent.click(screen.getByRole("button", { name: "Simular" }));
 
     expect(
-      screen.getByRole("heading", { name: "Premissas" }),
+      screen.getByRole("heading", { name: /^Premissas/ }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Informado").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Estimado").length).toBeGreaterThan(0);

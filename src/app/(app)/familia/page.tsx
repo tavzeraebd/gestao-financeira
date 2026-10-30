@@ -2,6 +2,7 @@ import { HistoryIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { PageHeader } from "@/components/shared/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -136,11 +137,13 @@ export default async function FamilyPage() {
         <>
           <Card className="[--card-spacing:--spacing(5)]">
             <CardHeader>
-              <CardTitle className="text-lg">Convidar alguém</CardTitle>
-              <CardDescription>
-                Gere um link e envie para a pessoa. Cada link vale para um único
-                uso.
-              </CardDescription>
+              <CardTitle className="flex items-center gap-1 text-lg">
+                Convidar alguém
+                <InfoHint label="convidar alguém">
+                  Gere um link e envie para a pessoa. Cada link vale para um
+                  único uso.
+                </InfoHint>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <CreateInviteForm
@@ -151,16 +154,20 @@ export default async function FamilyPage() {
 
           <Card className="[--card-spacing:--spacing(5)]">
             <CardHeader>
-              <CardTitle className="text-lg">Convites pendentes</CardTitle>
-              <CardDescription>
-                Convites que ainda não foram aceitos nem expiraram.
-              </CardDescription>
+              <CardTitle className="flex items-center gap-1 text-lg">
+                Convites pendentes
+                <InfoHint label="convites pendentes">
+                  Convites que ainda não foram aceitos nem expiraram.
+                </InfoHint>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {invites.length === 0 ? (
-                <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm">
-                  Nenhum convite pendente. Gere um link acima para convidar
-                  alguém.
+                <p className="text-muted-foreground flex items-center justify-center gap-1 rounded-lg border border-dashed p-4 text-center text-sm">
+                  Nenhum convite pendente.
+                  <InfoHint label="convites pendentes vazios">
+                    Gere um link acima para convidar alguém.
+                  </InfoHint>
                 </p>
               ) : (
                 <ul className="flex flex-col divide-y">

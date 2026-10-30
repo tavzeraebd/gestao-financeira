@@ -170,7 +170,12 @@ test("CA-E7-52: contas com os valores de R20 e a nota; integrantes com Total = d
   await expect(
     tid(page, "linha-conta").filter({ hasText: "Poupança" }),
   ).toContainText(reais("100,00"));
-  await expect(tid(page, "nota-transferencias")).toHaveText(
+  await page
+    .getByRole("button", {
+      name: "Mais informações sobre transferências entre contas",
+    })
+    .click();
+  await expect(page.locator('[data-slot="popover-content"]')).toContainText(
     "Transferências entre contas aparecem aqui. No saldo total elas se anulam.",
   );
   // Variação do saldo total = receitas − despesas (a transferência se anula).

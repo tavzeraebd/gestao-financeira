@@ -7,14 +7,10 @@ import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { z } from "zod";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   applyFieldErrors,
@@ -79,7 +75,12 @@ export function CreateFamilyForm() {
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor="familia-nome">Nome da família</FieldLabel>
+            <div className="flex items-center gap-1">
+              <FieldLabel htmlFor="familia-nome">Nome da família</FieldLabel>
+              <InfoHint label="o nome da família">
+                Aparece para todas as pessoas que você convidar.
+              </InfoHint>
+            </div>
             <Input
               {...field}
               id="familia-nome"
@@ -87,14 +88,9 @@ export function CreateFamilyForm() {
               placeholder="Ex.: Família Silva"
               aria-invalid={fieldState.invalid}
               aria-describedby={
-                fieldState.invalid
-                  ? "familia-nome-erro familia-nome-ajuda"
-                  : "familia-nome-ajuda"
+                fieldState.invalid ? "familia-nome-erro" : undefined
               }
             />
-            <FieldDescription id="familia-nome-ajuda">
-              Aparece para todas as pessoas que você convidar.
-            </FieldDescription>
             {fieldState.invalid ? (
               <FieldError id="familia-nome-erro" errors={[fieldState.error]} />
             ) : null}

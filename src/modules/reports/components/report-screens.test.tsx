@@ -312,12 +312,20 @@ describe("ReportAccounts (CA-E7-52)", () => {
     consolidated: comparison(130000, 100000),
   };
 
-  it("tabela, nota sobre transferências e variação do saldo total", () => {
+  it("tabela, nota sobre transferências e variação do saldo total", async () => {
+    const user = userEvent.setup();
     render(<ReportAccounts report={report} canManageAccounts />);
     expect(screen.getAllByTestId("linha-conta")).toHaveLength(2);
-    expect(screen.getByTestId("nota-transferencias")).toHaveTextContent(
-      "Transferências entre contas aparecem aqui. No saldo total elas se anulam.",
+    await user.click(
+      screen.getByRole("button", {
+        name: "Mais informações sobre transferências entre contas",
+      }),
     );
+    expect(
+      await screen.findByText(
+        "Transferências entre contas aparecem aqui. No saldo total elas se anulam.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("variacao-saldo-total")).toHaveTextContent(
       "Variação do saldo total",
     );

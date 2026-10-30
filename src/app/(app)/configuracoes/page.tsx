@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { PageHeader } from "@/components/shared/page-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignOutButton } from "@/modules/auth/components/sign-out-button";
 import { DeleteAccountSection } from "@/modules/profile/components/delete-account-section";
 import { SecurityActivitySection } from "@/modules/profile/components/security-activity-section";
@@ -40,10 +35,12 @@ export default async function SettingsPage() {
 
       <Card className="[--card-spacing:--spacing(5)]">
         <CardHeader>
-          <CardTitle className="text-lg">Perfil</CardTitle>
-          <CardDescription>
-            O nome aparece para as outras pessoas da família.
-          </CardDescription>
+          <CardTitle className="flex items-center gap-1 text-lg">
+            Perfil
+            <InfoHint label="o perfil">
+              O nome aparece para as outras pessoas da família.
+            </InfoHint>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <UpdateProfileForm
@@ -55,10 +52,12 @@ export default async function SettingsPage() {
 
       <Card className="[--card-spacing:--spacing(5)]">
         <CardHeader>
-          <CardTitle className="text-lg">Tema</CardTitle>
-          <CardDescription>
-            A escolha fica salva neste navegador.
-          </CardDescription>
+          <CardTitle className="flex items-center gap-1 text-lg">
+            Tema
+            <InfoHint label="o tema">
+              A escolha fica salva neste navegador.
+            </InfoHint>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ThemeOptions />
@@ -67,10 +66,12 @@ export default async function SettingsPage() {
 
       <Card className="[--card-spacing:--spacing(5)]">
         <CardHeader>
-          <CardTitle className="text-lg">Sessão</CardTitle>
-          <CardDescription>
-            Saia da conta neste dispositivo quando terminar.
-          </CardDescription>
+          <CardTitle className="flex items-center gap-1 text-lg">
+            Sessão
+            <InfoHint label="a sessão">
+              Saia da conta neste dispositivo quando terminar.
+            </InfoHint>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <SignOutButton />

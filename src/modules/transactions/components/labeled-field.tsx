@@ -8,12 +8,8 @@ import {
   type Path,
 } from "react-hook-form";
 
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
+import { InfoHint } from "@/components/shared/info-hint";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 
 export type FieldControlProps = {
   id: string;
@@ -56,14 +52,18 @@ export function LabeledField<V extends FieldValues>({
       render={({ field, fieldState }) => {
         const invalid = fieldState.invalid;
         const errorId = `${id}-erro`;
-        const helpId = `${id}-ajuda`;
-        const describedBy =
-          [invalid ? errorId : null, description ? helpId : null]
-            .filter(Boolean)
-            .join(" ") || undefined;
+        // A ajuda mora no ⓘ ao lado do rótulo; só o erro entra no aria-describedby.
+        const describedBy = invalid ? errorId : undefined;
         return (
           <Field data-invalid={invalid} className={className}>
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            {description ? (
+              <div className="flex items-center gap-1">
+                <FieldLabel htmlFor={id}>{label}</FieldLabel>
+                <InfoHint label={label}>{description}</InfoHint>
+              </div>
+            ) : (
+              <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            )}
             {children({
               id,
               name: field.name,
@@ -74,9 +74,6 @@ export function LabeledField<V extends FieldValues>({
               invalid,
               describedBy,
             })}
-            {description ? (
-              <FieldDescription id={helpId}>{description}</FieldDescription>
-            ) : null}
             {invalid ? (
               <FieldError id={errorId} errors={[fieldState.error]} />
             ) : null}

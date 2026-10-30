@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { PageHeader } from "@/components/shared/page-header";
 import { getMyProfile } from "@/modules/profile/queries";
 import { CommitmentDetailProvider } from "@/modules/reports/components/commitment-detail-provider";
@@ -36,8 +37,28 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           description="Acompanhe o que a sua família já tem de compromissos daqui para frente."
           actions={<CommitmentHorizonFilter horizon={overview.horizon} />}
         />
-        <p className="text-muted-foreground -mt-3 text-sm">
-          Período: <span data-testid="periodo-atual">{overview.label}</span>
+        <p className="text-muted-foreground -mt-3 flex items-center gap-1 text-sm">
+          <span>
+            Período: <span data-testid="periodo-atual">{overview.label}</span>
+          </span>
+          <InfoHint label="como os valores são calculados">
+            Comprometido é a soma das contas a pagar em aberto (vencidas entram
+            no mês atual) com as despesas recorrentes que ainda não foram
+            lançadas. A receita esperada soma as contas a receber em aberto e as
+            receitas recorrentes futuras. Pagamentos já feitos e séries pausadas
+            ficam de fora. O saldo atual soma as contas (sem cartões) com o que
+            já foi realizado; o saldo projetado de cada mês é o saldo atual mais
+            a receita esperada acumulada, menos o comprometido acumulado. Toque
+            ou clique em um valor, mês, fatia ou categoria para ver, operação
+            por operação, de onde vem o número. O histórico está em Relatórios.
+          </InfoHint>
+          <InfoHint label="desconto em folha">
+            Desconto em folha (parcelas descontadas direto do salário) entra no
+            comprometido e no percentual da receita, mas não reduz o saldo
+            projetado: o salário é lançado já líquido, então esse valor nunca
+            sai das contas. Por isso o percentual pode ficar um pouco acima do
+            real.
+          </InfoHint>
         </p>
 
         <CommitmentSummaryCards
@@ -63,24 +84,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <UpcomingBillsCard items={dashboard.upcomingBills} />
           </div>
         </div>
-
-        <p className="text-muted-foreground text-xs">
-          Comprometido é a soma das contas a pagar em aberto (vencidas entram no
-          mês atual) com as despesas recorrentes que ainda não foram lançadas. A
-          receita esperada soma as contas a receber em aberto e as receitas
-          recorrentes futuras. Pagamentos já feitos e séries pausadas ficam de
-          fora. O saldo atual soma as contas (sem cartões) com o que já foi
-          realizado; o saldo projetado de cada mês é o saldo atual mais a
-          receita esperada acumulada, menos o comprometido acumulado. Toque ou
-          clique em um valor, mês, fatia ou categoria para ver, operação por
-          operação, de onde vem o número. O histórico está em Relatórios.
-        </p>
-        <p className="text-muted-foreground text-xs">
-          Desconto em folha (parcelas descontadas direto do salário) entra no
-          comprometido e no percentual da receita, mas não reduz o saldo
-          projetado: o salário é lançado já líquido, então esse valor nunca sai
-          das contas. Por isso o percentual pode ficar um pouco acima do real.
-        </p>
       </div>
     </CommitmentDetailProvider>
   );

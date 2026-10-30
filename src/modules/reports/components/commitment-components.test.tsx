@@ -144,7 +144,7 @@ describe("CommitmentMonthlyCard", () => {
 });
 
 describe("CommitmentMonthlyCard: saldo projetado", () => {
-  it("negativo: aviso em texto e aria-label com o saldo", () => {
+  it("negativo: sem aviso fixo na tela; aria-label traz o saldo negativo", () => {
     const months = [
       month("2026-10", 10000, 0, 0),
       month("2026-11", 20000, 0, 0),
@@ -155,15 +155,15 @@ describe("CommitmentMonthlyCard: saldo projetado", () => {
         projection={projectionOf(months, 15000)}
       />,
     );
-    expect(screen.getByTestId("alerta-saldo-negativo")).toHaveTextContent(
-      "Saldo projetado negativo em mês 2026-11.",
-    );
+    expect(
+      screen.queryByTestId("alerta-saldo-negativo"),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("img").getAttribute("aria-label")).toMatch(
       /saldo projetado .*\(negativo\)/,
     );
   });
 
-  it("positivo: sem aviso", () => {
+  it("positivo: sem aviso e sem fileira de botões de mês", () => {
     const months = [month("2026-10", 10000, 0, 0)];
     render(
       <CommitmentMonthlyCard
@@ -173,6 +173,9 @@ describe("CommitmentMonthlyCard: saldo projetado", () => {
     );
     expect(
       screen.queryByTestId("alerta-saldo-negativo"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Detalhar mês" }),
     ).not.toBeInTheDocument();
   });
 });

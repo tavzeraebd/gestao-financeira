@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { InfoHint } from "@/components/shared/info-hint";
 import { Money } from "@/components/shared/money";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
@@ -67,24 +68,28 @@ export default async function AccountsPage() {
       >
         <Card className="[--card-spacing:--spacing(5)]">
           <CardContent>
-            <p className="text-muted-foreground text-sm">Saldo total</p>
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              Saldo total
+              <InfoHint label="saldo total">
+                Soma das contas, sem cartões de crédito
+              </InfoHint>
+            </p>
             <p className="text-2xl font-bold" data-testid="saldo-total">
               <Money cents={overview.consolidatedBalance} />
-            </p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Soma das contas, sem cartões de crédito
             </p>
           </CardContent>
         </Card>
         {hasCard ? (
           <Card className="[--card-spacing:--spacing(5)]">
             <CardContent>
-              <p className="text-muted-foreground text-sm">Faturas em aberto</p>
+              <p className="text-muted-foreground flex items-center gap-1 text-sm">
+                Faturas em aberto
+                <InfoHint label="faturas em aberto">
+                  Quanto você deve nos cartões de crédito
+                </InfoHint>
+              </p>
               <p className="text-2xl font-bold" data-testid="faturas-em-aberto">
                 <Money cents={overview.openCardDebt} />
-              </p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Quanto você deve nos cartões de crédito
               </p>
             </CardContent>
           </Card>

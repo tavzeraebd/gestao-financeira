@@ -10,7 +10,6 @@ import {
 } from "@/components/charts/lazy";
 import type { CommitmentBarChartProps } from "@/components/charts/commitment-bar-chart";
 import type { DonutChartProps } from "@/components/charts/donut-chart";
-import { Button } from "@/components/ui/button";
 import type { ISODate } from "@/lib/dates";
 
 import { useCommitmentDetail } from "./commitment-detail-provider";
@@ -55,37 +54,5 @@ export function ClickableCategoryLegend(
       }
       selectLabel={(item) => `Ver itens de ${item.label}`}
     />
-  );
-}
-
-/** Fileira de botões de mês: barras SVG não são navegáveis por teclado, então o detalhe também sai daqui. */
-export function MonthDetailButtons({
-  months,
-}: {
-  months: { month: ISODate; label: string; longLabel: string }[];
-}) {
-  const detail = useCommitmentDetail();
-  if (!detail || months.length === 0) return null;
-  return (
-    <div
-      role="group"
-      aria-label="Detalhar mês"
-      className="flex flex-wrap items-center gap-2"
-    >
-      <span className="text-muted-foreground text-sm">Detalhar mês:</span>
-      {months.map((m) => (
-        <Button
-          key={m.month}
-          type="button"
-          variant="outline"
-          size="sm"
-          className="min-h-10 sm:min-h-8"
-          aria-label={`Ver detalhes de ${m.longLabel}`}
-          onClick={() => detail.open({ kind: "month", month: m.month })}
-        >
-          {m.label}
-        </Button>
-      ))}
-    </div>
   );
 }

@@ -1,6 +1,7 @@
 import { AlertCircleIcon, ClockIcon, InfoIcon } from "lucide-react";
 import type { Metadata } from "next";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { SignInForm } from "@/modules/auth/components/sign-in-form";
@@ -28,11 +29,11 @@ export default async function LoginPage({
   return (
     <Card className="[--card-spacing:--spacing(6)]">
       <CardContent className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1">
           <h1 className="text-xl font-bold">Entrar</h1>
-          <p className="text-muted-foreground text-sm">
+          <InfoHint label="entrar">
             Acesse sua conta para ver as finanças da família.
-          </p>
+          </InfoHint>
         </div>
         {erro === "link_invalido" ? (
           <Alert variant="destructive">

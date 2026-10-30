@@ -124,7 +124,14 @@ describe("BillForm", () => {
     expect(screen.getByLabelText("Frequência")).toHaveTextContent("Todo mês");
     expect(screen.getByLabelText("A cada")).toHaveTextContent("1");
     expect(screen.getByLabelText("Termina em (opcional)")).toBeInTheDocument();
-    expect(screen.getByText("Sem data para terminar.")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: "Mais informações sobre Termina em (opcional)",
+      }),
+    );
+    expect(
+      await screen.findByText("Sem data para terminar."),
+    ).toBeInTheDocument();
     // A série não aceita observações.
     expect(screen.queryByLabelText("Observações")).not.toBeInTheDocument();
     expect(
@@ -145,8 +152,15 @@ describe("BillForm", () => {
 
     await user.click(screen.getByRole("switch", { name: "Repetir" }));
     const folha = screen.getByRole("switch", { name: "Desconto em folha" });
-    expect(folha).toHaveAttribute("aria-describedby");
-    expect(screen.getByText(/não sai do saldo da conta/)).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: "Mais informações sobre Desconto em folha",
+      }),
+    );
+    expect(
+      await screen.findByText(/não sai do saldo da conta/),
+    ).toBeInTheDocument();
+    await user.keyboard("{Escape}");
 
     await user.click(folha);
     await user.click(

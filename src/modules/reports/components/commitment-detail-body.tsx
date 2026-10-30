@@ -2,6 +2,7 @@ import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Money } from "@/components/shared/money";
 import { Badge } from "@/components/ui/badge";
 import { formatDateBR } from "@/lib/dates";
@@ -174,9 +175,12 @@ function MonthBody({ month }: { month: MonthDetail }) {
           </Row>
         </dl>
         {month.payroll > 0 ? (
-          <p className="text-muted-foreground mt-2 text-xs">
-            O desconto em folha entra no comprometido, mas não sai do saldo: o
-            salário é lançado já líquido.
+          <p className="text-muted-foreground mt-2 flex items-center gap-1 text-xs">
+            Desconto em folha
+            <InfoHint label="desconto em folha">
+              O desconto em folha entra no comprometido, mas não sai do saldo: o
+              salário é lançado já líquido.
+            </InfoHint>
           </p>
         ) : null}
       </section>
@@ -278,16 +282,19 @@ function AccountsBody({ details }: { details: CommitmentDetails }) {
           className="flex flex-col gap-1"
         >
           <div className="flex items-baseline justify-between gap-3">
-            <h3 id="saldo-faturas" className="text-sm font-semibold">
+            <h3
+              id="saldo-faturas"
+              className="flex items-center gap-1 text-sm font-semibold"
+            >
               Faturas de cartão em aberto
+              <InfoHint label="faturas de cartão em aberto">
+                Cartões não entram no saldo atual.
+              </InfoHint>
             </h3>
             <span className="text-sm font-semibold tabular-nums">
               <Money cents={details.openCardDebt} />
             </span>
           </div>
-          <p className="text-muted-foreground text-xs">
-            Cartões não entram no saldo atual.
-          </p>
           <ul className="flex flex-col divide-y">
             {cards.map((a) => (
               <li
@@ -391,13 +398,16 @@ function LowestBody({
   return (
     <div className="flex flex-col gap-5" data-testid="detalhe-menor-saldo">
       <section aria-labelledby="menor-saldo-conta">
-        <h3 id="menor-saldo-conta" className="mb-1 text-sm font-semibold">
+        <h3
+          id="menor-saldo-conta"
+          className="mb-2 flex items-center gap-1 text-sm font-semibold"
+        >
           Como se chega ao menor saldo
+          <InfoHint label="como se chega ao menor saldo">
+            Cada mês parte do saldo do mês anterior, soma a receita esperada e
+            subtrai o que sai do caixa (contas em aberto e recorrências).
+          </InfoHint>
         </h3>
-        <p className="text-muted-foreground mb-2 text-xs">
-          Cada mês parte do saldo do mês anterior, soma a receita esperada e
-          subtrai o que sai do caixa (contas em aberto e recorrências).
-        </p>
         <div className="flex items-baseline justify-between gap-3 rounded-md border px-3 py-2">
           <span className="text-sm">Saldo atual</span>
           <span className="text-sm font-semibold tabular-nums">

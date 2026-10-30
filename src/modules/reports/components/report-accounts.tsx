@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChartCard } from "@/components/charts/chart-card";
 import { ChartLegend } from "@/components/charts/chart-legend";
 import { LazyHorizontalBarChart } from "@/components/charts/lazy";
+import { InfoHint } from "@/components/shared/info-hint";
 import { Money } from "@/components/shared/money";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -191,10 +192,13 @@ export function ReportAccounts({
       ) : null}
 
       <p
-        className="text-muted-foreground text-sm"
+        className="text-muted-foreground flex items-center gap-1 text-sm"
         data-testid="nota-transferencias"
       >
-        {ACCOUNT_TRANSFER_NOTE}
+        Transferências entre contas
+        <InfoHint label="transferências entre contas">
+          {ACCOUNT_TRANSFER_NOTE}
+        </InfoHint>
       </p>
     </div>
   );

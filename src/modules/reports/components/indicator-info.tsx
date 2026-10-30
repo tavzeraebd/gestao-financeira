@@ -1,16 +1,6 @@
 "use client";
 
-import { InfoIcon } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverDescription,
-  PopoverHeader,
-  PopoverTitle,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { InfoHint } from "@/components/shared/info-hint";
 import {
   INDICATOR_DEFINITIONS,
   type IndicatorId,
@@ -20,28 +10,15 @@ import {
 export function IndicatorInfo({ id }: { id: IndicatorId }) {
   const definition = INDICATOR_DEFINITIONS[id];
   return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={`Como calculamos ${definition.title}`}
-          />
-        }
-      >
-        <InfoIcon aria-hidden="true" className="size-4" />
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-72">
-        <PopoverHeader>
-          <PopoverTitle>Como calculamos {definition.title}</PopoverTitle>
-          <PopoverDescription>{definition.description}</PopoverDescription>
-        </PopoverHeader>
-        <p className="text-muted-foreground text-xs">
-          Definição {definition.ref}
-        </p>
-      </PopoverContent>
-    </Popover>
+    <InfoHint
+      label={definition.title}
+      ariaLabel={`Como calculamos ${definition.title}`}
+      title={`Como calculamos ${definition.title}`}
+    >
+      {definition.description}
+      <span className="text-muted-foreground mt-2 block text-xs">
+        Definição {definition.ref}
+      </span>
+    </InfoHint>
   );
 }

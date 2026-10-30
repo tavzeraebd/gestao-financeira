@@ -1,5 +1,6 @@
 import { AlertCircleIcon } from "lucide-react";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Money } from "@/components/shared/money";
 import { ValueSourceBadge } from "@/components/shared/value-source-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -132,18 +133,20 @@ export function ScenarioResult({ outcome }: { outcome: ScenarioOutcome }) {
       ) : null}
 
       {outcome.premises.length > 0 ? (
-        <section
-          aria-labelledby="premissas-titulo"
-          className="flex flex-col gap-2"
-        >
-          <h3 id="premissas-titulo" className="text-sm font-semibold">
+        <section aria-labelledby="premissas-titulo">
+          <h3
+            id="premissas-titulo"
+            className="flex items-center gap-1 text-sm font-semibold"
+          >
             Premissas
+            <InfoHint label="as premissas da simulação">
+              <ul className="list-disc space-y-1 pl-4">
+                {outcome.premises.map((premise) => (
+                  <li key={premise}>{premise}</li>
+                ))}
+              </ul>
+            </InfoHint>
           </h3>
-          <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-sm">
-            {outcome.premises.map((premise) => (
-              <li key={premise}>{premise}</li>
-            ))}
-          </ul>
         </section>
       ) : null}
     </div>

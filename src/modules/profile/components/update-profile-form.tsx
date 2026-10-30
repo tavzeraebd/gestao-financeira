@@ -7,14 +7,10 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   applyFieldErrors,
@@ -103,11 +99,13 @@ export function UpdateProfileForm({
       />
 
       <Field>
-        <FieldLabel htmlFor="perfil-email">E-mail</FieldLabel>
+        <div className="flex items-center gap-1">
+          <FieldLabel htmlFor="perfil-email">E-mail</FieldLabel>
+          <InfoHint label="o e-mail da conta">
+            O e-mail da conta não pode ser alterado por aqui.
+          </InfoHint>
+        </div>
         <Input id="perfil-email" value={email} readOnly disabled />
-        <FieldDescription>
-          O e-mail da conta não pode ser alterado por aqui.
-        </FieldDescription>
       </Field>
 
       <div>

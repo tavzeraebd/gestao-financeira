@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Money } from "@/components/shared/money";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,14 +76,15 @@ export default async function SplitDetailPage({
         </CardContent>
       </Card>
 
-      <p className="text-muted-foreground text-sm">
-        A divisão só registra quanto cabe a cada um. A despesa continua contando
-        uma vez no saldo e nos totais.
-      </p>
-
       <Card className="[--card-spacing:--spacing(5)]">
         <CardHeader>
-          <CardTitle className="text-base">Divisão</CardTitle>
+          <CardTitle className="flex items-center gap-1 text-base">
+            Divisão
+            <InfoHint label="divisão">
+              A divisão só registra quanto cabe a cada um. A despesa continua
+              contando uma vez no saldo e nos totais.
+            </InfoHint>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {detail.canEdit ? (

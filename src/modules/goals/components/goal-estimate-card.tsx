@@ -1,3 +1,4 @@
+import { InfoHint } from "@/components/shared/info-hint";
 import { Money } from "@/components/shared/money";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { formatDateBR, formatMonthBR } from "@/lib/dates";
@@ -10,7 +11,12 @@ export function GoalEstimateCard({ goal }: { goal: GoalView }) {
   return (
     <Card data-testid="estimativa">
       <CardHeader>
-        <h2 className="text-base font-semibold">Estimativa</h2>
+        <h2 className="flex items-center gap-1 text-base font-semibold">
+          Estimativa
+          {reached ? null : (
+            <InfoHint label="a estimativa">{estimate.premise}</InfoHint>
+          )}
+        </h2>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm">
         {reached ? (
@@ -38,9 +44,6 @@ export function GoalEstimateCard({ goal }: { goal: GoalView }) {
               por mês
             </p>
           ) : null
-        ) : null}
-        {!reached ? (
-          <p className="text-muted-foreground">{estimate.premise}</p>
         ) : null}
       </CardContent>
     </Card>

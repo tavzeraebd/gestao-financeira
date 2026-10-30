@@ -4,17 +4,13 @@ import { CalculatorIcon, WalletIcon } from "lucide-react";
 import { useState } from "react";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { InfoHint } from "@/components/shared/info-hint";
 import { Money } from "@/components/shared/money";
 import { MoneyInput } from "@/components/shared/money-input";
 import { ValueSourceBadge } from "@/components/shared/value-source-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { asCents } from "@/lib/money";
 import {
@@ -339,13 +335,7 @@ export function PlanningSimulator({
                 {FIELDS[scenario].map((def) => {
                   const id = `cenario-${def.name}`;
                   const error = errors[def.name];
-                  const describedBy =
-                    [
-                      error ? `${id}-erro` : null,
-                      def.help ? `${id}-ajuda` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" ") || undefined;
+                  const describedBy = error ? `${id}-erro` : undefined;
                   const set = (value: string) =>
                     setValues((current) => ({ ...current, [def.name]: value }));
                   return (
@@ -353,7 +343,14 @@ export function PlanningSimulator({
                       key={`${scenario}-${def.name}`}
                       data-invalid={Boolean(error)}
                     >
-                      <FieldLabel htmlFor={id}>{def.label}</FieldLabel>
+                      {def.help ? (
+                        <div className="flex items-center gap-1">
+                          <FieldLabel htmlFor={id}>{def.label}</FieldLabel>
+                          <InfoHint label={def.label}>{def.help}</InfoHint>
+                        </div>
+                      ) : (
+                        <FieldLabel htmlFor={id}>{def.label}</FieldLabel>
+                      )}
                       {def.kind === "money" ? (
                         <MoneyInput
                           id={id}
@@ -390,11 +387,6 @@ export function PlanningSimulator({
                           describedBy={describedBy}
                         />
                       )}
-                      {def.help ? (
-                        <FieldDescription id={`${id}-ajuda`}>
-                          {def.help}
-                        </FieldDescription>
-                      ) : null}
                       {error ? (
                         <FieldError id={`${id}-erro`}>{error}</FieldError>
                       ) : null}

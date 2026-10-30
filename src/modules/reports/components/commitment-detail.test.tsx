@@ -239,10 +239,18 @@ function renderAll() {
 
 const NOVEMBER = { name: "Ver detalhes de novembro de 2026" };
 
+/** O detalhe por mês sai do gráfico; o caminho de teclado é a tabela alternativa ("Ver tabela"). */
+async function openMonthlyTable(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    screen.getAllByRole("button", { name: "Ver tabela" })[0] as HTMLElement,
+  );
+}
+
 describe("detalhamento do /inicio", () => {
-  it("botão do mês abre o detalhe com resumo, grupos, links e a conta do saldo", async () => {
+  it("mês da tabela abre o detalhe com resumo, grupos, links e a conta do saldo", async () => {
     const user = userEvent.setup();
     renderAll();
+    await openMonthlyTable(user);
     await user.click(screen.getByRole("button", NOVEMBER));
     const dialog = await screen.findByRole("dialog", {
       name: "novembro de 2026",
@@ -274,6 +282,7 @@ describe("detalhamento do /inicio", () => {
   it("Enter no botão do mês abre; Esc e Fechar fecham", async () => {
     const user = userEvent.setup();
     renderAll();
+    await openMonthlyTable(user);
     screen.getByRole("button", NOVEMBER).focus();
     await user.keyboard("{Enter}");
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
@@ -288,6 +297,7 @@ describe("detalhamento do /inicio", () => {
   it("mês sem compromissos mostra o estado vazio informativo", async () => {
     const user = userEvent.setup();
     renderAll();
+    await openMonthlyTable(user);
     await user.click(
       screen.getByRole("button", { name: "Ver detalhes de outubro de 2026" }),
     );

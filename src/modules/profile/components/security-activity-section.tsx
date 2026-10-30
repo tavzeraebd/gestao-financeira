@@ -1,13 +1,8 @@
 import { AlertTriangleIcon } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { InfoHint } from "@/components/shared/info-hint";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatActivityDate } from "@/modules/activity/components/activity-list";
 import type { SecurityEvent } from "@/modules/profile/types";
 
@@ -32,13 +27,13 @@ export function SecurityActivitySection({
           id="atividade-seguranca-titulo"
           role="heading"
           aria-level={2}
-          className="text-lg"
+          className="flex items-center gap-1 text-lg"
         >
           Atividade de segurança
+          <InfoHint label="a atividade de segurança">
+            Os últimos eventos da sua conta, como a troca de senha.
+          </InfoHint>
         </CardTitle>
-        <CardDescription>
-          Os últimos eventos da sua conta, como a troca de senha.
-        </CardDescription>
       </CardHeader>
       <CardContent>
         {events === null ? (

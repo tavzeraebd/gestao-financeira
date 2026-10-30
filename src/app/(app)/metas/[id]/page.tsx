@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { InfoHint } from "@/components/shared/info-hint";
 import { GoalIcon } from "@/components/shared/goal-icon";
 import { Money } from "@/components/shared/money";
 import { PaginationNav } from "@/components/shared/pagination-nav";
@@ -107,9 +108,12 @@ export default async function GoalDetailPage({
                 Data-alvo: {formatDateBR(goal.targetDate)}
               </p>
             ) : null}
-            <p className="text-muted-foreground">
-              O valor guardado é uma reserva registrada aqui. Ele não sai das
-              contas nem muda o saldo total.
+            <p className="text-muted-foreground flex items-center gap-1">
+              Valor guardado
+              <InfoHint label="valor guardado">
+                O valor guardado é uma reserva registrada aqui. Ele não sai das
+                contas nem muda o saldo total.
+              </InfoHint>
             </p>
           </CardContent>
         </Card>

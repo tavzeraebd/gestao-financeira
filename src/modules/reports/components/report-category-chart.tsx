@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChartCard } from "@/components/charts/chart-card";
 import { ChartLegend } from "@/components/charts/chart-legend";
 import { LazyDonutChart } from "@/components/charts/lazy";
+import { InfoHint } from "@/components/shared/info-hint";
 import { buttonVariants } from "@/components/ui/button";
 import { formatPercent } from "@/lib/format";
 import { formatBRL } from "@/lib/money";
@@ -94,10 +95,13 @@ export function ReportCategoryChart({
             }))}
           />
           {negative.length > 0 ? (
-            <p className="text-muted-foreground text-xs">
-              Estornos maiores que os valores no período:{" "}
-              {negative.map((slice) => sliceName(slice)).join(", ")}. Veja os
-              valores em &quot;Ver tabela&quot;.
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+              Estornos acima dos valores
+              <InfoHint label="estornos acima dos valores">
+                Estornos maiores que os valores no período:{" "}
+                {negative.map((slice) => sliceName(slice)).join(", ")}. Veja os
+                valores em &quot;Ver tabela&quot;.
+              </InfoHint>
             </p>
           ) : null}
           {detailsHref ? (

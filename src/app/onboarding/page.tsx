@@ -1,6 +1,7 @@
 import { LinkIcon } from "lucide-react";
 import type { Metadata } from "next";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreateFamilyForm } from "@/modules/family/components/create-family-form";
 
@@ -14,19 +15,22 @@ export default function OnboardingPage() {
           <p className="text-muted-foreground text-xs font-medium">
             Passo 1 de 1
           </p>
-          <h1 className="text-xl font-bold">Crie sua família</h1>
-          <p className="text-muted-foreground text-sm">
-            A família é o espaço em que vocês vão organizar o dinheiro juntos.
-          </p>
+          <div className="flex items-center gap-1">
+            <h1 className="text-xl font-bold">Crie sua família</h1>
+            <InfoHint label="criar a família">
+              A família é o espaço em que vocês vão organizar o dinheiro juntos.
+            </InfoHint>
+          </div>
         </div>
         <CreateFamilyForm />
-        <div className="bg-muted text-muted-foreground flex items-start gap-2 rounded-lg p-3 text-sm">
-          <LinkIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          <p>
-            Recebeu um convite? Não precisa criar uma família: abra o link do
-            convite que você recebeu e aceite por lá.
-          </p>
-        </div>
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <LinkIcon aria-hidden="true" className="size-4 shrink-0" />
+          Recebeu um convite?
+          <InfoHint label="receber um convite">
+            Não precisa criar uma família: abra o link do convite que você
+            recebeu e aceite por lá.
+          </InfoHint>
+        </p>
       </CardContent>
     </Card>
   );

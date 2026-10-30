@@ -8,12 +8,12 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { PasswordInput } from "@/components/shared/password-input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -122,12 +122,12 @@ export function SignUpForm({ next }: { next?: string }) {
       noValidate
       className="flex flex-col gap-5"
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1">
         <h1 className="text-xl font-bold">Criar conta</h1>
-        <p className="text-muted-foreground text-sm">
+        <InfoHint label="criar conta">
           Comece em poucos passos. Você confirma o e-mail e depois cria ou entra
           em uma família.
-        </p>
+        </InfoHint>
       </div>
 
       {formError ? (
@@ -196,21 +196,22 @@ export function SignUpForm({ next }: { next?: string }) {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="cadastro-senha">Senha</FieldLabel>
+              <div className="flex items-center gap-1">
+                <FieldLabel htmlFor="cadastro-senha">Senha</FieldLabel>
+                <InfoHint label="a senha">
+                  Use de 8 a 72 caracteres, com pelo menos uma letra e um
+                  número.
+                </InfoHint>
+              </div>
               <PasswordInput
                 {...field}
                 id="cadastro-senha"
                 autoComplete="new-password"
                 aria-invalid={fieldState.invalid}
                 aria-describedby={
-                  fieldState.invalid
-                    ? "cadastro-senha-erro cadastro-senha-ajuda"
-                    : "cadastro-senha-ajuda"
+                  fieldState.invalid ? "cadastro-senha-erro" : undefined
                 }
               />
-              <FieldDescription id="cadastro-senha-ajuda">
-                Use de 8 a 72 caracteres, com pelo menos uma letra e um número.
-              </FieldDescription>
               {fieldState.invalid ? (
                 <FieldError
                   id="cadastro-senha-erro"
