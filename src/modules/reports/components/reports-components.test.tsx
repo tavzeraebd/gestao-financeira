@@ -116,7 +116,7 @@ describe("indicadores", () => {
     const user = userEvent.setup();
     render(<IndicatorInfo id="consolidatedBalance" />);
     await user.click(
-      screen.getByRole("button", { name: "Como calculamos Saldo total" }),
+      screen.getByRole("button", { name: "Como calculamos Saldo atual" }),
     );
     expect(
       await screen.findByText(/Soma dos saldos das contas, sem cartões/),

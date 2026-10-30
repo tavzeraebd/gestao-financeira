@@ -86,6 +86,9 @@ test("/inicio sem compromissos: estados vazios informativos e nenhum atalho de c
     }),
   ).toBeVisible();
   await expect(main.getByRole("img")).toHaveCount(0);
+  await expect(tid(page, "indicador-saldo-total")).toContainText(
+    reais("1.000,00"),
+  );
   for (const nome of [
     "Nova transação",
     "Novo compromisso",
@@ -110,6 +113,15 @@ test("/inicio com compromisso: resumo, gráficos com resumo textual e Ver tabela
   await entrar(page, c.owner);
   await page.goto("/inicio");
 
+  // Saldo atual (conta de R$ 1.000,00) em primeiro lugar e menor saldo projetado (1.000 - 80).
+  await expect(tid(page, "indicador-saldo-total")).toContainText("Saldo atual");
+  await expect(tid(page, "indicador-saldo-total")).toContainText(
+    reais("1.000,00"),
+  );
+  await expect(tid(page, "resumo-menor-saldo-projetado")).toContainText(
+    reais("920,00"),
+  );
+  await expect(tid(page, "alerta-saldo-negativo")).toHaveCount(0);
   await expect(tid(page, "resumo-total-comprometido")).toContainText(
     reais("80,00"),
   );
@@ -137,6 +149,24 @@ test("/inicio com compromisso: resumo, gráficos com resumo textual e Ver tabela
   await expect(page).toHaveURL(/\/compromissos\/[0-9a-f-]{36}$/, {
     timeout: 30_000,
   });
+});
+
+test("/inicio com compromisso maior que o saldo: saldo projetado negativo sinalizado em texto", async ({
+  page,
+}, testInfo) => {
+  const c = await criarCenario(`i53-${testInfo.project.name}`);
+  const conta = await criarContaNoBanco(c, "Corrente", "checking", "100");
+  await semearPendentes(c, conta, [
+    { descricao: "Reforma", valor: "300.00", data: hoje() },
+  ]);
+  await entrar(page, c.owner);
+  await page.goto("/inicio");
+  const menor = tid(page, "resumo-menor-saldo-projetado");
+  await expect(menor).toContainText("Saldo negativo em");
+  await expect(menor).toContainText("200,00");
+  await expect(tid(page, "alerta-saldo-negativo")).toContainText(
+    "Saldo projetado negativo em",
+  );
 });
 
 test("horizonte na URL: padrão 12, 6 meses e valor inválido", async ({

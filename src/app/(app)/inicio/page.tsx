@@ -38,11 +38,18 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         Período: <span data-testid="periodo-atual">{overview.label}</span>
       </p>
 
-      <CommitmentSummaryCards overview={overview} />
+      <CommitmentSummaryCards
+        overview={overview}
+        balance={dashboard.balance}
+        projection={dashboard.projection}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="min-w-0 *:data-[slot=card]:h-full lg:col-span-2">
-          <CommitmentMonthlyCard overview={overview} />
+          <CommitmentMonthlyCard
+            overview={overview}
+            projection={dashboard.projection}
+          />
         </div>
         <div className="min-w-0 *:data-[slot=card]:h-full">
           <CommitmentByCategoryCard
@@ -60,7 +67,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         mês atual) com as despesas recorrentes que ainda não foram lançadas. A
         receita esperada soma as contas a receber em aberto e as receitas
         recorrentes futuras. Pagamentos já feitos e séries pausadas ficam de
-        fora. O histórico está em Relatórios.
+        fora. O saldo atual soma as contas (sem cartões) com o que já foi
+        realizado; o saldo projetado de cada mês é o saldo atual mais a receita
+        esperada acumulada, menos o comprometido acumulado. O histórico está em
+        Relatórios.
       </p>
     </div>
   );

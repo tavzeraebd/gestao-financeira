@@ -172,8 +172,32 @@ export type CommitmentOverview = {
   hasIncome: boolean;
 };
 
+/** Saldo consolidado das contas hoje (só lançamentos efetivados), comparado ao fim do mês anterior. */
+export type BalanceSnapshot = Pick<
+  Dashboard,
+  "consolidated" | "previousAsOf" | "openCardDebt" | "hasCreditCards"
+>;
+
+export type ProjectedBalanceMonth = {
+  month: ISODate;
+  label: string;
+  longLabel: string;
+  /** Saldo atual + receita esperada acumulada − comprometido acumulado, ao fim do mês. */
+  balance: Cents;
+  negative: boolean;
+};
+
+export type ProjectedBalance = {
+  months: ProjectedBalanceMonth[];
+  /** Mês de menor saldo projetado (o primeiro, em empate); `null` sem meses. */
+  lowest: ProjectedBalanceMonth | null;
+  hasNegative: boolean;
+};
+
 export type CommitmentDashboard = {
   overview: CommitmentOverview;
+  balance: BalanceSnapshot;
+  projection: ProjectedBalance;
   byCategory: CategoryBreakdown;
   /** Até 5 compromissos em aberto com vencimento em 30 dias (vencidos incluídos), só leitura. */
   upcomingBills: BillListItem[];

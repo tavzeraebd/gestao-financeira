@@ -1,5 +1,11 @@
 import "server-only";
-import { addMonths, startOfMonth, today, type ISODate } from "@/lib/dates";
+import {
+  addDays,
+  addMonths,
+  startOfMonth,
+  today,
+  type ISODate,
+} from "@/lib/dates";
 import { asCents, fromDbNumeric, sumCents, type Cents } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { toGoalIcon, type GoalStatus } from "@/modules/goals/constants";
@@ -35,6 +41,7 @@ import { DASHBOARD_GOALS_LIMIT, RECENT_TRANSACTIONS_LIMIT } from "./constants";
 import { buildCategoryBreakdown } from "./domain/breakdown";
 import { buildCashFlowMonths } from "./domain/cash-flow";
 import { buildCommitments, totalsByCategory } from "./domain/commitments";
+import { buildProjectedBalance } from "./domain/projected-balance";
 import { compare } from "./domain/comparison";
 import { cashFlowWindow, resolvePeriod } from "./domain/period";
 import { resolveReportPeriod } from "./domain/report-period";
@@ -57,6 +64,7 @@ import {
 } from "./repository";
 import type {
   AccountReport,
+  BalanceSnapshot,
   BudgetReport,
   CategoryReport,
   CategoryReportFilters,
@@ -81,6 +89,24 @@ function withBalances(
     type: a.type,
     balance: balances.get(a.id) ?? ZERO,
   }));
+}
+
+/** Saldo consolidado, variação contra `previousAsOf` e faturas em aberto: a mesma regra (D3/D8) para os dois painéis. */
+function buildBalanceSnapshot(
+  accounts: readonly AccountBase[],
+  balances: ReadonlyMap<string, Cents>,
+  previousBalances: ReadonlyMap<string, Cents>,
+  previousAsOf: ISODate,
+): BalanceSnapshot {
+  return {
+    previousAsOf,
+    consolidated: compare(
+      consolidatedBalance(withBalances(accounts, balances)),
+      consolidatedBalance(withBalances(accounts, previousBalances)),
+    ),
+    openCardDebt: openCardDebt(withBalances(accounts, balances)),
+    hasCreditCards: accounts.some((a) => a.type === "credit_card"),
+  };
 }
 
 /** D9: até 3 metas ativas com o acumulado de `goal_summary` (uma chamada). */
@@ -132,13 +158,12 @@ export async function getDashboard(
     const base = {
       period,
       asOf,
-      previousAsOf,
-      consolidated: compare(
-        consolidatedBalance(withBalances(accounts, balances)),
-        consolidatedBalance(withBalances(accounts, previousBalances)),
+      ...buildBalanceSnapshot(
+        accounts,
+        balances,
+        previousBalances,
+        previousAsOf,
       ),
-      openCardDebt: openCardDebt(withBalances(accounts, balances)),
-      hasCreditCards: accounts.some((a) => a.type === "credit_card"),
     };
 
     if (!accounts.some((a) => a.isActive)) {
@@ -226,12 +251,31 @@ export async function getCommitmentDashboard(
   const end = startOfMonth(addMonths(startOfMonth(now), filters.horizonte + 1));
 
   return guardAggregates(async () => {
-    const [pending, series, categories, upcomingBills] = await Promise.all([
+    // Saldo de hoje (só efetivados) contra o fim do mês anterior.
+    const previousAsOf = addDays(startOfMonth(now), -1);
+    const [
+      pending,
+      series,
+      categories,
+      upcomingBills,
+      accounts,
+      balances,
+      previousBalances,
+    ] = await Promise.all([
       selectPendingCommitments(supabase, end),
       selectActiveCommitmentSeries(supabase),
       listCategories({ includeArchived: true }),
       listUpcomingBills({ limit: UPCOMING_LIMIT }),
+      selectAccounts(supabase),
+      rpcBalancesAsOf(supabase, now),
+      rpcBalancesAsOf(supabase, previousAsOf),
     ]);
+    const balance = buildBalanceSnapshot(
+      accounts,
+      balances,
+      previousBalances,
+      previousAsOf,
+    );
     const { overview, expenses } = buildCommitments({
       today: now,
       horizon: filters.horizonte,
@@ -241,6 +285,11 @@ export async function getCommitmentDashboard(
     const total = sumCents(expenses.map((e) => e.amount));
     return {
       overview,
+      balance,
+      projection: buildProjectedBalance(
+        balance.consolidated.current,
+        overview.months,
+      ),
       byCategory: buildCategoryBreakdown(
         totalsByCategory(expenses),
         new Map(categories.map((c) => [c.id, c])),

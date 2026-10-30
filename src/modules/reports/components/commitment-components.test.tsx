@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ISODate } from "@/lib/dates";
 import { asCents } from "@/lib/money";
+import { buildProjectedBalance } from "@/modules/reports/domain/projected-balance";
 import type {
+  BalanceSnapshot,
   CommitmentMonth,
   CommitmentOverview,
 } from "@/modules/reports/types";
@@ -80,11 +82,29 @@ function overview(
   };
 }
 
+const projectionOf = (months: CommitmentMonth[], current = 0) =>
+  buildProjectedBalance(asCents(current), months);
+
+function balanceOf(current: number): BalanceSnapshot {
+  return {
+    consolidated: {
+      current: asCents(current),
+      previous: asCents(0),
+      delta: asCents(current),
+      percent: null,
+    },
+    previousAsOf: d("2026-09-30"),
+    openCardDebt: asCents(0),
+    hasCreditCards: false,
+  };
+}
+
 describe("CommitmentMonthlyCard", () => {
   it("sem compromissos: estado vazio informativo, sem gráfico nem link", () => {
     render(
       <CommitmentMonthlyCard
         overview={overview([month("2026-10", 0, 0, 0)])}
+        projection={projectionOf([month("2026-10", 0, 0, 0)])}
       />,
     );
     expect(
@@ -98,6 +118,7 @@ describe("CommitmentMonthlyCard", () => {
     render(
       <CommitmentMonthlyCard
         overview={overview([month("2026-10", 10000, 5000, 0)])}
+        projection={projectionOf([month("2026-10", 10000, 5000, 0)])}
       />,
     );
     const label = screen.getByRole("img").getAttribute("aria-label") ?? "";
@@ -109,11 +130,46 @@ describe("CommitmentMonthlyCard", () => {
     render(
       <CommitmentMonthlyCard
         overview={overview([month("2026-10", 10000, 5000, 30000)])}
+        projection={projectionOf([month("2026-10", 10000, 5000, 30000)])}
       />,
     );
     expect(screen.getByRole("img")).toHaveAccessibleName(
       /receita esperada R\$\s300,00, 50,0% comprometido/,
     );
+  });
+});
+
+describe("CommitmentMonthlyCard: saldo projetado", () => {
+  it("negativo: aviso em texto e aria-label com o saldo", () => {
+    const months = [
+      month("2026-10", 10000, 0, 0),
+      month("2026-11", 20000, 0, 0),
+    ];
+    render(
+      <CommitmentMonthlyCard
+        overview={overview(months)}
+        projection={projectionOf(months, 15000)}
+      />,
+    );
+    expect(screen.getByTestId("alerta-saldo-negativo")).toHaveTextContent(
+      "Saldo projetado negativo em mês 2026-11.",
+    );
+    expect(screen.getByRole("img").getAttribute("aria-label")).toMatch(
+      /saldo projetado .*\(negativo\)/,
+    );
+  });
+
+  it("positivo: sem aviso", () => {
+    const months = [month("2026-10", 10000, 0, 0)];
+    render(
+      <CommitmentMonthlyCard
+        overview={overview(months)}
+        projection={projectionOf(months, 50000)}
+      />,
+    );
+    expect(
+      screen.queryByTestId("alerta-saldo-negativo"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -169,6 +225,8 @@ describe("CommitmentSummaryCards", () => {
     const { container } = render(
       <CommitmentSummaryCards
         overview={overview([month("2026-10", 0, 0, 0)])}
+        balance={balanceOf(0)}
+        projection={projectionOf([month("2026-10", 0, 0, 0)])}
       />,
     );
     expect(screen.getByText("Nenhum vencimento em aberto")).toBeInTheDocument();
@@ -198,6 +256,8 @@ describe("CommitmentSummaryCards", () => {
             overdue: false,
           },
         })}
+        balance={balanceOf(50000)}
+        projection={projectionOf(months, 50000)}
       />,
     );
     expect(screen.getByTestId("resumo-total-comprometido")).toHaveTextContent(
@@ -212,6 +272,28 @@ describe("CommitmentSummaryCards", () => {
     expect(screen.getByTestId("resumo-mes-mais-pesado")).toHaveTextContent(
       "novembro de 2026",
     );
+    // 500 + 400 - 100 = 800 em out; 800 - 300 = 500 em nov (menor).
+    expect(screen.getByTestId("indicador-saldo-total")).toHaveTextContent(
+      /Saldo atual.*R\$\s500,00/,
+    );
+    const menor = screen.getByTestId("resumo-menor-saldo-projetado");
+    expect(menor).toHaveTextContent(/R\$\s500,00/);
+    expect(menor).toHaveTextContent("Em mês 2026-11");
+    expect(menor).not.toHaveTextContent("negativo");
+  });
+
+  it("saldo projetado negativo: valor, mês e aviso em texto", () => {
+    const months = [month("2026-10", 30000, 0, 0)];
+    render(
+      <CommitmentSummaryCards
+        overview={overview(months)}
+        balance={balanceOf(10000)}
+        projection={projectionOf(months, 10000)}
+      />,
+    );
+    const menor = screen.getByTestId("resumo-menor-saldo-projetado");
+    expect(menor).toHaveTextContent(/-R\$\s200,00|−R\$\s200,00|R\$\s-?200,00/);
+    expect(menor).toHaveTextContent("Saldo negativo em mês 2026-10");
   });
 });
 

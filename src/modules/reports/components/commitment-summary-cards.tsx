@@ -1,15 +1,25 @@
+import { TriangleAlertIcon } from "lucide-react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateBR } from "@/lib/dates";
 import { formatPercent } from "@/lib/format";
 import { formatBRL } from "@/lib/money";
-import type { CommitmentOverview } from "@/modules/reports/types";
+import type {
+  BalanceSnapshot,
+  CommitmentOverview,
+  ProjectedBalance,
+} from "@/modules/reports/types";
+
+import { BalanceCard } from "./balance-card";
 
 function SummaryCard({
   title,
   testId,
   value,
   note,
+  alert = false,
 }: {
+  alert?: boolean;
   title: string;
   testId: string;
   value: string;
@@ -22,18 +32,30 @@ function SummaryCard({
         <p className="text-xl font-bold tabular-nums" data-testid="valor">
           {value}
         </p>
-        <p className="text-muted-foreground text-sm">{note}</p>
+        {alert ? (
+          <p className="text-destructive flex items-center gap-1.5 text-sm font-medium">
+            <TriangleAlertIcon aria-hidden="true" className="size-4 shrink-0" />
+            <span>{note}</span>
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-sm">{note}</p>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-/** Quatro resumos do comprometimento futuro; valores em texto, sem depender de cor. */
+/** Saldo atual em destaque e cinco resumos do comprometimento futuro; valores em texto, sem depender de cor. */
 export function CommitmentSummaryCards({
   overview,
+  balance,
+  projection,
 }: {
   overview: CommitmentOverview;
+  balance: BalanceSnapshot;
+  projection: ProjectedBalance;
 }) {
+  const { lowest } = projection;
   const { months, nextDue, heaviest } = overview;
   const current = months[0];
   const currentNote =
@@ -42,7 +64,19 @@ export function CommitmentSummaryCards({
       : "Sem receita esperada para calcular o percentual";
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <BalanceCard {...balance} />
+      <SummaryCard
+        title="Menor saldo projetado"
+        testId="resumo-menor-saldo-projetado"
+        value={lowest ? formatBRL(lowest.balance) : "—"}
+        alert={lowest?.negative ?? false}
+        note={
+          lowest
+            ? `${lowest.negative ? "Saldo negativo em " : "Em "}${lowest.longLabel}`
+            : "Sem meses no período"
+        }
+      />
       <SummaryCard
         title="Total comprometido"
         testId="resumo-total-comprometido"

@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -29,6 +30,8 @@ export type CommitmentDatum = {
   /** Receita esperada no mês (linha); `0` quando não há. */
   income: Cents;
   percent: number | null;
+  /** Saldo projetado ao fim do mês. */
+  projected: Cents;
 };
 
 export type CommitmentBarChartProps = {
@@ -71,6 +74,12 @@ function CommitmentTooltip({
       <p className="text-foreground font-medium tabular-nums">
         Comprometido: {formatBRL(addCents(row.pending, row.recurring))}
       </p>
+      <p
+        className={`font-medium tabular-nums ${row.projected < 0 ? "text-destructive" : "text-foreground"}`}
+      >
+        Saldo projetado: {formatBRL(row.projected)}
+        {row.projected < 0 ? " (negativo)" : ""}
+      </p>
       {showIncome ? (
         <>
           <p className="text-muted-foreground tabular-nums">
@@ -98,11 +107,18 @@ export default function CommitmentBarChart({
     pendingReais: d.pending / 100,
     recurringReais: d.recurring / 100,
     incomeReais: d.income / 100,
+    projectedReais: d.projected / 100,
   }));
+  const hasNegative = data.some((d) => d.projected < 0);
 
   const legend: ChartLegendItem[] = [
     { key: "pending", label: "Contas em aberto", color: "chart-green-1" },
     { key: "recurring", label: "Recorrências", color: "chart-green-5" },
+    {
+      key: "projected",
+      label: "Saldo projetado (linha contínua)",
+      color: "chart-green-3" as const,
+    },
     ...(showIncome
       ? [
           {
@@ -158,6 +174,9 @@ export default function CommitmentBarChart({
               )}
               cursor={{ fill: "var(--muted)", opacity: 0.5 }}
             />
+            {hasNegative ? (
+              <ReferenceLine y={0} stroke="var(--muted-foreground)" />
+            ) : null}
             <Bar
               dataKey="pendingReais"
               name="Contas em aberto"
@@ -185,6 +204,35 @@ export default function CommitmentBarChart({
                 isAnimationActive={!reduceMotion}
               />
             ) : null}
+            <Line
+              dataKey="projectedReais"
+              name="Saldo projetado"
+              type="monotone"
+              stroke={chartColorVar("chart-green-3")}
+              strokeWidth={2}
+              dot={(props) => {
+                const { cx, cy, index } = props as {
+                  cx: number;
+                  cy: number;
+                  index: number;
+                };
+                const negative = (data[index]?.projected ?? 0) < 0;
+                return (
+                  <circle
+                    key={`proj-${index}`}
+                    cx={cx}
+                    cy={cy}
+                    r={negative ? 5 : 3}
+                    fill={
+                      negative
+                        ? "var(--destructive)"
+                        : chartColorVar("chart-green-3")
+                    }
+                  />
+                );
+              }}
+              isAnimationActive={!reduceMotion}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

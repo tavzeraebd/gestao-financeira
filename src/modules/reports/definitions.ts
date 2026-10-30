@@ -15,7 +15,7 @@ export const INDICATOR_DEFINITIONS: Record<
   { title: string; description: string; ref: string }
 > = {
   consolidatedBalance: {
-    title: "Saldo total",
+    title: "Saldo atual",
     description:
       "Soma dos saldos das contas, sem cartões de crédito. A variação compara com o saldo no fim do período anterior e considera só lançamentos efetivados.",
     ref: "D3",
