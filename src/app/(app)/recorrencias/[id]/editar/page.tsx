@@ -68,6 +68,7 @@ export default async function EditRecurrencePage({
           <RecurrenceForm
             today={today()}
             recurrenceId={recurrence.id}
+            kind={recurrence.kind}
             scheduleLabel={recurrence.label}
             startDate={recurrence.startDate}
             accounts={accounts}
@@ -83,6 +84,7 @@ export default async function EditRecurrencePage({
               accountId: recurrence.account.id,
               assignedMemberId: recurrence.assignedMember?.id ?? "",
               endDate: recurrence.endDate ?? "",
+              payrollDeduction: recurrence.payrollDeduction,
             }}
           />
         </CardContent>

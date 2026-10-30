@@ -269,3 +269,28 @@ describe("budgets schemas", () => {
     expect(budgetMonthSchema.parse({}).mes).toBe(fallback.mes);
   });
 });
+
+describe("billFormSchema: desconto em folha", () => {
+  const serie = { ...base, repeat: true as const, frequency: "monthly" };
+
+  it("assume falso e aceita em despesa recorrente", () => {
+    const off = billFormSchema.parse(serie);
+    expect("payrollDeduction" in off && off.payrollDeduction).toBe(false);
+    const on = billFormSchema.parse({
+      ...serie,
+      kind: "pagar",
+      payrollDeduction: true,
+    });
+    expect("payrollDeduction" in on && on.payrollDeduction).toBe(true);
+  });
+
+  it("recusa em receita recorrente, com erro no campo", () => {
+    const r = billFormSchema.safeParse({
+      ...serie,
+      kind: "receber",
+      payrollDeduction: true,
+    });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0]?.path).toEqual(["payrollDeduction"]);
+  });
+});

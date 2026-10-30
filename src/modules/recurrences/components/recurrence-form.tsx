@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircleIcon, InfoIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 
@@ -14,11 +14,18 @@ import { MoneyInput } from "@/components/shared/money-input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { safeAction, useFailureHandler } from "@/hooks/use-action-failure";
 import { useHydrated } from "@/hooks/use-hydrated";
 import type { ISODate } from "@/lib/dates";
+import type { BillKind } from "@/modules/bills/constants";
 import type { CategoryOption } from "@/modules/categories/types";
 import { updateRecurrence } from "@/modules/recurrences/actions";
+import {
+  PAYROLL_DEDUCTION_HELP,
+  PAYROLL_DEDUCTION_LABEL,
+} from "@/modules/recurrences/constants";
 import { updateRecurrenceSchema } from "@/modules/recurrences/schemas";
 import { LabeledField } from "@/modules/transactions/components/labeled-field";
 import {
@@ -35,11 +42,14 @@ export type RecurrenceFormValues = {
   accountId: string;
   assignedMemberId: string;
   endDate: string;
+  payrollDeduction: boolean;
 };
 
 type RecurrenceFormProps = {
   today: ISODate;
   recurrenceId: string;
+  /** Tipo da série: "Desconto em folha" só existe para despesa (`pagar`). */
+  kind: BillKind;
   /** Rótulo da agenda e início: só leitura. */
   scheduleLabel: string;
   startDate: ISODate;
@@ -56,11 +66,13 @@ const FIELDS = [
   "accountId",
   "assignedMemberId",
   "endDate",
+  "payrollDeduction",
 ] as const;
 
 export function RecurrenceForm({
   today,
   recurrenceId,
+  kind,
   scheduleLabel,
   startDate,
   accounts,
@@ -80,18 +92,26 @@ export function RecurrenceForm({
       baseResolver(
         {
           ...values,
+          kind,
+          // Receita nunca é desconto em folha: o formulário não oferece a opção.
+          payrollDeduction: kind === "pagar" && values.payrollDeduction,
           assignedMemberId: values.assignedMemberId || null,
           endDate: values.endDate || null,
         } as never,
         context,
         options as never,
       ) as never,
-    [baseResolver],
+    [baseResolver, kind],
   );
 
   const form = useForm<RecurrenceFormValues>({
     resolver,
     defaultValues: { recurrenceId, ...initial },
+  });
+
+  const payrollDeduction = useWatch({
+    control: form.control,
+    name: "payrollDeduction",
   });
 
   const showGeneral = useCallback(
@@ -137,6 +157,9 @@ export function RecurrenceForm({
           categoryId: values.categoryId,
           assignedMemberId: values.assignedMemberId || null,
           endDate: values.endDate || null,
+          kind,
+          // Receita nunca é desconto em folha, mesmo que o valor guardado no formulário diga o contrário.
+          payrollDeduction: kind === "pagar" && values.payrollDeduction,
         } as z.input<typeof updateRecurrenceSchema>),
       );
       if (result.ok) {
@@ -303,6 +326,36 @@ export function RecurrenceForm({
           </div>
         )}
       </LabeledField>
+
+      {kind === "pagar" ? (
+        <div className="flex min-h-10 items-start justify-between gap-3 rounded-lg border p-4">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="recorrencia-desconto-folha" className="text-sm">
+              {PAYROLL_DEDUCTION_LABEL}
+            </Label>
+            <p
+              id="recorrencia-desconto-folha-ajuda"
+              className="text-muted-foreground text-sm"
+            >
+              {PAYROLL_DEDUCTION_HELP}
+            </p>
+            {form.formState.errors.payrollDeduction ? (
+              <p role="alert" className="text-destructive text-sm">
+                {form.formState.errors.payrollDeduction.message}
+              </p>
+            ) : null}
+          </div>
+          <Switch
+            id="recorrencia-desconto-folha"
+            checked={payrollDeduction}
+            disabled={pending}
+            aria-describedby="recorrencia-desconto-folha-ajuda"
+            onCheckedChange={(checked) =>
+              form.setValue("payrollDeduction", checked)
+            }
+          />
+        </div>
+      ) : null}
 
       <div className="bg-muted text-muted-foreground rounded-lg p-3 text-sm">
         <p>

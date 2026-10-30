@@ -325,6 +325,7 @@ export async function insertRecurrence(
     intervalCount: number;
     startDate: string;
     endDate: string | null;
+    payrollDeduction: boolean;
     idempotencyKey: string;
   },
 ): Promise<string> {
@@ -342,6 +343,7 @@ export async function insertRecurrence(
       interval_count: input.intervalCount,
       start_date: input.startDate,
       end_date: input.endDate,
+      payroll_deduction: input.payrollDeduction,
       idempotency_key: input.idempotencyKey,
       // `next_occurrence_date` é do banco (fora dos grants): o trigger a define no insert.
     } as Database["public"]["Tables"]["recurrences"]["Insert"])

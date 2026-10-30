@@ -114,6 +114,7 @@ async function createBillUnmapped(
       intervalCount: data.intervalCount,
       startDate: data.dueDate,
       endDate: data.endDate ?? null,
+      payrollDeduction: data.payrollDeduction,
     });
   } catch (e) {
     const existing = isConstraintViolation(e, "23505", RECURRENCE_KEY)

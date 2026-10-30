@@ -1,4 +1,5 @@
 import {
+  BanknoteIcon,
   CalendarClockIcon,
   ListIcon,
   PencilIcon,
@@ -14,6 +15,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateBR, type ISODate } from "@/lib/dates";
 import { BILL_KIND_LABELS } from "@/modules/bills/constants";
+import { PAYROLL_DEDUCTION_LABEL } from "@/modules/recurrences/constants";
 import type { RecurrenceView } from "@/modules/recurrences/types";
 import { EndRecurrenceDialog } from "./end-recurrence-dialog";
 import { PauseResumeButton } from "./recurrence-status-buttons";
@@ -49,6 +51,12 @@ export function RecurrenceCard({
               className="text-base font-semibold"
             />
             <Badge variant="outline">{BILL_KIND_LABELS[r.kind]}</Badge>
+            {r.payrollDeduction ? (
+              <Badge variant="secondary">
+                <BanknoteIcon aria-hidden="true" />
+                {PAYROLL_DEDUCTION_LABEL}
+              </Badge>
+            ) : null}
           </div>
         </div>
 
@@ -76,6 +84,13 @@ export function RecurrenceCard({
             <dd>{r.assignedMember?.displayName ?? "Sem responsável"}</dd>
           </div>
         </dl>
+
+        {r.payrollDeduction ? (
+          <p className="text-muted-foreground text-sm">
+            Descontada direto do salário: não gera contas a pagar nem sai do
+            saldo da conta, mas conta no comprometimento até o término.
+          </p>
+        ) : null}
 
         {paused ? (
           <Badge variant="secondary" className="self-start">
@@ -108,17 +123,19 @@ export function RecurrenceCard({
         ) : null}
 
         <div className="flex justify-end gap-2">
-          <Link
-            href={`/compromissos?serie=${r.id}&situacao=abertos`}
-            aria-label={`Ver ocorrências de ${r.description}`}
-            title="Ocorrências"
-            className={buttonVariants({
-              variant: "outline",
-              size: "icon-lg",
-            })}
-          >
-            <ListIcon aria-hidden="true" />
-          </Link>
+          {r.payrollDeduction ? null : (
+            <Link
+              href={`/compromissos?serie=${r.id}&situacao=abertos`}
+              aria-label={`Ver ocorrências de ${r.description}`}
+              title="Ocorrências"
+              className={buttonVariants({
+                variant: "outline",
+                size: "icon-lg",
+              })}
+            >
+              <ListIcon aria-hidden="true" />
+            </Link>
+          )}
           {r.canManage ? (
             <>
               <Link

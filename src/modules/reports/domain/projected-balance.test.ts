@@ -15,12 +15,24 @@ const month = (
   longLabel: `mês ${m}`,
   pending: asCents(committed),
   recurring: asCents(0),
+  payroll: asCents(0),
+  cashCommitted: asCents(committed),
   committed: asCents(committed),
   income: asCents(income),
   percent: null,
 });
 
 describe("buildProjectedBalance", () => {
+  it("não subtrai o desconto em folha: usa só o comprometido de caixa", () => {
+    const withPayroll: CommitmentMonth = {
+      ...month("2026-11", 30000, 0),
+      payroll: asCents(70000),
+      committed: asCents(100000),
+    };
+    const r = buildProjectedBalance(asCents(100000), [withPayroll]);
+    expect(r.months[0]?.balance).toBe(70000);
+  });
+
   it("acumula receita e comprometido a partir do saldo atual", () => {
     const r = buildProjectedBalance(asCents(100000), [
       month("2026-10", 30000, 10000),

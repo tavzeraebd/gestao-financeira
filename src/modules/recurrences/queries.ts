@@ -9,6 +9,7 @@ import {
 import { canManageTransaction } from "@/modules/family/permissions";
 import { ATTENTION_MESSAGES } from "@/modules/recurrences/constants";
 import { frequencyLabel } from "@/modules/recurrences/domain/labels";
+import { nextPayrollOccurrence } from "@/modules/recurrences/domain/payroll-schedule";
 import { ensureRecurrencesMaterialized } from "@/modules/recurrences/materialize";
 import {
   amountOf,
@@ -51,8 +52,15 @@ function toView(
   const startDate = dbDate(row.start_date);
   const endDate = row.end_date === null ? null : dbDate(row.end_date);
   const scheduled = nextPending.get(row.id);
-  const fallback =
-    row.is_active && (endDate === null || row.next_occurrence_date <= endDate)
+  // Desconto em folha nunca vira transação (o ponteiro do banco não avança): a data vem da agenda.
+  const fallback = row.payroll_deduction
+    ? row.is_active
+      ? nextPayrollOccurrence(
+          { frequency, intervalCount: row.interval_count, startDate, endDate },
+          now,
+        )
+      : null
+    : row.is_active && (endDate === null || row.next_occurrence_date <= endDate)
       ? dbDate(row.next_occurrence_date)
       : null;
   const state = stateOf(row, now);
@@ -67,6 +75,7 @@ function toView(
     startDate,
     endDate,
     label: frequencyLabel(frequency, row.interval_count, startDate),
+    payrollDeduction: row.payroll_deduction,
     nextOccurrence: scheduled ? dbDate(scheduled) : fallback,
     state,
     attention:

@@ -3,7 +3,11 @@ import { addMonths, compareISODate, today } from "@/lib/dates";
 import { isoDate } from "@/lib/validation/dates";
 import { brlAmount } from "@/lib/validation/money";
 import { optionalText, optionalUuid } from "@/lib/validation/optional-fields";
-import { FREQUENCIES, INTERVAL_MAX } from "@/modules/recurrences/constants";
+import {
+  FREQUENCIES,
+  INTERVAL_MAX,
+  PAYROLL_DEDUCTION_EXPENSE_ONLY,
+} from "@/modules/recurrences/constants";
 import {
   DEFAULT_PAGE_SIZE,
   DESCRIPTION_MAX,
@@ -67,6 +71,12 @@ export const billFormSchema = z.discriminatedUnion("repeat", [
         .max(INTERVAL_MAX, `Informe um número de 1 a ${INTERVAL_MAX}.`)
         .default(1),
       endDate: isoDate().optional(),
+      /** Desconto em folha: só despesa; não gera contas a pagar nem debita saldo. */
+      payrollDeduction: z.boolean({ error: "Valor inválido." }).default(false),
+    })
+    .refine((d) => !d.payrollDeduction || d.kind === "pagar", {
+      path: ["payrollDeduction"],
+      message: PAYROLL_DEDUCTION_EXPENSE_ONLY,
     })
     .refine((d) => d.endDate === undefined || d.endDate >= d.dueDate, {
       path: ["endDate"],

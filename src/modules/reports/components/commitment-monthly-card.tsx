@@ -10,7 +10,7 @@ import type {
 } from "@/modules/reports/types";
 
 /**
- * Barras empilhadas por mês (contas em aberto + recorrências), linha da receita esperada e % de
+ * Barras empilhadas por mês (contas em aberto + recorrências + desconto em folha), linha da receita esperada e % de
  * comprometimento. Sem receita esperada, só os valores.
  */
 export function CommitmentMonthlyCard({
@@ -37,6 +37,7 @@ export function CommitmentMonthlyCard({
     { id: "mes", header: "Mês" },
     { id: "abertas", header: "Contas em aberto", align: "end" as const },
     { id: "recorrencias", header: "Recorrências", align: "end" as const },
+    { id: "folha", header: "Desconto em folha", align: "end" as const },
     { id: "comprometido", header: "Comprometido", align: "end" as const },
     ...(hasIncome
       ? [
@@ -67,6 +68,7 @@ export function CommitmentMonthlyCard({
             m.longLabel,
             formatBRL(m.pending),
             formatBRL(m.recurring),
+            formatBRL(m.payroll),
             formatBRL(m.committed),
             ...(hasIncome
               ? [
@@ -91,6 +93,7 @@ export function CommitmentMonthlyCard({
           label: m.label,
           pending: m.pending,
           recurring: m.recurring,
+          payroll: m.payroll,
           income: m.income,
           percent: m.percent,
           projected: projectedBy.get(m.month)?.balance ?? asCents(0),

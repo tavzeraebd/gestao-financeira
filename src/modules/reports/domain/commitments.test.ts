@@ -34,6 +34,7 @@ const series = (over: Partial<CommitmentSeries> = {}): CommitmentSeries => ({
   startDate: d("2026-01-05"),
   endDate: null,
   nextOccurrenceDate: d("2026-11-05"),
+  payrollDeduction: false,
   ...over,
 });
 
@@ -205,6 +206,82 @@ describe("buildCommitments", () => {
     expect(overview.hasIncome).toBe(true);
     // Receita não compromete.
     expect(overview.totalCommitted).toBe(5000);
+  });
+});
+
+describe("desconto em folha", () => {
+  const today = d("2026-10-29");
+  const payroll = (over: Partial<CommitmentSeries> = {}) =>
+    series({
+      payrollDeduction: true,
+      description: "Empréstimo consignado",
+      amount: asCents(50000),
+      categoryId: "emprestimo",
+      endDate: d("2027-01-05"),
+      ...over,
+    });
+
+  it("entra no comprometido em coluna própria e fica fora do caixa", () => {
+    const { overview, expenses } = buildCommitments({
+      today,
+      horizon: 6,
+      pending: [entry("expense", "2026-11-10", 5000)],
+      series: [payroll()],
+    });
+    const [oct, nov, dec, jan, feb] = overview.months;
+    expect(oct?.payroll).toBe(0);
+    expect(nov?.payroll).toBe(50000);
+    expect(nov?.recurring).toBe(0);
+    expect(nov?.cashCommitted).toBe(5000);
+    expect(nov?.committed).toBe(55000);
+    expect(dec?.payroll).toBe(50000);
+    expect(jan?.payroll).toBe(50000);
+    // Termina em end_date: nada depois de 05/01/2027.
+    expect(feb?.payroll).toBe(0);
+    expect(overview.totalCommitted).toBe(5000 + 3 * 50000);
+    expect(expenses.filter((e) => e.payroll)).toHaveLength(3);
+  });
+
+  it("o % de comprometimento inclui o desconto em folha", () => {
+    const { overview } = buildCommitments({
+      today,
+      horizon: 6,
+      pending: [],
+      series: [
+        payroll(),
+        series({
+          type: "income",
+          amount: asCents(200000),
+          description: "Salário líquido",
+          nextOccurrenceDate: d("2026-11-05"),
+        }),
+      ],
+    });
+    expect(overview.months[1]?.percent).toBe(25);
+  });
+
+  it("série com término no passado não entra", () => {
+    const { overview, expenses } = buildCommitments({
+      today,
+      horizon: 6,
+      pending: [],
+      series: [payroll({ endDate: d("2026-09-05") })],
+    });
+    expect(overview.totalCommitted).toBe(0);
+    expect(expenses).toHaveLength(0);
+  });
+
+  it("não é próximo vencimento, mas entra no total por categoria", () => {
+    const { overview, expenses } = buildCommitments({
+      today,
+      horizon: 6,
+      pending: [],
+      series: [payroll()],
+    });
+    expect(overview.nextDue).toBeNull();
+    expect(totalsByCategory(expenses)).toEqual([
+      { categoryId: "emprestimo", amount: 150000 },
+    ]);
   });
 });
 

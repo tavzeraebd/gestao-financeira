@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { z } from "zod";
+import { PAYROLL_DEDUCTION_EXPENSE_ONLY } from "@/modules/recurrences/constants";
 import {
   selectRecurrenceById,
   setRecurrenceActive,
@@ -34,17 +35,23 @@ function translateEndDate(e: unknown): unknown {
   return e;
 }
 
-async function requireVisible(supabase: Client, id: string): Promise<void> {
-  if (!(await selectRecurrenceById(supabase, id))) {
-    throw new AppError("NOT_FOUND");
-  }
+async function requireVisible(supabase: Client, id: string) {
+  const row = await selectRecurrenceById(supabase, id);
+  if (!row) throw new AppError("NOT_FOUND");
+  return row;
 }
 
 export async function updateRecurrence(
   supabase: Client,
   data: z.output<typeof updateRecurrenceSchema>,
 ): Promise<void> {
-  await requireVisible(supabase, data.recurrenceId);
+  const current = await requireVisible(supabase, data.recurrenceId);
+  // O tipo vem do banco (o `kind` do formulário é só conveniência): receita não pode ser desconto em folha.
+  if (data.payrollDeduction && current.type !== "expense") {
+    throw new AppError("VALIDATION_ERROR", {
+      fieldErrors: { payrollDeduction: [PAYROLL_DEDUCTION_EXPENSE_ONLY] },
+    });
+  }
   let updated: number;
   try {
     updated = await updateRecurrenceRow(supabase, data.recurrenceId, {
@@ -54,6 +61,7 @@ export async function updateRecurrence(
       categoryId: data.categoryId,
       assignedMemberId: data.assignedMemberId ?? null,
       endDate: data.endDate ?? null,
+      payrollDeduction: data.payrollDeduction,
     });
   } catch (e) {
     throw translateEndDate(e);

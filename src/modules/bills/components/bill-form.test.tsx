@@ -132,6 +132,47 @@ describe("BillForm", () => {
     ).toBeInTheDocument();
   });
 
+  it("Desconto em folha: só em despesa recorrente, com ajuda, e vai no payload", async () => {
+    const user = userEvent.setup();
+    createBill.mockResolvedValue({
+      ok: true,
+      data: { id: "x", kind: "recurrence" },
+    });
+    renderForm();
+    expect(
+      screen.queryByRole("switch", { name: "Desconto em folha" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("switch", { name: "Repetir" }));
+    const folha = screen.getByRole("switch", { name: "Desconto em folha" });
+    expect(folha).toHaveAttribute("aria-describedby");
+    expect(screen.getByText(/não sai do saldo da conta/)).toBeInTheDocument();
+
+    await user.click(folha);
+    await user.click(
+      screen.getByRole("button", { name: "Salvar recorrência" }),
+    );
+    await waitFor(() => expect(createBill).toHaveBeenCalledTimes(1));
+    expect(createBill.mock.calls[0]?.[0]).toMatchObject({
+      payrollDeduction: true,
+    });
+  });
+
+  it("Desconto em folha some e é desmarcado ao mudar para A receber", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("switch", { name: "Repetir" }));
+    await user.click(screen.getByRole("switch", { name: "Desconto em folha" }));
+    await user.click(screen.getByRole("radio", { name: "A receber" }));
+    expect(
+      screen.queryByRole("switch", { name: "Desconto em folha" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "A pagar" }));
+    expect(
+      screen.getByRole("switch", { name: "Desconto em folha" }),
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
   it("valida o término da série no campo (antes do primeiro vencimento) e não envia", async () => {
     const user = userEvent.setup();
     renderForm({ dueDate: "2026-11-10", endDate: "2026-11-01" });

@@ -67,6 +67,7 @@ export function expandSeries(
       date,
       categoryId: series.categoryId,
       description: series.description,
+      ...(series.payrollDeduction ? { payroll: true } : {}),
     });
   }
   return entries;
@@ -94,6 +95,7 @@ export type CommitmentResult = {
 /**
  * Comprometimento futuro = despesas em aberto + ocorrências futuras das despesas recorrentes, por mês, do
  * mês de hoje até `horizon` meses à frente (`horizon + 1` meses). Em aberto e vencido entra no mês de hoje.
+ * Séries em desconto em folha entram no comprometido (coluna `payroll`), mas ficam fora de `cashCommitted`.
  * Receita esperada = receitas a receber em aberto + ocorrências futuras das receitas recorrentes.
  */
 export function buildCommitments(input: CommitmentInput): CommitmentResult {
@@ -111,6 +113,7 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
   const slots = monthStarts.map(() => ({
     pending: [] as Cents[],
     recurring: [] as Cents[],
+    payroll: [] as Cents[],
     income: [] as Cents[],
   }));
   const bucket = (entry: CommitmentEntry) =>
@@ -126,6 +129,7 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
   for (const entry of virtual) {
     const slot = bucket(entry);
     if (entry.type === "income") slot?.income.push(entry.amount);
+    else if (entry.payroll) slot?.payroll.push(entry.amount);
     else slot?.recurring.push(entry.amount);
   }
 
@@ -134,13 +138,17 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
     const pendingTotal = sumCents(slot?.pending ?? []);
     const recurringTotal = sumCents(slot?.recurring ?? []);
     const incomeTotal = sumCents(slot?.income ?? []);
-    const committed = addCents(pendingTotal, recurringTotal);
+    const payrollTotal = sumCents(slot?.payroll ?? []);
+    const cashCommitted = addCents(pendingTotal, recurringTotal);
+    const committed = addCents(cashCommitted, payrollTotal);
     return {
       month,
       label: monthLabel(month),
       longLabel: formatMonthBR(month, "long"),
       pending: pendingTotal,
       recurring: recurringTotal,
+      payroll: payrollTotal,
+      cashCommitted,
       committed,
       income: incomeTotal,
       percent: incomeTotal > 0 ? (committed / incomeTotal) * 100 : null,
@@ -165,6 +173,8 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
 
   let nextDue: CommitmentNextDue | null = null;
   for (const e of expenses) {
+    // Desconto em folha não é conta a pagar: não é "próximo vencimento".
+    if (e.payroll) continue;
     if (nextDue === null || e.date < nextDue.date) {
       nextDue = {
         date: e.date,

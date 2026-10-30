@@ -72,6 +72,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         esperada acumulada, menos o comprometido acumulado. O histórico está em
         Relatórios.
       </p>
+      <p className="text-muted-foreground text-xs">
+        Desconto em folha (parcelas descontadas direto do salário) entra no
+        comprometido e no percentual da receita, mas não reduz o saldo
+        projetado: o salário é lançado já líquido, então esse valor nunca sai
+        das contas. Por isso o percentual pode ficar um pouco acima do real.
+      </p>
     </div>
   );
 }

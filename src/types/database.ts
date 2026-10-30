@@ -732,6 +732,7 @@ export type Database = {
           last_failure_at: string | null;
           last_failure_code: string | null;
           next_occurrence_date: string;
+          payroll_deduction: boolean;
           start_date: string;
           type: string;
           updated_at: string;
@@ -755,6 +756,7 @@ export type Database = {
           last_failure_at?: string | null;
           last_failure_code?: string | null;
           next_occurrence_date: string;
+          payroll_deduction?: boolean;
           start_date: string;
           type: string;
           updated_at?: string;
@@ -777,6 +779,7 @@ export type Database = {
           last_failure_at?: string | null;
           last_failure_code?: string | null;
           next_occurrence_date?: string;
+          payroll_deduction?: boolean;
           start_date?: string;
           type?: string;
           updated_at?: string;

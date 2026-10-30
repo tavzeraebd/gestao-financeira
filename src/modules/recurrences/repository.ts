@@ -14,7 +14,7 @@ type Client = SupabaseClient<Database>;
 /** Montantes só com `::text` (contrato §3.2). Embeds pelos nomes de FK do contrato §3.1. */
 const COLUMNS =
   "id, type, description, amount::text, frequency, interval_count, start_date, end_date, " +
-  "next_occurrence_date, is_active, last_failure_code, created_by, " +
+  "next_occurrence_date, payroll_deduction, is_active, last_failure_code, created_by, " +
   "account:accounts!recurrences_account_fk(id, name), " +
   "category:categories!recurrences_category_fk(id, name, color, icon), " +
   "assigned_member:family_members!recurrences_assigned_member_fk(id, profiles(display_name))";
@@ -29,6 +29,7 @@ export type RecurrenceRow = {
   start_date: string;
   end_date: string | null;
   next_occurrence_date: string;
+  payroll_deduction: boolean;
   is_active: boolean;
   last_failure_code: string | null;
   created_by: string;
@@ -119,6 +120,7 @@ export type RecurrenceSeriesWrite = {
   categoryId: string;
   assignedMemberId: string | null;
   endDate: string | null;
+  payrollDeduction: boolean;
 };
 
 /** Devolve quantas linhas o update alcançou (0 = a RLS negou). A propagação é do trigger. */
@@ -136,6 +138,7 @@ export async function updateRecurrenceRow(
       category_id: input.categoryId,
       assigned_member_id: input.assignedMemberId,
       end_date: input.endDate,
+      payroll_deduction: input.payrollDeduction,
     })
     .eq("id", id)
     .select("id");

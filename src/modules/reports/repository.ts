@@ -72,7 +72,7 @@ export async function selectActiveCommitmentSeries(
   const { data, error } = await supabase
     .from("recurrences")
     .select(
-      "type, description, amount::text, frequency, interval_count, start_date, end_date, next_occurrence_date, category_id",
+      "type, description, amount::text, frequency, interval_count, start_date, end_date, next_occurrence_date, category_id, payroll_deduction",
     )
     .eq("is_active", true)
     .order("id", { ascending: true })
@@ -89,6 +89,7 @@ export async function selectActiveCommitmentSeries(
       end_date: string | null;
       next_occurrence_date: string;
       category_id: string;
+      payroll_deduction: boolean;
     }[]
   ).map((row) => ({
     type: toCommitmentType(row.type),
@@ -100,6 +101,7 @@ export async function selectActiveCommitmentSeries(
     endDate: row.end_date ? dbDate(row.end_date) : null,
     nextOccurrenceDate: dbDate(row.next_occurrence_date),
     categoryId: row.category_id,
+    payrollDeduction: row.payroll_deduction,
   }));
 }
 

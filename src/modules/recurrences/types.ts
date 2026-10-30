@@ -26,6 +26,8 @@ export type RecurrenceView = {
   /** Rótulo da agenda (`frequencyLabel`). */
   label: string;
   nextOccurrence: ISODate | null;
+  /** Desconto em folha: conta no comprometimento, mas não gera contas a pagar nem debita saldo. */
+  payrollDeduction: boolean;
   state: RecurrenceState;
   attention: { code: string; message: string } | null;
   account: { id: string; name: string };

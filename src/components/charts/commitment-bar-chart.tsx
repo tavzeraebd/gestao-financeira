@@ -27,6 +27,8 @@ export type CommitmentDatum = {
   pending: Cents;
   /** Despesas recorrentes projetadas no mês. */
   recurring: Cents;
+  /** Parcelas descontadas em folha no mês (não saem do saldo). */
+  payroll: Cents;
   /** Receita esperada no mês (linha); `0` quando não há. */
   income: Cents;
   percent: number | null;
@@ -71,8 +73,12 @@ function CommitmentTooltip({
       <p className="text-muted-foreground tabular-nums">
         Recorrências: {formatBRL(row.recurring)}
       </p>
+      <p className="text-muted-foreground tabular-nums">
+        Desconto em folha: {formatBRL(row.payroll)}
+      </p>
       <p className="text-foreground font-medium tabular-nums">
-        Comprometido: {formatBRL(addCents(row.pending, row.recurring))}
+        Comprometido:{" "}
+        {formatBRL(addCents(addCents(row.pending, row.recurring), row.payroll))}
       </p>
       <p
         className={`font-medium tabular-nums ${row.projected < 0 ? "text-destructive" : "text-foreground"}`}
@@ -106,6 +112,7 @@ export default function CommitmentBarChart({
     ...d,
     pendingReais: d.pending / 100,
     recurringReais: d.recurring / 100,
+    payrollReais: d.payroll / 100,
     incomeReais: d.income / 100,
     projectedReais: d.projected / 100,
   }));
@@ -114,6 +121,7 @@ export default function CommitmentBarChart({
   const legend: ChartLegendItem[] = [
     { key: "pending", label: "Contas em aberto", color: "chart-green-1" },
     { key: "recurring", label: "Recorrências", color: "chart-green-5" },
+    { key: "payroll", label: "Desconto em folha", color: "chart-green-4" },
     {
       key: "projected",
       label: "Saldo projetado (linha contínua)",
@@ -189,6 +197,13 @@ export default function CommitmentBarChart({
               name="Recorrências"
               stackId="commitment"
               fill={chartColorVar("chart-green-5")}
+              isAnimationActive={!reduceMotion}
+            />
+            <Bar
+              dataKey="payrollReais"
+              name="Desconto em folha"
+              stackId="commitment"
+              fill={chartColorVar("chart-green-4")}
               radius={[4, 4, 0, 0]}
               isAnimationActive={!reduceMotion}
             />

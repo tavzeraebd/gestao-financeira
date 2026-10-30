@@ -118,6 +118,8 @@ export type CommitmentEntry = {
   date: ISODate;
   categoryId: string;
   description: string;
+  /** Ocorrência de série em desconto em folha (já vem fora do salário líquido; não sai do saldo). */
+  payroll?: boolean;
 };
 
 /** Série recorrente ativa (a agenda ainda não materializada vem de `nextOccurrenceDate`). */
@@ -131,6 +133,8 @@ export type CommitmentSeries = {
   startDate: ISODate;
   endDate: ISODate | null;
   nextOccurrenceDate: ISODate;
+  /** Despesa descontada em folha: conta no comprometimento, mas não debita saldo. */
+  payrollDeduction: boolean;
 };
 
 export type CommitmentMonth = {
@@ -141,7 +145,11 @@ export type CommitmentMonth = {
   pending: Cents;
   /** Ocorrências futuras de despesas recorrentes ainda não lançadas. */
   recurring: Cents;
-  /** `pending + recurring`. */
+  /** Parcelas descontadas em folha (séries marcadas); não saem do saldo da conta. */
+  payroll: Cents;
+  /** `pending + recurring`: o que efetivamente sai do caixa (base do saldo projetado). */
+  cashCommitted: Cents;
+  /** `pending + recurring + payroll`: base do % de comprometimento e dos totais. */
   committed: Cents;
   /** Receita esperada no mês (a receber + recorrências de receita). */
   income: Cents;

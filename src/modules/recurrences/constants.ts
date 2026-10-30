@@ -17,6 +17,13 @@ export const FREQUENCY_UNITS: Record<Frequency, readonly [string, string]> = {
 
 export const INTERVAL_MAX = 12;
 
+/** Desconto em folha: série de despesa que conta no comprometimento, mas não debita saldo. */
+export const PAYROLL_DEDUCTION_LABEL = "Desconto em folha";
+export const PAYROLL_DEDUCTION_HELP =
+  "O valor entra no comprometimento, mas não sai do saldo da conta. Use para parcelas descontadas direto no salário.";
+export const PAYROLL_DEDUCTION_EXPENSE_ONLY =
+  "Desconto em folha só vale para despesa. Desmarque a opção ou use uma conta a pagar.";
+
 /** Séries ativas por família (ADR-0023 §6). */
 export const RECURRENCE_LIMIT = 100;
 

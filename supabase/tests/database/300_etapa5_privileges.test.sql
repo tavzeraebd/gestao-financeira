@@ -45,12 +45,12 @@ select is((select array_agg(attname::text order by attname) from pg_attribute
     where attrelid = 'public.recurrences'::regclass and attnum > 0 and not attisdropped
       and has_column_privilege('authenticated', attrelid, attnum, 'INSERT')),
   array['account_id', 'amount', 'assigned_member_id', 'category_id', 'description', 'end_date', 'family_id', 'frequency',
-        'idempotency_key', 'interval_count', 'start_date', 'type'],
+        'idempotency_key', 'interval_count', 'payroll_deduction', 'start_date', 'type'],
   'CA-E5-01: grant de insert de recurrences é exatamente o do contrato');
 select is((select array_agg(attname::text order by attname) from pg_attribute
     where attrelid = 'public.recurrences'::regclass and attnum > 0 and not attisdropped
       and has_column_privilege('authenticated', attrelid, attnum, 'UPDATE')),
-  array['account_id', 'amount', 'assigned_member_id', 'category_id', 'description', 'end_date', 'is_active'],
+  array['account_id', 'amount', 'assigned_member_id', 'category_id', 'description', 'end_date', 'is_active', 'payroll_deduction'],
   'CA-E5-01: grant de update de recurrences é exatamente o do contrato');
 select is((select array_agg(attname::text order by attname) from pg_attribute
     where attrelid = 'public.budgets'::regclass and attnum > 0 and not attisdropped

@@ -39,6 +39,8 @@ import {
   FREQUENCY_LABELS,
   FREQUENCY_UNITS,
   INTERVAL_MAX,
+  PAYROLL_DEDUCTION_HELP,
+  PAYROLL_DEDUCTION_LABEL,
   type Frequency,
 } from "@/modules/recurrences/constants";
 import { LabeledField } from "@/modules/transactions/components/labeled-field";
@@ -62,6 +64,7 @@ export type BillFormValues = {
   frequency: Frequency;
   intervalCount: number;
   endDate: string | undefined;
+  payrollDeduction: boolean;
   idempotencyKey: string;
   transactionId?: string;
 };
@@ -90,6 +93,7 @@ const FIELDS = [
   "frequency",
   "intervalCount",
   "endDate",
+  "payrollDeduction",
 ] as const;
 
 const FREQUENCY_OPTIONS: SelectOption[] = FREQUENCIES.map((value) => ({
@@ -124,6 +128,8 @@ function buildCreatePayload(values: BillFormValues) {
       frequency: values.frequency,
       intervalCount: values.intervalCount,
       ...(values.endDate ? { endDate: values.endDate } : {}),
+      // Só despesa recorrente pode ser desconto em folha.
+      payrollDeduction: values.kind === "pagar" && values.payrollDeduction,
     };
   }
   return { repeat: false as const, ...common, notes: values.notes };
@@ -163,6 +169,7 @@ export function BillForm({
       frequency: "monthly",
       intervalCount: 1,
       endDate: undefined,
+      payrollDeduction: false,
       ...initial,
       idempotencyKey,
       transactionId,
@@ -177,6 +184,10 @@ export function BillForm({
     name: "intervalCount",
   });
   const dueDate = useWatch({ control: form.control, name: "dueDate" });
+  const payrollDeduction = useWatch({
+    control: form.control,
+    name: "payrollDeduction",
+  });
   const isEdit = mode === "edit";
 
   const showGeneral = useCallback(
@@ -280,6 +291,8 @@ export function BillForm({
         onValueChange={(next) => {
           form.setValue("kind", next);
           form.setValue("categoryId", "");
+          // Receita nunca é desconto em folha.
+          if (next === "receber") form.setValue("payrollDeduction", false);
           form.clearErrors();
           setFormError(null);
         }}
@@ -455,6 +468,7 @@ export function BillForm({
               checked={repeat}
               onCheckedChange={(checked) => {
                 form.setValue("repeat", checked);
+                if (!checked) form.setValue("payrollDeduction", false);
                 form.clearErrors();
               }}
             />
@@ -562,6 +576,38 @@ export function BillForm({
                   </div>
                 )}
               </LabeledField>
+
+              {kind === "pagar" ? (
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col gap-1">
+                    <Label
+                      htmlFor="compromisso-desconto-folha"
+                      className="text-sm"
+                    >
+                      {PAYROLL_DEDUCTION_LABEL}
+                    </Label>
+                    <p
+                      id="compromisso-desconto-folha-ajuda"
+                      className="text-muted-foreground text-sm"
+                    >
+                      {PAYROLL_DEDUCTION_HELP}
+                    </p>
+                    {form.formState.errors.payrollDeduction ? (
+                      <p role="alert" className="text-destructive text-sm">
+                        {form.formState.errors.payrollDeduction.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Switch
+                    id="compromisso-desconto-folha"
+                    checked={payrollDeduction}
+                    aria-describedby="compromisso-desconto-folha-ajuda"
+                    onCheckedChange={(checked) =>
+                      form.setValue("payrollDeduction", checked)
+                    }
+                  />
+                </div>
+              ) : null}
 
               {showMonthEndHint ? (
                 <FieldDescription>

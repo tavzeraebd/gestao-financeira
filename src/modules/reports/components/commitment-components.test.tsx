@@ -48,14 +48,18 @@ function month(
   pending: number,
   recurring: number,
   income: number,
+  payroll = 0,
 ): CommitmentMonth {
-  const committed = pending + recurring;
+  const cashCommitted = pending + recurring;
+  const committed = cashCommitted + payroll;
   return {
     month: d(`${m}-01`),
     label: m,
     longLabel: `mês ${m}`,
     pending: asCents(pending),
     recurring: asCents(recurring),
+    payroll: asCents(payroll),
+    cashCommitted: asCents(cashCommitted),
     committed: asCents(committed),
     income: asCents(income),
     percent: income > 0 ? (committed / income) * 100 : null,
