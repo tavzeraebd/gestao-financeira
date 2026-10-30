@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { CreditCardIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { InfoHint } from "@/components/shared/info-hint";
 import { Money } from "@/components/shared/money";
 import { Badge } from "@/components/ui/badge";
-import { formatDateBR } from "@/lib/dates";
+import { formatDateBR, type ISODate } from "@/lib/dates";
 import { formatPercent } from "@/lib/format";
 import { negCents } from "@/lib/money";
 import { ACCOUNT_TYPE_LABELS } from "@/modules/accounts/constants";
@@ -38,6 +39,26 @@ function originText(item: CommitmentDetailItem): string {
   return item.type === "income" ? "Conta a receber" : "Conta a pagar";
 }
 
+/** dd/MM a partir do formatador existente (dd/MM/aaaa). */
+const shortDay = (d: ISODate) => formatDateBR(d).slice(0, 5);
+
+function OriginLine({ item }: { item: CommitmentDetailItem }) {
+  if (!item.cardName && !item.purchaseDate)
+    return <span>{originText(item)}</span>;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1">
+      <CreditCardIcon aria-hidden="true" className="size-3.5" />
+      {[
+        item.cardName ?? "Cartão",
+        item.purchaseDate ? `Compra ${shortDay(item.purchaseDate)}` : null,
+        `Fatura vence ${shortDay(item.date)}`,
+      ]
+        .filter(Boolean)
+        .join(" · ")}
+    </span>
+  );
+}
+
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
@@ -65,7 +86,7 @@ function ItemList({ items }: { items: CommitmentDetailItem[] }) {
             <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
               <span className="tabular-nums">{formatDateBR(item.date)}</span>
               <span>{item.categoryName}</span>
-              <span>{originText(item)}</span>
+              <OriginLine item={item} />
               {item.group === "payroll" ? (
                 <Badge variant="secondary">Folha</Badge>
               ) : null}

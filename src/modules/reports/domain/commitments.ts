@@ -7,6 +7,7 @@ import {
 } from "@/lib/dates";
 import { addCents, asCents, sumCents, type Cents } from "@/lib/money";
 import { MAX_OCCURRENCES_PER_SERIES } from "../constants";
+import { withInvoice, type CardTerms } from "./card-invoices";
 import type {
   CommitmentEntry,
   CommitmentMonth,
@@ -68,6 +69,7 @@ export function expandSeries(
       description: series.description,
       origin: "series",
       sourceId: series.id,
+      ...(series.accountId ? { accountId: series.accountId } : {}),
       ...(series.payrollDeduction ? { payroll: true } : {}),
     });
   }
@@ -99,6 +101,10 @@ export type CommitmentInput = {
   /** Contas em aberto (`pending`), de qualquer data; as além do horizonte são ignoradas. */
   pending: readonly CommitmentEntry[];
   series: readonly CommitmentSeries[];
+  /** Cartões com fechamento e vencimento: despesa neles conta no mês do vencimento da fatura (D24). */
+  cards?: readonly CardTerms[];
+  /** Compras de cartão já efetivadas e não quitadas, já com a fatura (`openPurchaseEntries`). */
+  cardPurchases?: readonly CommitmentEntry[];
 };
 
 export type CommitmentResult = {
@@ -112,6 +118,7 @@ export type CommitmentResult = {
 /**
  * Comprometimento futuro = despesas em aberto + ocorrências futuras das despesas recorrentes, por mês, do
  * mês de hoje até `horizon` meses à frente (`horizon + 1` meses). Em aberto e vencido entra no mês de hoje.
+ * Despesa em cartão conta no mês do vencimento da fatura, não no da compra (D24).
  * Séries em desconto em folha entram no comprometido (coluna `payroll`), mas ficam fora de `cashCommitted`.
  * Receita esperada = receitas a receber em aberto + ocorrências futuras das receitas recorrentes.
  */
@@ -124,8 +131,18 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
   );
   const index = new Map(monthStarts.map((m, i) => [m, i]));
 
-  const pending = input.pending.filter((e) => e.date < end);
-  const virtual = input.series.flatMap((s) => expandSeries(s, today, end));
+  const cards = new Map((input.cards ?? []).map((c) => [c.id, c]));
+  const onInvoice = (e: CommitmentEntry) =>
+    withInvoice(e, e.accountId ? cards.get(e.accountId) : undefined);
+  // D24: a data de despesa em cartão passa a ser o vencimento da fatura; só então vale o corte do horizonte.
+  const pending = [
+    ...input.pending.map(onInvoice),
+    ...(input.cardPurchases ?? []),
+  ].filter((e) => e.date < end);
+  const virtual = input.series
+    .flatMap((s) => expandSeries(s, today, end))
+    .map(onInvoice)
+    .filter((e) => e.date < end);
 
   const slots = monthStarts.map(() => ({
     pending: [] as Cents[],

@@ -53,3 +53,6 @@ export const MAX_COMMITMENT_ROWS = 1000;
 
 /** Metas no card do /inicio. */
 export const DASHBOARD_GOALS_LIMIT = 3;
+
+/** Compras efetivadas lidas dos cartões para achar as ainda não quitadas na fatura (D24). */
+export const MAX_CARD_PURCHASE_ROWS = 1000;

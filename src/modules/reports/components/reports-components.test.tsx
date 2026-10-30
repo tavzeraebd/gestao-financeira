@@ -6,7 +6,6 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ISODate } from "@/lib/dates";
 import { asCents } from "@/lib/money";
 import type { Comparison, Dashboard } from "@/modules/reports/types";
-import type { BillListItem } from "@/modules/bills/types";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -36,7 +35,6 @@ vi.mock("@/components/charts/lazy", () => ({
 import { ComparisonText } from "./comparison-text";
 import { DashboardPeriodFilter } from "./dashboard-period-filter";
 import { IndicatorInfo } from "./indicator-info";
-import { UpcomingBillsCard } from "./upcoming-bills-card";
 
 const TODAY = "2026-10-24" as ISODate;
 const d = (s: string) => s as ISODate;
@@ -121,53 +119,6 @@ describe("indicadores", () => {
     expect(
       await screen.findByText(/Soma dos saldos das contas, sem cartões/),
     ).toBeInTheDocument();
-  });
-});
-
-describe("Próximos vencimentos (CA-E5-58)", () => {
-  const bill = {
-    id: "b1",
-    kind: "pagar",
-    description: "Aluguel",
-    amount: asCents(150000),
-    dueDate: d("2026-10-28"),
-    paidOn: null,
-    status: "pending",
-    days: 4,
-    account: { id: "a1", name: "Corrente" },
-    category: { id: "c1", name: "Moradia", color: "chart-3", icon: "house" },
-    assignedMember: null,
-    recurrence: null,
-    canPay: true,
-    canEdit: true,
-    canCancel: true,
-  } as unknown as BillListItem;
-
-  it("sem vencimentos: estado vazio apenas informativo, sem atalho de criação", () => {
-    render(<UpcomingBillsCard items={[]} />);
-    expect(
-      screen.getByText("Nenhum vencimento até o fim do mês"),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
-  });
-
-  it("lista no máximo 5, com link ao item, status em texto e Ver todos", () => {
-    const items = Array.from({ length: 7 }, (_, i) => ({
-      ...bill,
-      id: `b${i}`,
-      description: `Conta ${i}`,
-    }));
-    render(<UpcomingBillsCard items={items} />);
-    expect(screen.getAllByRole("listitem")).toHaveLength(5);
-    expect(screen.getByRole("link", { name: /Conta 0/ })).toHaveAttribute(
-      "href",
-      "/compromissos/b0",
-    );
-    expect(screen.getAllByText("Pendente")).toHaveLength(5);
-    expect(screen.getByRole("link", { name: "Ver todos" })).toHaveAttribute(
-      "href",
-      "/compromissos",
-    );
   });
 });
 

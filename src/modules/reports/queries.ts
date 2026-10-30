@@ -49,6 +49,7 @@ import {
   buildCommitmentDetails,
   categoryNames,
 } from "./domain/commitment-details";
+import { openPurchaseEntries, type CardTerms } from "./domain/card-invoices";
 import {
   buildCommitments,
   entriesOfMonth,
@@ -72,6 +73,7 @@ import {
   rpcMemberExpenseTotals,
   rpcMonthlyCashFlow,
   selectActiveCommitmentSeries,
+  selectCardPurchases,
   selectHasPaidTransaction,
   selectPendingCommitments,
 } from "./repository";
@@ -291,11 +293,46 @@ export async function getCommitmentDashboard(): Promise<CommitmentDashboard> {
       previousBalances,
       previousAsOf,
     );
+    // D24: cartões com fechamento e vencimento; compra efetivada ainda não quitada conta no vencimento da fatura.
+    const cards: CardTerms[] = accounts.flatMap((a) =>
+      a.type === "credit_card" &&
+      a.isActive &&
+      a.statementClosingDay !== null &&
+      a.statementDueDay !== null
+        ? [
+            {
+              id: a.id,
+              name: a.name,
+              closingDay: a.statementClosingDay,
+              dueDay: a.statementDueDay,
+            },
+          ]
+        : [],
+    );
+    const purchases = await selectCardPurchases(
+      supabase,
+      cards.map((c) => c.id),
+      now,
+    );
+    let cardCommitmentUnderestimated = false;
+    const cardPurchases = cards.flatMap((card) => {
+      const balance = balances.get(card.id) ?? ZERO;
+      if (balance >= 0) return [];
+      const result = openPurchaseEntries(
+        purchases.filter((p) => p.accountId === card.id),
+        card,
+        asCents(-balance),
+      );
+      if (!result.covered) cardCommitmentUnderestimated = true;
+      return result.entries;
+    });
     const { overview, expenses, entries } = buildCommitments({
       today: now,
       horizon: COMMITMENT_HORIZON_MONTHS,
       pending,
       series,
+      cards,
+      cardPurchases,
     });
     // Rosca e detalhamento por categoria: só o mês corrente.
     const monthExpenses = entriesOfMonth(expenses, firstOfMonth);
@@ -327,6 +364,7 @@ export async function getCommitmentDashboard(): Promise<CommitmentDashboard> {
         accounts: buildAccountRows(accounts, balances),
       }),
       upcomingBills: upcomingBills.filter((b) => b.dueDate <= lastOfMonth),
+      cardCommitmentUnderestimated,
     };
   });
 }

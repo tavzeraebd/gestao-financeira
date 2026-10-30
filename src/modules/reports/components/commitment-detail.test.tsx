@@ -147,11 +147,11 @@ const series: CommitmentSeries[] = [
   },
 ];
 
-function setup() {
+function setup(extraPending: CommitmentEntry[] = []) {
   const result = buildCommitments({
     today: TODAY,
     horizon: 2,
-    pending,
+    pending: [...pending, ...extraPending],
     series,
   });
   const { overview } = result;
@@ -218,8 +218,12 @@ function setup() {
   return { overview, projection, details, balance, slices };
 }
 
-function renderAll() {
-  const { overview, projection, details, balance, slices } = setup();
+function renderAll(
+  extraPending: CommitmentEntry[] = [],
+  cardUnderestimated?: boolean,
+) {
+  const { overview, projection, details, balance, slices } =
+    setup(extraPending);
   render(
     <CommitmentDetailProvider details={details}>
       <CommitmentSummaryCards
@@ -227,7 +231,11 @@ function renderAll() {
         balance={balance}
         projection={projection}
       />
-      <CommitmentMonthlyCard overview={overview} projection={projection} />
+      <CommitmentMonthlyCard
+        overview={overview}
+        projection={projection}
+        cardUnderestimated={cardUnderestimated}
+      />
       <CommitmentByCategoryCard
         periodLabel="outubro de 2026"
         breakdown={{
@@ -281,6 +289,52 @@ describe("detalhamento do /inicio", () => {
     const closing = view.getByText("Saldo ao fim do mês").nextElementSibling;
     expect(closing).toHaveTextContent(/1\.800,00/);
     expect(closing).toHaveTextContent("(negativo)");
+  });
+
+  it("item de cartão mostra cartão, data da compra e vencimento da fatura", async () => {
+    const user = userEvent.setup();
+    renderAll([
+      {
+        type: "expense",
+        amount: asCents(45000),
+        date: d("2026-11-16"),
+        categoryId: "c1",
+        description: "Notebook",
+        origin: "card",
+        sourceId: "t-notebook",
+        accountId: "a2",
+        cardName: "Nubank Roxinho",
+        purchaseDate: d("2026-10-12"),
+        invoiceMonth: d("2026-11-01"),
+      },
+    ]);
+    await openMonthlyTable(user);
+    await user.click(screen.getByRole("button", NOVEMBER));
+    const dialog = await screen.findByRole("dialog", {
+      name: "novembro de 2026",
+    });
+    const view = within(dialog);
+    expect(
+      view.getByText("Nubank Roxinho · Compra 12/10 · Fatura vence 16/11"),
+    ).toBeInTheDocument();
+    expect(view.getByRole("link", { name: "Notebook" })).toHaveAttribute(
+      "href",
+      "/transacoes/t-notebook",
+    );
+  });
+
+  it("aviso do cartão aparece só quando a flag é true", () => {
+    renderAll([], true);
+    expect(
+      screen.getByRole("button", {
+        name: "Aviso: comprometido do cartão pode estar menor que o real",
+      }),
+    ).toBeInTheDocument();
+    cleanup();
+    renderAll([], false);
+    expect(
+      screen.queryByRole("button", { name: /Aviso: comprometido do cartão/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("Enter no botão do mês abre; Esc e Fechar fecham", async () => {

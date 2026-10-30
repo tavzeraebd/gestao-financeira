@@ -5,7 +5,8 @@ import { fromDbNumeric, type Cents } from "@/lib/money";
 import { dbDate } from "@/lib/supabase/db-values";
 import { toFrequency } from "@/modules/recurrences/repository";
 import type { Database } from "@/types/database";
-import { MAX_COMMITMENT_ROWS } from "./constants";
+import { MAX_CARD_PURCHASE_ROWS, MAX_COMMITMENT_ROWS } from "./constants";
+import type { CardPurchase } from "./domain/card-invoices";
 import type { CommitmentEntry, CommitmentSeries } from "./types";
 
 type Client = SupabaseClient<Database>;
@@ -40,7 +41,7 @@ export async function selectPendingCommitments(
   const { data, error } = await supabase
     .from("transactions")
     .select(
-      "id, type, description, amount::text, transaction_date, category_id",
+      "id, type, description, amount::text, transaction_date, category_id, account_id",
     )
     .eq("status", "pending")
     .is("deleted_at", null)
@@ -58,6 +59,7 @@ export async function selectPendingCommitments(
       amount: string;
       transaction_date: string;
       category_id: string;
+      account_id: string;
     }[]
   ).map((row) => ({
     type: toCommitmentType(row.type),
@@ -67,6 +69,7 @@ export async function selectPendingCommitments(
     categoryId: row.category_id,
     origin: "bill" as const,
     sourceId: row.id,
+    accountId: row.account_id,
   }));
 }
 
@@ -77,7 +80,7 @@ export async function selectActiveCommitmentSeries(
   const { data, error } = await supabase
     .from("recurrences")
     .select(
-      "id, type, description, amount::text, frequency, interval_count, start_date, end_date, next_occurrence_date, category_id, payroll_deduction",
+      "id, type, description, amount::text, frequency, interval_count, start_date, end_date, next_occurrence_date, category_id, payroll_deduction, account_id",
     )
     .eq("is_active", true)
     .order("id", { ascending: true })
@@ -96,6 +99,7 @@ export async function selectActiveCommitmentSeries(
       next_occurrence_date: string;
       category_id: string;
       payroll_deduction: boolean;
+      account_id: string;
     }[]
   ).map((row) => ({
     id: row.id,
@@ -109,6 +113,51 @@ export async function selectActiveCommitmentSeries(
     nextOccurrenceDate: dbDate(row.next_occurrence_date),
     categoryId: row.category_id,
     payrollDeduction: row.payroll_deduction,
+    accountId: row.account_id,
+  }));
+}
+
+/**
+ * Compras efetivadas (despesa `paid`, não excluída, não estorno) dos cartões até `upTo`, da mais nova para a
+ * mais antiga. Uma consulta para todos os cartões (D24); a RLS decide a família.
+ */
+export async function selectCardPurchases(
+  supabase: Client,
+  cardIds: readonly string[],
+  upTo: ISODate,
+): Promise<CardPurchase[]> {
+  if (cardIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("transactions")
+    .select(
+      "id, account_id, description, amount::text, transaction_date, category_id",
+    )
+    .in("account_id", [...cardIds])
+    .eq("type", "expense")
+    .eq("status", "paid")
+    .is("deleted_at", null)
+    .is("reversal_of_id", null)
+    .lte("transaction_date", upTo)
+    .order("transaction_date", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(MAX_CARD_PURCHASE_ROWS);
+  if (error) throw error;
+  return (
+    data as unknown as {
+      id: string;
+      account_id: string;
+      description: string;
+      amount: string;
+      transaction_date: string;
+      category_id: string;
+    }[]
+  ).map((row) => ({
+    id: row.id,
+    accountId: row.account_id,
+    description: row.description,
+    amount: fromDbNumeric(row.amount),
+    date: dbDate(row.transaction_date),
+    categoryId: row.category_id,
   }));
 }
 

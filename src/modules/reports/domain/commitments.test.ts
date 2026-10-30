@@ -9,6 +9,7 @@ import {
   expandSeries,
   totalsByCategory,
 } from "./commitments";
+import { openPurchaseEntries } from "./card-invoices";
 
 const d = (s: string) => s as ISODate;
 
@@ -353,5 +354,103 @@ describe("buildCommitments: entradas com origem", () => {
       origin: "bill",
       sourceId: "t-expense-2026-10-30",
     });
+  });
+});
+
+describe("buildCommitments com cartão (D24)", () => {
+  const card = { id: "card", name: "Visa", closingDay: 11, dueDay: 16 };
+  const TODAY = d("2026-10-13");
+  const open = (id: string, date: string, cents: number) =>
+    openPurchaseEntries(
+      [
+        {
+          id,
+          accountId: "card",
+          description: id,
+          amount: asCents(cents),
+          date: d(date),
+          categoryId: "c1",
+        },
+      ],
+      card,
+      asCents(cents),
+    ).entries;
+
+  it("pendente no cartão conta no mês do vencimento da fatura, não no da compra", () => {
+    const pendingCard: CommitmentEntry = {
+      ...entry("expense", "2026-10-12", 5000),
+      accountId: "card",
+    };
+    const result = buildCommitments({
+      today: TODAY,
+      horizon: 2,
+      pending: [pendingCard],
+      series: [],
+      cards: [card],
+    });
+    expect(result.overview.months[0]?.pending).toBe(0);
+    expect(result.overview.months[1]?.pending).toBe(5000);
+    expect(result.entries[0]?.purchaseDate).toBe("2026-10-12");
+  });
+
+  it("compra efetivada em aberto entra no mês da fatura, sem duplicar pendentes", () => {
+    const pendingCard: CommitmentEntry = {
+      ...entry("expense", "2026-10-05", 2000),
+      accountId: "card",
+    };
+    const result = buildCommitments({
+      today: TODAY,
+      horizon: 2,
+      pending: [pendingCard],
+      series: [],
+      cards: [card],
+      cardPurchases: open("p1", "2026-10-12", 3000),
+    });
+    const [oct, nov] = result.overview.months;
+    expect(oct?.pending).toBe(2000);
+    expect(nov?.pending).toBe(3000);
+    expect(result.expenses).toHaveLength(2);
+  });
+
+  it("fatura vencida e não paga entra no mês atual", () => {
+    const result = buildCommitments({
+      today: TODAY,
+      horizon: 2,
+      pending: [],
+      series: [],
+      cards: [card],
+      cardPurchases: open("p1", "2026-10-02", 1500),
+    });
+    expect(result.overview.months[0]?.pending).toBe(1500);
+  });
+
+  it("ocorrência de recorrência em cartão segue a regra da fatura", () => {
+    const result = buildCommitments({
+      today: TODAY,
+      horizon: 2,
+      pending: [],
+      series: [
+        series({
+          accountId: "card",
+          nextOccurrenceDate: d("2026-11-12"),
+          startDate: d("2026-11-12"),
+        }),
+      ],
+      cards: [card],
+    });
+    // 12/11 fecha 11/12 e vence 16/12.
+    expect(result.overview.months[2]?.recurring).toBe(10000);
+    expect(result.overview.months[1]?.recurring).toBe(0);
+  });
+
+  it("fatura além do horizonte fica de fora", () => {
+    const result = buildCommitments({
+      today: TODAY,
+      horizon: 1,
+      pending: [{ ...entry("expense", "2026-11-12", 100), accountId: "card" }],
+      series: [],
+      cards: [card],
+    });
+    expect(result.expenses).toHaveLength(0);
   });
 });

@@ -1,4 +1,4 @@
-import { ChevronRightIcon, TrendingUpIcon } from "lucide-react";
+import { ChevronRightIcon } from "lucide-react";
 
 import { Money } from "@/components/shared/money";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,29 +21,23 @@ export function BalanceCard({
   hasCreditCards,
 }: BalanceCardProps) {
   return (
-    <Card data-testid="indicador-saldo-total" className="h-full">
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1">
-            <h2 className="text-muted-foreground text-sm font-medium">
-              Saldo atual
-            </h2>
-            <IndicatorInfo id="consolidatedBalance" />
-          </div>
-          <TrendingUpIcon
-            aria-hidden="true"
-            className="text-muted-foreground size-5"
-          />
+    <Card data-testid="indicador-saldo-total" size="sm" className="h-full">
+      <CardContent className="flex flex-col gap-1">
+        <div className="flex items-center gap-1">
+          <h2 className="text-muted-foreground text-xs font-medium">
+            Saldo atual
+          </h2>
+          <IndicatorInfo id="consolidatedBalance" />
         </div>
-        <p className="text-3xl font-bold" data-testid="valor">
+        <p className="text-xl font-bold xl:text-2xl" data-testid="valor">
           <DetailTrigger
             view={{ kind: "accounts" }}
-            className="hover:bg-muted -mx-2 inline-flex items-center gap-1 px-2 py-1 transition-colors"
+            className="hover:bg-muted -mx-1.5 inline-flex min-h-10 items-center gap-1 rounded-md px-1.5 py-1 transition-colors"
           >
             <Money cents={consolidated.current} />
             <ChevronRightIcon
               aria-hidden="true"
-              className="text-muted-foreground size-5 shrink-0"
+              className="text-muted-foreground size-4 shrink-0"
             />
             <span className="sr-only">Ver saldo por conta</span>
           </DetailTrigger>
@@ -53,7 +47,7 @@ export function BalanceCard({
           against={formatDateBR(previousAsOf)}
         />
         {hasCreditCards ? (
-          <div className="flex items-center justify-between gap-2 border-t pt-3 text-sm">
+          <div className="flex items-center justify-between gap-2 text-xs">
             <span className="text-muted-foreground flex items-center gap-1">
               Faturas em aberto
               <IndicatorInfo id="openCardDebt" />

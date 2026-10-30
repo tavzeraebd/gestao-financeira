@@ -15,6 +15,7 @@ import type { TooltipContentProps } from "recharts";
 
 import { formatPercent } from "@/lib/format";
 import { addCents, formatBRL, type Cents } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import { ChartLegend, type ChartLegendItem } from "./chart-legend";
 import { chartColorVar } from "./colors";
@@ -43,6 +44,8 @@ export type CommitmentBarChartProps = {
   ariaLabel: string;
   /** Clique numa barra ou ponto de um mês; o teclado usa os botões de mês fora do gráfico. */
   onSelect?: (key: string) => void;
+  /** Preenche a altura do pai a partir de `lg` (altura fixa abaixo disso); legenda compacta. */
+  fill?: boolean;
 };
 
 const HEIGHT = 288;
@@ -108,6 +111,7 @@ export default function CommitmentBarChart({
   showIncome,
   ariaLabel,
   onSelect,
+  fill = false,
 }: CommitmentBarChartProps) {
   const reduceMotion = useReducedMotion();
   // Cents -> reais só para a escala do SVG; a exibição usa formatBRL.
@@ -147,16 +151,20 @@ export default function CommitmentBarChart({
   ];
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={cn("flex flex-col gap-3", fill && "lg:min-h-0 lg:flex-1")}>
       <div
         role="img"
         aria-label={ariaLabel}
-        className="w-full"
-        style={{ height: HEIGHT }}
+        className={cn(
+          "w-full",
+          fill && "relative h-72 lg:h-auto lg:min-h-60 lg:flex-1",
+        )}
+        style={fill ? undefined : { height: HEIGHT }}
       >
         <ResponsiveContainer
+          className={fill ? "absolute inset-0" : undefined}
           width="100%"
-          height={HEIGHT}
+          height={fill ? "100%" : HEIGHT}
           initialDimension={{ width: 480, height: HEIGHT }}
         >
           <ComposedChart
@@ -267,6 +275,7 @@ export default function CommitmentBarChart({
       <ChartLegend
         aria-label="Legenda: comprometimento mensal"
         items={legend}
+        className={fill ? "gap-y-1 text-xs lg:shrink-0" : undefined}
       />
     </div>
   );

@@ -32,6 +32,11 @@ export type ChartCardProps = {
   table: ChartCardTable;
   legend?: ReactNode;
   children: ReactNode;
+  /**
+   * Modo painel: o cartão ocupa toda a altura do pai (a partir de `lg`), com cabeçalho e espaçamento compactos,
+   * e o gráfico filho preenche o que sobra. Abaixo de `lg` segue com altura própria.
+   */
+  fill?: boolean;
 };
 
 /**
@@ -47,13 +52,14 @@ export function ChartCard({
   table,
   legend,
   children,
+  fill = false,
 }: ChartCardProps) {
   const [showTable, setShowTable] = useState(false);
   const regionId = useId();
   const tableVisible = showTable && !isEmpty;
 
   return (
-    <Card>
+    <Card size={fill ? "sm" : "default"} className={cn(fill && "h-full")}>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
           <div className="min-w-0">
@@ -63,7 +69,14 @@ export function ChartCard({
               </h2>
               {info}
             </div>
-            <p className="text-muted-foreground text-sm">{period}</p>
+            <p
+              className={cn(
+                "text-muted-foreground text-sm",
+                fill && "lg:text-xs",
+              )}
+            >
+              {period}
+            </p>
           </div>
           {isEmpty ? null : (
             <Button
@@ -83,8 +96,16 @@ export function ChartCard({
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div id={regionId}>
+      <CardContent
+        className={cn("flex flex-col gap-4", fill && "min-h-0 flex-1 gap-3")}
+      >
+        <div
+          id={regionId}
+          className={cn(
+            fill &&
+              "flex min-h-0 flex-col lg:flex-1 lg:overflow-y-auto lg:[&>.border-dashed]:flex-1 lg:[&>.border-dashed]:justify-center lg:[&>.border-dashed]:py-4",
+          )}
+        >
           {isEmpty ? (
             <EmptyState
               title={empty.title}

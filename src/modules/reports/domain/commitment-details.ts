@@ -30,14 +30,15 @@ export function categoryNames(
   );
 }
 
-/** Tela de detalhe da origem: conta em aberto ou série recorrente. */
+/** Tela de detalhe da origem: conta em aberto, compra no cartão ou série recorrente. */
 export function commitmentItemHref(
   origin: CommitmentOrigin,
   sourceId: string,
 ): string {
-  return origin === "bill"
-    ? `/compromissos/${sourceId}`
-    : `/recorrencias/${sourceId}/editar`;
+  if (origin === "series") return `/recorrencias/${sourceId}/editar`;
+  return origin === "card"
+    ? `/transacoes/${sourceId}`
+    : `/compromissos/${sourceId}`;
 }
 
 function groupOf(entry: CommitmentEntry): CommitmentItemGroup {
@@ -61,7 +62,11 @@ function toItem(
     categoryName: names.get(entry.categoryId) ?? REMOVED_CATEGORY_NAME,
     origin: entry.origin,
     sourceId: entry.sourceId,
-    overdue: entry.origin === "bill" && entry.date < today,
+    overdue: entry.origin !== "series" && entry.date < today,
+    ...(entry.accountId ? { accountId: entry.accountId } : {}),
+    ...(entry.cardName ? { cardName: entry.cardName } : {}),
+    ...(entry.purchaseDate ? { purchaseDate: entry.purchaseDate } : {}),
+    ...(entry.invoiceMonth ? { invoiceMonth: entry.invoiceMonth } : {}),
   };
 }
 

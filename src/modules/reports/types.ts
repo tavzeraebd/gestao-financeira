@@ -105,7 +105,19 @@ export type Dashboard = {
 
 // --- Comprometimento futuro (/inicio) ---
 
-export type CommitmentOrigin = "bill" | "series";
+/** `card` = compra já efetivada no cartão e ainda não quitada na fatura (D24). */
+export type CommitmentOrigin = "bill" | "series" | "card";
+
+/** Dados da fatura (D24) de um item em conta de cartão; ausentes fora de cartão. */
+export type CommitmentCardInfo = {
+  /** Conta (cartão) da compra. */
+  accountId?: string;
+  cardName?: string;
+  /** Data da compra (a da parcela ou da ocorrência). */
+  purchaseDate?: ISODate;
+  /** Mês (1º dia) em que a fatura vence: o mês em que o item conta como comprometido. */
+  invoiceMonth?: ISODate;
+};
 
 /** Despesa ou receita em aberto, já com a data de vencimento (vencidos entram com a data original). */
 export type CommitmentEntry = {
@@ -119,7 +131,7 @@ export type CommitmentEntry = {
   sourceId: string;
   /** Ocorrência de série em desconto em folha (já vem fora do salário líquido; não sai do saldo). */
   payroll?: boolean;
-};
+} & CommitmentCardInfo;
 
 /** Série recorrente ativa (a agenda ainda não materializada vem de `nextOccurrenceDate`). */
 export type CommitmentSeries = {
@@ -135,6 +147,8 @@ export type CommitmentSeries = {
   nextOccurrenceDate: ISODate;
   /** Despesa descontada em folha: conta no comprometimento, mas não debita saldo. */
   payrollDeduction: boolean;
+  /** Conta da série; em cartão, a ocorrência segue a regra de fatura (D24). */
+  accountId?: string;
 };
 
 export type CommitmentMonth = {
@@ -213,7 +227,7 @@ export type CommitmentDetailItem = {
   sourceId: string;
   /** Conta em aberto já vencida (entra no mês atual com a data original). */
   overdue: boolean;
-};
+} & CommitmentCardInfo;
 
 export type MonthDetail = CommitmentMonth & {
   /** Saldo projetado do mês anterior (no primeiro mês, o saldo atual). */
@@ -268,6 +282,8 @@ export type CommitmentDashboard = {
   byCategory: CategoryBreakdown;
   /** Até 5 compromissos em aberto com vencimento até o fim do mês corrente (vencidos incluídos), só leitura. */
   upcomingBills: BillListItem[];
+  /** `true` quando o histórico lido não cobre toda a fatura em aberto: o comprometido do cartão pode estar subestimado (D24). */
+  cardCommitmentUnderestimated?: boolean;
 };
 
 export type ReportPreset = (typeof REPORT_PRESETS)[number];

@@ -17,7 +17,7 @@ import type { DetailView } from "./commitment-detail-views";
 import { commitmentItemHref } from "@/modules/reports/domain/commitment-details";
 
 const ACTION_CLASS =
-  "-m-2 flex flex-col gap-2 rounded-md p-2 text-left transition-colors hover:bg-muted";
+  "-m-1.5 flex min-h-10 flex-col gap-0.5 rounded-md p-1.5 text-left transition-colors hover:bg-muted";
 
 /** Link de detalhe ou visão do diálogo; sem destino, o resumo fica só de leitura. */
 type SummaryTarget =
@@ -42,7 +42,7 @@ function SummaryCard({
     <>
       <span className="flex items-start justify-between gap-2">
         <span
-          className="block text-xl font-bold tabular-nums"
+          className="block text-xl font-bold tabular-nums xl:text-2xl"
           data-testid="valor"
         >
           {value}
@@ -55,22 +55,24 @@ function SummaryCard({
         ) : null}
       </span>
       {alert ? (
-        <span className="text-destructive flex items-center gap-1.5 text-sm font-medium">
-          <TriangleAlertIcon aria-hidden="true" className="size-4 shrink-0" />
-          <span>{note}</span>
+        <span className="text-destructive flex items-center gap-1.5 text-xs font-medium">
+          <TriangleAlertIcon aria-hidden="true" className="size-3.5 shrink-0" />
+          <span className="line-clamp-2">{note}</span>
         </span>
       ) : (
-        <span className="text-muted-foreground block text-sm">{note}</span>
+        <span className="text-muted-foreground line-clamp-2 block text-xs">
+          {note}
+        </span>
       )}
       {target ? <span className="sr-only">Ver detalhes</span> : null}
     </>
   );
   return (
-    <Card data-testid={testId} className="h-full">
-      <CardContent className="flex flex-col gap-2">
-        <h2 className="text-muted-foreground text-sm font-medium">{title}</h2>
+    <Card data-testid={testId} size="sm" className="h-full">
+      <CardContent className="flex flex-col gap-1">
+        <h2 className="text-muted-foreground text-xs font-medium">{title}</h2>
         {target === null ? (
-          <div className="flex flex-col gap-2">{body}</div>
+          <div className="flex flex-col gap-0.5">{body}</div>
         ) : target.kind === "link" ? (
           <Link
             href={target.href}
@@ -110,7 +112,7 @@ export function CommitmentSummaryCards({
     : null;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <BalanceCard {...balance} />
       <SummaryCard
         title="Comprometido no mês"

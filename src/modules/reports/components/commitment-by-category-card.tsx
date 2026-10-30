@@ -40,6 +40,7 @@ export function CommitmentByCategoryCard({
 
   return (
     <ChartCard
+      fill
       title="Comprometimento por categoria"
       period={periodLabel}
       info={
@@ -52,8 +53,7 @@ export function CommitmentByCategoryCard({
       isEmpty={slices.length === 0}
       empty={{
         title: "Nenhum compromisso por categoria neste mês",
-        description:
-          "Quando houver contas a pagar ou despesas recorrentes neste mês, elas aparecem aqui agrupadas por categoria.",
+        description: "As categorias do mês aparecem aqui.",
       }}
       table={{
         caption: `Comprometimento por categoria de ${periodLabel}`,
@@ -85,6 +85,7 @@ export function CommitmentByCategoryCard({
       legend={
         <ClickableCategoryLegend
           aria-label="Legenda: comprometimento por categoria"
+          className="max-h-24 gap-y-1 overflow-y-auto text-xs lg:shrink-0"
           items={slices.map((slice) => ({
             key: slice.key,
             label: sliceName(slice),
@@ -101,6 +102,7 @@ export function CommitmentByCategoryCard({
           value: slice.amount,
           color: slice.color,
         }))}
+        fill
         centerLabel="Total"
         centerValue={formatBRL(total)}
         ariaLabel={`Comprometimento por categoria de ${periodLabel}. Total ${formatBRL(total)}. ${summary}.`}

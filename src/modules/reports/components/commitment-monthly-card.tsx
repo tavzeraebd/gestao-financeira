@@ -1,4 +1,5 @@
 import { ChartCard } from "@/components/charts/chart-card";
+import { InfoHint } from "@/components/shared/info-hint";
 import { formatPercent } from "@/lib/format";
 import { asCents, formatBRL } from "@/lib/money";
 
@@ -17,9 +18,12 @@ import { DetailTrigger } from "./commitment-detail-provider";
 export function CommitmentMonthlyCard({
   overview,
   projection,
+  cardUnderestimated = false,
 }: {
   overview: CommitmentOverview;
   projection: ProjectedBalance;
+  /** D24: o histórico lido do cartão não cobre toda a dívida aberta. */
+  cardUnderestimated?: boolean;
 }) {
   const { months, hasIncome, label } = overview;
   const projectedBy = new Map(projection.months.map((p) => [p.month, p]));
@@ -51,13 +55,24 @@ export function CommitmentMonthlyCard({
 
   return (
     <ChartCard
+      fill
       title="Comprometimento mensal"
       period={label}
+      info={
+        cardUnderestimated ? (
+          <InfoHint
+            label="o comprometido do cartão"
+            ariaLabel="Aviso: comprometido do cartão pode estar menor que o real"
+          >
+            O histórico de compras do cartão lido não cobre toda a dívida
+            aberta; o comprometido do cartão pode estar menor que o real.
+          </InfoHint>
+        ) : undefined
+      }
       isEmpty={months.every((m) => m.committed === 0)}
       empty={{
         title: "Nenhum compromisso em aberto neste período",
-        description:
-          "As contas a pagar em aberto e as despesas recorrentes dos próximos meses aparecem aqui, mês a mês.",
+        description: "Os compromissos dos próximos meses aparecem aqui.",
       }}
       table={{
         caption: `Comprometimento mensal de ${label}`,
@@ -106,6 +121,7 @@ export function CommitmentMonthlyCard({
           projected: projectedBy.get(m.month)?.balance ?? asCents(0),
         }))}
         showIncome={hasIncome}
+        fill
         ariaLabel={`Comprometimento mensal de ${label}. ${summary}.`}
       />
     </ChartCard>

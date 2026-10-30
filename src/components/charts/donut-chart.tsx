@@ -4,6 +4,7 @@ import { Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { TooltipContentProps } from "recharts";
 
 import { formatBRL, type Cents } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import { chartColorVar, type ChartColor } from "./colors";
 import { useReducedMotion } from "./use-reduced-motion";
@@ -22,6 +23,8 @@ export type DonutChartProps = {
   ariaLabel: string;
   /** Clique numa fatia; o teclado usa os botões da legenda. */
   onSelect?: (key: string) => void;
+  /** Preenche a altura do pai a partir de `lg` (altura fixa abaixo disso). */
+  fill?: boolean;
 };
 
 const HEIGHT = 224;
@@ -53,6 +56,7 @@ export default function DonutChart({
   centerValue,
   ariaLabel,
   onSelect,
+  fill = false,
 }: DonutChartProps) {
   const reduceMotion = useReducedMotion();
   // Cents -> reais só para o ângulo das fatias; a exibição usa formatBRL.
@@ -68,12 +72,16 @@ export default function DonutChart({
     <div
       role="img"
       aria-label={ariaLabel}
-      className="relative w-full"
-      style={{ height: HEIGHT }}
+      className={cn(
+        "relative w-full",
+        fill && "h-60 lg:h-auto lg:min-h-48 lg:flex-1",
+      )}
+      style={fill ? undefined : { height: HEIGHT }}
     >
       <ResponsiveContainer
+        className={fill ? "absolute inset-0" : undefined}
         width="100%"
-        height={HEIGHT}
+        height={fill ? "100%" : HEIGHT}
         initialDimension={{ width: 320, height: HEIGHT }}
       >
         <PieChart accessibilityLayer={false}>

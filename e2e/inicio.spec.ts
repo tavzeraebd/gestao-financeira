@@ -158,12 +158,11 @@ test("/inicio com compromisso: resumo, gráficos com resumo textual e Ver tabela
     }),
   ).toContainText("Mercado");
 
-  const vencimentos = tid(page, "proximos-vencimentos");
-  await expect(vencimentos).toContainText("Luz");
-  await vencimentos.getByRole("link", { name: /Luz/ }).click();
-  await expect(page).toHaveURL(/\/compromissos\/[0-9a-f-]{36}$/, {
-    timeout: 30_000,
-  });
+  // O card "Próximos vencimentos" saiu: o vencimento aparece no card-resumo e o mês abre com as contas em aberto.
+  await expect(tid(page, "proximos-vencimentos")).toHaveCount(0);
+  await tid(page, "resumo-mes-atual").getByRole("button").click();
+  const detalhe = page.getByRole("dialog");
+  await expect(detalhe.getByTestId("detalhe-mes")).toContainText("Luz");
 });
 
 test("/inicio com compromisso maior que o saldo: saldo projetado negativo sinalizado em texto", async ({
@@ -216,7 +215,10 @@ test("sem seletor de horizonte: ?horizonte= é ignorado e o mês seguinte só ap
       name: "Nenhum compromisso por categoria neste mês",
     }),
   ).toBeVisible();
-  await expect(tid(page, "proximos-vencimentos")).not.toContainText("Internet");
+  await expect(tid(page, "proximos-vencimentos")).toHaveCount(0);
+  await expect(tid(page, "resumo-proximo-vencimento")).not.toContainText(
+    "Internet",
+  );
 });
 
 for (const largura of [390, 320]) {
@@ -272,7 +274,7 @@ test("dados de uma família não aparecem para outra no mesmo navegador", async 
   const b = await createUserWithFamily(`i57b-${testInfo.project.name}`, "Beto");
   await entrar(page, a.owner);
   await page.goto("/inicio");
-  await expect(tid(page, "proximos-vencimentos")).toContainText(
+  await expect(tid(page, "resumo-proximo-vencimento")).toContainText(
     "Segredo da Ana",
   );
   await page.goto("/configuracoes");
@@ -286,22 +288,73 @@ test("dados de uma família não aparecem para outra no mesmo navegador", async 
   await expect(page.locator("body")).not.toContainText("777,00");
 });
 
-test("Próximos vencimentos: vazio informativo e item leva ao detalhe", async ({
+test("Próximo vencimento: vazio informativo e o detalhe do mês lista as contas por vencimento", async ({
   page,
 }, testInfo) => {
   const c = await criarCenario(`i58-${testInfo.project.name}`);
   const conta = await criarContaNoBanco(c, "Corrente", "checking", "1000");
   await entrar(page, c.owner);
   await page.goto("/inicio");
-  const vencimentos = tid(page, "proximos-vencimentos");
-  await expect(vencimentos).toContainText("Nenhum vencimento até o fim do mês");
-  await expect(vencimentos.getByRole("link")).toHaveCount(0);
+  const proximo = tid(page, "resumo-proximo-vencimento");
+  await expect(proximo).toContainText("Nenhum vencimento em aberto neste mês");
+  await expect(proximo.getByRole("link")).toHaveCount(0);
 
+  const agora = new Date();
+  const fimDoMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
   await semearPendentes(c, conta, [
+    {
+      descricao: "Internet",
+      valor: "50.00",
+      data: fimDoMes.toLocaleDateString("sv-SE"),
+    },
     { descricao: "Luz", valor: "80.00", data: hoje() },
   ]);
   await page.goto("/inicio");
-  await expect(vencimentos).toContainText("Vence hoje");
-  await vencimentos.getByRole("link", { name: "Ver todos" }).click();
-  await expect(page).toHaveURL(/\/compromissos$/);
+  await expect(proximo).toContainText("Luz");
+  await tid(page, "resumo-mes-atual").getByRole("button").click();
+  const itens = page
+    .getByRole("dialog")
+    .getByTestId("detalhe-mes")
+    .getByRole("link");
+  const nomes = await itens.allTextContents();
+  expect(nomes.indexOf("Luz")).toBeGreaterThanOrEqual(0);
+  expect(nomes.indexOf("Luz")).toBeLessThanOrEqual(nomes.indexOf("Internet"));
 });
+
+for (const viewport of [
+  { width: 1366, height: 768 },
+  { width: 1920, height: 1080 },
+]) {
+  test(`desktop ${viewport.width}x${viewport.height}: o início cabe na tela, sem rolagem da página`, async ({
+    page,
+  }, testInfo) => {
+    const c = await criarCenario(
+      `i60-${viewport.width}-${testInfo.project.name}`,
+    );
+    const conta = await criarContaNoBanco(c, "Corrente", "checking", "1000");
+    await semearPendentes(c, conta, [
+      { descricao: "Luz", valor: "80.00", data: hoje() },
+      { descricao: "Internet", valor: "50.00", data: mesQueVem() },
+    ]);
+    await entrar(page, c.owner);
+    await page.setViewportSize(viewport);
+    await page.goto("/inicio");
+    await expect(
+      card(page, "Comprometimento mensal").getByRole("img").first(),
+    ).toBeVisible();
+    // No máximo quatro cards-resumo, todos na mesma linha.
+    const cards = page.locator(
+      '[data-testid^="resumo-"]:visible, [data-testid="indicador-saldo-total"]:visible',
+    );
+    await expect(cards).toHaveCount(3 + 1);
+    const topos = await cards.evaluateAll((els) =>
+      els.map((el) => Math.round(el.getBoundingClientRect().top)),
+    );
+    expect(new Set(topos).size, "cards em linhas diferentes").toBe(1);
+    const sobra = await page.evaluate(
+      () => document.documentElement.scrollHeight - window.innerHeight,
+    );
+    expect(sobra, "rolagem vertical da página (px)").toBeLessThanOrEqual(0);
+    await semRolagemHorizontal(page, "/inicio");
+  });
+}
