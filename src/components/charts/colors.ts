@@ -20,10 +20,7 @@ export const CHART_GREEN_SCALE: readonly ChartGreenColor[] = [
 ];
 
 export type ChartColor =
-  | CategoryColor
-  | "chart-income"
-  | "chart-expense"
-  | ChartGreenColor;
+  CategoryColor | "chart-income" | "chart-expense" | ChartGreenColor;
 
 /**
  * `"chart-3"` -> `"var(--chart-3)"`. Única forma de dar cor a um gráfico.
