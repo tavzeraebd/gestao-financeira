@@ -35,7 +35,6 @@ vi.mock("@/components/charts/lazy", () => ({
 }));
 
 import { CommitmentByCategoryCard } from "./commitment-by-category-card";
-import { CommitmentHorizonFilter } from "./commitment-horizon-filter";
 import { CommitmentMonthlyCard } from "./commitment-monthly-card";
 import { CommitmentSummaryCards } from "./commitment-summary-cards";
 
@@ -70,16 +69,11 @@ function overview(
   months: CommitmentMonth[],
   over: Partial<CommitmentOverview> = {},
 ): CommitmentOverview {
-  const total = months.reduce((s, m) => s + m.committed, 0);
   return {
     from: d("2026-10-01"),
     to: d("2027-10-01"),
-    horizon: 12,
     label: "outubro de 2026 a outubro de 2027",
     months,
-    totalCommitted: asCents(total),
-    currentMonthCommitted: months[0]?.committed ?? asCents(0),
-    heaviest: null,
     nextDue: null,
     hasIncome: months.some((m) => m.income > 0),
     ...over,
@@ -189,7 +183,7 @@ describe("CommitmentByCategoryCard", () => {
       />,
     );
     expect(
-      screen.getByText("Nenhum compromisso por categoria neste período"),
+      screen.getByText("Nenhum compromisso por categoria neste mês"),
     ).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
@@ -236,14 +230,16 @@ describe("CommitmentSummaryCards", () => {
         projection={projectionOf([month("2026-10", 0, 0, 0)])}
       />,
     );
-    expect(screen.getByText("Nenhum vencimento em aberto")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nenhum vencimento em aberto neste mês"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Sem receita esperada para calcular o percentual"),
     ).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/NaN|Infinity/);
   });
 
-  it("com dados: total, mês, próximo vencimento e mês mais pesado", () => {
+  it("com dados: mês corrente, próximo vencimento e saldo no fim do mês", () => {
     const months = [
       month("2026-10", 10000, 0, 40000),
       month("2026-11", 0, 30000, 0),
@@ -251,11 +247,6 @@ describe("CommitmentSummaryCards", () => {
     render(
       <CommitmentSummaryCards
         overview={overview(months, {
-          heaviest: {
-            month: d("2026-11-01"),
-            longLabel: "novembro de 2026",
-            committed: asCents(30000),
-          },
           nextDue: {
             date: d("2026-10-30"),
             description: "Luz",
@@ -269,8 +260,8 @@ describe("CommitmentSummaryCards", () => {
         projection={projectionOf(months, 50000)}
       />,
     );
-    expect(screen.getByTestId("resumo-total-comprometido")).toHaveTextContent(
-      /R\$\s400,00/,
+    expect(screen.getByTestId("resumo-mes-atual")).toHaveTextContent(
+      /R\$\s100,00/,
     );
     expect(screen.getByTestId("resumo-mes-atual")).toHaveTextContent(
       "25,0% da receita esperada do mês",
@@ -278,17 +269,15 @@ describe("CommitmentSummaryCards", () => {
     expect(screen.getByTestId("resumo-proximo-vencimento")).toHaveTextContent(
       "Luz, vence em 30/10/2026",
     );
-    expect(screen.getByTestId("resumo-mes-mais-pesado")).toHaveTextContent(
-      "novembro de 2026",
-    );
-    // 500 + 400 - 100 = 800 em out; 800 - 300 = 500 em nov (menor).
+    // 500 + 400 - 100 = 800 no fim de out (o mês seguinte não entra nos cards).
     expect(screen.getByTestId("indicador-saldo-total")).toHaveTextContent(
       /Saldo atual.*R\$\s500,00/,
     );
-    const menor = screen.getByTestId("resumo-menor-saldo-projetado");
-    expect(menor).toHaveTextContent(/R\$\s500,00/);
-    expect(menor).toHaveTextContent("Em mês 2026-11");
-    expect(menor).not.toHaveTextContent("negativo");
+    const fim = screen.getByTestId("resumo-saldo-fim-do-mes");
+    expect(fim).toHaveTextContent(/R\$\s800,00/);
+    expect(fim).toHaveTextContent("No fim de mês 2026-10");
+    expect(fim).not.toHaveTextContent("negativo");
+    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(4);
   });
 
   it("saldo projetado negativo: valor, mês e aviso em texto", () => {
@@ -300,26 +289,8 @@ describe("CommitmentSummaryCards", () => {
         projection={projectionOf(months, 10000)}
       />,
     );
-    const menor = screen.getByTestId("resumo-menor-saldo-projetado");
-    expect(menor).toHaveTextContent(/-R\$\s200,00|−R\$\s200,00|R\$\s-?200,00/);
-    expect(menor).toHaveTextContent("Saldo negativo em mês 2026-10");
-  });
-});
-
-describe("CommitmentHorizonFilter", () => {
-  it("12 meses é o padrão (sem parâmetro) e 6 meses usa ?horizonte=6", () => {
-    render(<CommitmentHorizonFilter horizon={12} />);
-    expect(screen.getByRole("link", { name: "12 meses" })).toHaveAttribute(
-      "href",
-      "/inicio",
-    );
-    expect(screen.getByRole("link", { name: "12 meses" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(screen.getByRole("link", { name: "6 meses" })).toHaveAttribute(
-      "href",
-      "/inicio?horizonte=6",
-    );
+    const fim = screen.getByTestId("resumo-saldo-fim-do-mes");
+    expect(fim).toHaveTextContent(/-R\$\s200,00|−R\$\s200,00|R\$\s-?200,00/);
+    expect(fim).toHaveTextContent("Saldo negativo no fim de mês 2026-10");
   });
 });

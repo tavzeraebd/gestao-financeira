@@ -26,13 +26,5 @@ export function buildProjectedBalance(
       negative: running < 0,
     };
   });
-  let lowest: ProjectedBalanceMonth | null = null;
-  for (const m of projected) {
-    if (lowest === null || m.balance < lowest.balance) lowest = m;
-  }
-  return {
-    months: projected,
-    lowest,
-    hasNegative: projected.some((m) => m.negative),
-  };
+  return { months: projected };
 }

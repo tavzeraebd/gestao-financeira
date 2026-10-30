@@ -48,6 +48,16 @@ async function semearPendentes(
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
 
+/** Dia 15 do mês seguinte: fora do mês corrente, dentro da janela de 12 meses do gráfico mensal. */
+const mesQueVem = () => {
+  const agora = new Date();
+  return new Date(
+    agora.getFullYear(),
+    agora.getMonth() + 1,
+    15,
+  ).toLocaleDateString("sv-SE");
+};
+
 // `:visible` ignora a cópia oculta que o streaming do React deixa por um instante no DOM.
 const tid = (page: Page, testId: string) =>
   page.locator(`[data-testid="${testId}"]:visible`);
@@ -82,7 +92,7 @@ test("/inicio sem compromissos: estados vazios informativos e nenhum atalho de c
   ).toBeVisible();
   await expect(
     page.getByRole("heading", {
-      name: "Nenhum compromisso por categoria neste período",
+      name: "Nenhum compromisso por categoria neste mês",
     }),
   ).toBeVisible();
   // Sem gráfico desenhado: o <main> inclui o cabeçalho, que no celular tem o logo (role=img "Núcleo"),
@@ -117,18 +127,19 @@ test("/inicio com compromisso: resumo, gráficos com resumo textual e Ver tabela
   await entrar(page, c.owner);
   await page.goto("/inicio");
 
-  // Saldo atual (conta de R$ 1.000,00) em primeiro lugar e menor saldo projetado (1.000 - 80).
+  // Saldo atual (conta de R$ 1.000,00) em primeiro lugar e saldo projetado no fim do mês (1.000 - 80).
   await expect(tid(page, "indicador-saldo-total")).toContainText("Saldo atual");
   await expect(tid(page, "indicador-saldo-total")).toContainText(
     reais("1.000,00"),
   );
-  await expect(tid(page, "resumo-menor-saldo-projetado")).toContainText(
+  await expect(tid(page, "resumo-saldo-fim-do-mes")).toContainText(
     reais("920,00"),
   );
   await expect(tid(page, "alerta-saldo-negativo")).toHaveCount(0);
-  await expect(tid(page, "resumo-total-comprometido")).toContainText(
-    reais("80,00"),
-  );
+  // Só os quatro cards do mês corrente: os de horizonte saíram.
+  await expect(tid(page, "resumo-total-comprometido")).toHaveCount(0);
+  await expect(tid(page, "resumo-mes-mais-pesado")).toHaveCount(0);
+  await expect(tid(page, "resumo-menor-saldo-projetado")).toHaveCount(0);
   await expect(tid(page, "resumo-mes-atual")).toContainText(reais("80,00"));
   await expect(tid(page, "resumo-proximo-vencimento")).toContainText("Luz");
 
@@ -165,43 +176,47 @@ test("/inicio com compromisso maior que o saldo: saldo projetado negativo sinali
   ]);
   await entrar(page, c.owner);
   await page.goto("/inicio");
-  const menor = tid(page, "resumo-menor-saldo-projetado");
-  await expect(menor).toContainText("Saldo negativo em");
+  const menor = tid(page, "resumo-saldo-fim-do-mes");
+  await expect(menor).toContainText("Saldo negativo no fim de");
   await expect(menor).toContainText("200,00");
   // O aviso fixo saiu da tela: o saldo negativo fica no card e no detalhe do mês.
   await expect(tid(page, "alerta-saldo-negativo")).toHaveCount(0);
 });
 
-test("horizonte na URL: padrão 12, 6 meses e valor inválido", async ({
+test("sem seletor de horizonte: ?horizonte= é ignorado e o mês seguinte só aparece no gráfico mensal", async ({
   page,
 }, testInfo) => {
   const c = await criarCenario(`i52-${testInfo.project.name}`);
-  await criarContaNoBanco(c, "Corrente", "checking", "1000");
+  const conta = await criarContaNoBanco(c, "Corrente", "checking", "1000");
+  await semearPendentes(c, conta, [
+    { descricao: "Internet", valor: "50.00", data: mesQueVem() },
+  ]);
   await entrar(page, c.owner);
-  await page.goto("/inicio");
-  const filtro = page.getByRole("navigation", {
-    name: "Horizonte do acompanhamento",
-  });
-  await expect(filtro.getByRole("link", { name: "12 meses" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-  const periodo12 = await tid(page, "periodo-atual").innerText();
-
-  await filtro.getByRole("link", { name: "6 meses" }).click();
-  await expect(page).toHaveURL(/horizonte=6/);
-  await expect(filtro.getByRole("link", { name: "6 meses" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-  expect(await tid(page, "periodo-atual").innerText()).not.toBe(periodo12);
-
-  await page.goto("/inicio?horizonte=x");
+  await page.goto("/inicio?horizonte=6");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Olá,");
-  await expect(filtro.getByRole("link", { name: "12 meses" })).toHaveAttribute(
-    "aria-current",
-    "page",
+  await expect(
+    page.getByRole("navigation", { name: "Horizonte do acompanhamento" }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /^\d+ meses$/ })).toHaveCount(0);
+
+  // Gráfico mensal (mês atual + 12) enxerga o mês seguinte...
+  await expect(
+    card(page, "Comprometimento mensal").getByRole("img", {
+      name: /Comprometimento mensal de .*R\$\s50,00/,
+    }),
+  ).toBeVisible();
+  // ...mas cards, rosca e próximos vencimentos são só do mês corrente.
+  await expect(tid(page, "resumo-mes-atual")).toContainText(reais("0,00"));
+  await expect(tid(page, "resumo-proximo-vencimento")).toContainText("—");
+  await expect(tid(page, "resumo-saldo-fim-do-mes")).toContainText(
+    reais("1.000,00"),
   );
+  await expect(
+    page.getByRole("heading", {
+      name: "Nenhum compromisso por categoria neste mês",
+    }),
+  ).toBeVisible();
+  await expect(tid(page, "proximos-vencimentos")).not.toContainText("Internet");
 });
 
 for (const largura of [390, 320]) {
@@ -279,9 +294,7 @@ test("Próximos vencimentos: vazio informativo e item leva ao detalhe", async ({
   await entrar(page, c.owner);
   await page.goto("/inicio");
   const vencimentos = tid(page, "proximos-vencimentos");
-  await expect(vencimentos).toContainText(
-    "Nenhum vencimento nos próximos 30 dias",
-  );
+  await expect(vencimentos).toContainText("Nenhum vencimento até o fim do mês");
   await expect(vencimentos.getByRole("link")).toHaveCount(0);
 
   await semearPendentes(c, conta, [

@@ -5,6 +5,7 @@ import { asCents } from "@/lib/money";
 import type { CommitmentEntry, CommitmentSeries } from "../types";
 import {
   buildCommitments,
+  entriesOfMonth,
   expandSeries,
   totalsByCategory,
 } from "./commitments";
@@ -116,8 +117,34 @@ describe("expandSeries", () => {
   });
 });
 
+const totalOf = (overview: { months: { committed: number }[] }) =>
+  overview.months.reduce((sum, m) => sum + m.committed, 0);
+
 describe("buildCommitments", () => {
   const today = d("2026-10-29");
+
+  it("próximo vencimento é só do mês corrente: conta de novembro não conta", () => {
+    const { overview } = buildCommitments({
+      today,
+      horizon: 12,
+      pending: [entry("expense", "2026-11-03", 5000)],
+      series: [],
+    });
+    expect(overview.nextDue).toBeNull();
+    const withCurrent = buildCommitments({
+      today,
+      horizon: 12,
+      pending: [
+        entry("expense", "2026-11-03", 5000),
+        entry("expense", "2026-10-31", 700),
+      ],
+      series: [],
+    });
+    expect(withCurrent.overview.nextDue).toMatchObject({
+      date: "2026-10-31",
+      amount: 700,
+    });
+  });
 
   it("13 meses para horizonte 12, virando o ano", () => {
     const { overview } = buildCommitments({
@@ -131,8 +158,7 @@ describe("buildCommitments", () => {
     expect(overview.months[3]?.month).toBe("2027-01-01");
     expect(overview.months[12]?.month).toBe("2027-10-01");
     expect(overview.months[0]?.label).toBe("out/26");
-    expect(overview.totalCommitted).toBe(0);
-    expect(overview.heaviest).toBeNull();
+    expect(totalOf(overview)).toBe(0);
     expect(overview.nextDue).toBeNull();
     expect(overview.hasIncome).toBe(false);
   });
@@ -165,12 +191,8 @@ describe("buildCommitments", () => {
     expect(nov?.recurring).toBe(10000);
     expect(dec?.pending).toBe(20000);
     expect(dec?.committed).toBe(30000);
-    expect(overview.totalCommitted).toBe(5000 + 7 * 0 + 6 * 10000 + 20000);
-    expect(overview.currentMonthCommitted).toBe(5000);
-    expect(overview.heaviest).toMatchObject({
-      month: "2026-12-01",
-      committed: 30000,
-    });
+    expect(totalOf(overview)).toBe(5000 + 7 * 0 + 6 * 10000 + 20000);
+    expect(oct?.committed).toBe(5000);
     expect(overview.nextDue).toMatchObject({
       date: "2026-10-10",
       overdue: true,
@@ -208,7 +230,7 @@ describe("buildCommitments", () => {
     expect(nov?.percent).toBe(25);
     expect(overview.hasIncome).toBe(true);
     // Receita não compromete.
-    expect(overview.totalCommitted).toBe(5000);
+    expect(totalOf(overview)).toBe(5000);
   });
 });
 
@@ -241,7 +263,7 @@ describe("desconto em folha", () => {
     expect(jan?.payroll).toBe(50000);
     // Termina em end_date: nada depois de 05/01/2027.
     expect(feb?.payroll).toBe(0);
-    expect(overview.totalCommitted).toBe(5000 + 3 * 50000);
+    expect(totalOf(overview)).toBe(5000 + 3 * 50000);
     expect(expenses.filter((e) => e.payroll)).toHaveLength(3);
   });
 
@@ -270,7 +292,7 @@ describe("desconto em folha", () => {
       pending: [],
       series: [payroll({ endDate: d("2026-09-05") })],
     });
-    expect(overview.totalCommitted).toBe(0);
+    expect(totalOf(overview)).toBe(0);
     expect(expenses).toHaveLength(0);
   });
 
@@ -284,6 +306,19 @@ describe("desconto em folha", () => {
     expect(overview.nextDue).toBeNull();
     expect(totalsByCategory(expenses)).toEqual([
       { categoryId: "emprestimo", amount: 150000 },
+    ]);
+  });
+});
+
+describe("entriesOfMonth", () => {
+  it("só o mês pedido; vencidas contam no mês de hoje", () => {
+    const list = [
+      entry("expense", "2026-09-30", 1),
+      entry("expense", "2026-10-31", 2),
+      entry("expense", "2026-11-01", 3),
+    ];
+    expect(entriesOfMonth(list, d("2026-10-01")).map((e) => e.amount)).toEqual([
+      1, 2,
     ]);
   });
 });

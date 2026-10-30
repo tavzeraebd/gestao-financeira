@@ -6,7 +6,10 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ISODate } from "@/lib/dates";
 import { asCents } from "@/lib/money";
 import { buildCommitmentDetails } from "@/modules/reports/domain/commitment-details";
-import { buildCommitments } from "@/modules/reports/domain/commitments";
+import {
+  buildCommitments,
+  entriesOfMonth,
+} from "@/modules/reports/domain/commitments";
 import { buildProjectedBalance } from "@/modules/reports/domain/projected-balance";
 import type {
   BalanceSnapshot,
@@ -83,6 +86,15 @@ const TODAY = d("2026-10-15");
 const pending: CommitmentEntry[] = [
   {
     type: "expense",
+    amount: asCents(30000),
+    date: d("2026-10-20"),
+    categoryId: "c1",
+    description: "Condomínio",
+    origin: "bill",
+    sourceId: "t-condominio",
+  },
+  {
+    type: "expense",
     amount: asCents(600000),
     date: d("2026-11-10"),
     categoryId: "c1",
@@ -105,7 +117,7 @@ const series: CommitmentSeries[] = [
     amount: asCents(100000),
     description: "Aluguel",
     categoryId: "c1",
-    endDate: null,
+    endDate: d("2026-11-05"),
     nextOccurrenceDate: d("2026-11-05"),
     payrollDeduction: false,
   },
@@ -138,7 +150,7 @@ const series: CommitmentSeries[] = [
 function setup() {
   const result = buildCommitments({
     today: TODAY,
-    horizon: 2 as 6,
+    horizon: 2,
     pending,
     series,
   });
@@ -152,31 +164,23 @@ function setup() {
       name: "Moradia",
       color: "chart-1" as const,
       icon: null,
-      amount: asCents(800000),
-      percent: 86.7,
-      archived: false,
-    },
-    {
-      key: "c2",
-      categoryId: "c2",
-      name: "Empréstimos",
-      color: "chart-2" as const,
-      icon: null,
-      amount: asCents(20000),
-      percent: 13.3,
+      amount: asCents(30000),
+      percent: 100,
       archived: false,
     },
   ];
   const details = buildCommitmentDetails({
     today: TODAY,
-    label: overview.label,
-    totalCommitted: overview.totalCommitted,
     currentBalance: current,
     openCardDebt: asCents(25000),
     months: overview.months,
     projection,
     entries: result.entries,
-    expenses: result.expenses,
+    // Como no servidor: a rosca e o detalhe por categoria só têm o mês corrente.
+    expenses: entriesOfMonth(
+      result.expenses,
+      overview.months[0]?.month ?? TODAY,
+    ),
     slices,
     names: new Map([
       ["c1", "Moradia"],
@@ -225,9 +229,9 @@ function renderAll() {
       />
       <CommitmentMonthlyCard overview={overview} projection={projection} />
       <CommitmentByCategoryCard
-        periodLabel={overview.label}
+        periodLabel="outubro de 2026"
         breakdown={{
-          total: asCents(820000),
+          total: asCents(30000),
           slices,
           negative: [],
           rows: slices,
@@ -273,9 +277,9 @@ describe("detalhamento do /inicio", () => {
       "/recorrencias/s-aluguel/editar",
     );
     expect(view.getByText("Folha")).toBeInTheDocument();
-    // 500 (saldo atual) + 5.000 de receita - 6.000 - 1.000 = -1.500
+    // 500 - 300 (out) + 5.000 de receita - 6.000 - 1.000 = -1.800
     const closing = view.getByText("Saldo ao fim do mês").nextElementSibling;
-    expect(closing).toHaveTextContent(/1\.500,00/);
+    expect(closing).toHaveTextContent(/1\.800,00/);
     expect(closing).toHaveTextContent("(negativo)");
   });
 
@@ -299,10 +303,10 @@ describe("detalhamento do /inicio", () => {
     renderAll();
     await openMonthlyTable(user);
     await user.click(
-      screen.getByRole("button", { name: "Ver detalhes de outubro de 2026" }),
+      screen.getByRole("button", { name: "Ver detalhes de dezembro de 2026" }),
     );
     const dialog = await screen.findByRole("dialog", {
-      name: "outubro de 2026",
+      name: "dezembro de 2026",
     });
     expect(
       within(dialog).getByText("Nada comprometido neste mês."),
@@ -341,12 +345,12 @@ describe("detalhamento do /inicio", () => {
     );
     const dialog = await screen.findByRole("dialog", { name: "Moradia" });
     const view = within(dialog);
-    expect(view.getByText("86,7%")).toBeInTheDocument();
-    expect(view.getByRole("link", { name: "Seguro do carro" })).toBeVisible();
-    expect(view.getAllByRole("link", { name: "Aluguel" })).toHaveLength(2);
-    expect(
-      view.queryByRole("link", { name: "Consignado" }),
-    ).not.toBeInTheDocument();
+    expect(view.getByText("100,0%")).toBeInTheDocument();
+    expect(view.getByRole("link", { name: "Condomínio" })).toBeVisible();
+    // Só o mês corrente: o que vence em novembro não aparece na categoria.
+    for (const outro of ["Seguro do carro", "Aluguel", "Consignado"]) {
+      expect(view.queryByRole("link", { name: outro })).not.toBeInTheDocument();
+    }
     await user.keyboard("{Escape}");
 
     await user.click(screen.getByTestId("fatia"));
@@ -368,50 +372,25 @@ describe("detalhamento do /inicio", () => {
     expect(view.getByText("Faturas de cartão em aberto")).toBeInTheDocument();
   });
 
-  it("total comprometido lista os meses e abre o mês clicado, com Voltar", async () => {
+  it("cards do mês corrente abrem o detalhe do mês atual", async () => {
     const user = userEvent.setup();
     renderAll();
-    await user.click(
-      within(screen.getByTestId("resumo-total-comprometido")).getByRole(
-        "button",
-      ),
-    );
-    const dialog = await screen.findByRole("dialog", {
-      name: "Total comprometido",
-    });
-    await user.click(within(dialog).getByRole("button", NOVEMBER));
-    expect(
-      await screen.findByRole("dialog", { name: "novembro de 2026" }),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Voltar" }));
-    expect(
-      await screen.findByRole("dialog", { name: "Total comprometido" }),
-    ).toBeInTheDocument();
-  });
-
-  it("menor saldo projetado explica a conta mês a mês e detalha o mês", async () => {
-    const user = userEvent.setup();
-    renderAll();
-    await user.click(
-      within(screen.getByTestId("resumo-menor-saldo-projetado")).getByRole(
-        "button",
-      ),
-    );
-    const dialog = await screen.findByRole("dialog", {
-      name: "Menor saldo projetado",
-    });
-    const view = within(dialog);
-    expect(view.getByText("Saldo atual")).toBeInTheDocument();
-    for (const month of ["outubro", "novembro", "dezembro"]) {
+    for (const id of ["resumo-mes-atual", "resumo-saldo-fim-do-mes"]) {
+      await user.click(within(screen.getByTestId(id)).getByRole("button"));
+      const dialog = await screen.findByRole("dialog", {
+        name: "outubro de 2026",
+      });
       expect(
-        view.getByRole("button", {
-          name: `Ver detalhes de ${month} de 2026`,
-        }),
-      ).toBeInTheDocument();
+        within(dialog).getByRole("link", { name: "Condomínio" }),
+      ).toBeVisible();
+      await user.keyboard("{Escape}");
     }
     expect(
-      view.getByRole("heading", { name: "Detalhes de dezembro de 2026" }),
-    ).toBeInTheDocument();
+      screen.queryByTestId("resumo-total-comprometido"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("resumo-mes-mais-pesado"),
+    ).not.toBeInTheDocument();
   });
 
   it("próximo vencimento é link para o item, não botão", () => {

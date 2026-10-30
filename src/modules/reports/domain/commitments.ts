@@ -9,7 +9,6 @@ import { addCents, asCents, sumCents, type Cents } from "@/lib/money";
 import { MAX_OCCURRENCES_PER_SERIES } from "../constants";
 import type {
   CommitmentEntry,
-  CommitmentHorizon,
   CommitmentMonth,
   CommitmentNextDue,
   CommitmentOverview,
@@ -80,6 +79,14 @@ export function bucketMonth(entry: { date: ISODate }, first: ISODate): ISODate {
   return entry.date < first ? first : startOfMonth(entry.date);
 }
 
+/** Entradas que contam no mês `month` (1º dia), pela mesma regra de `bucketMonth` com `first = month`. */
+export function entriesOfMonth<T extends { date: ISODate }>(
+  entries: readonly T[],
+  month: ISODate,
+): T[] {
+  return entries.filter((e) => bucketMonth(e, month) === month);
+}
+
 function monthLabel(month: ISODate): string {
   const short = formatMonthBR(month, "short").replace(".", "");
   return `${short}/${month.slice(2, 4)}`;
@@ -87,7 +94,8 @@ function monthLabel(month: ISODate): string {
 
 export type CommitmentInput = {
   today: ISODate;
-  horizon: CommitmentHorizon;
+  /** Meses à frente, além do mês de hoje (janela do gráfico mensal). */
+  horizon: number;
   /** Contas em aberto (`pending`), de qualquer data; as além do horizonte são ignoradas. */
   pending: readonly CommitmentEntry[];
   series: readonly CommitmentSeries[];
@@ -164,22 +172,9 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
 
   const expenses = [...pending, ...virtual].filter((e) => e.type === "expense");
 
-  let heaviest: CommitmentOverview["heaviest"] = null;
-  for (const m of months) {
-    if (
-      m.committed > 0 &&
-      (heaviest === null || m.committed > heaviest.committed)
-    ) {
-      heaviest = {
-        month: m.month,
-        longLabel: m.longLabel,
-        committed: m.committed,
-      };
-    }
-  }
-
+  // Próximo vencimento: só dentro do mês corrente (vencidos contam, pois entram neste mês).
   let nextDue: CommitmentNextDue | null = null;
-  for (const e of expenses) {
+  for (const e of entriesOfMonth(expenses, first)) {
     // Desconto em folha não é conta a pagar: não é "próximo vencimento".
     if (e.payroll) continue;
     if (nextDue === null || e.date < nextDue.date) {
@@ -202,12 +197,8 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
     overview: {
       from: first,
       to: last?.month ?? first,
-      horizon,
       label: `${firstMonth?.longLabel ?? ""} a ${last?.longLabel ?? ""}`,
       months,
-      totalCommitted: sumCents(months.map((m) => m.committed)),
-      currentMonthCommitted: firstMonth?.committed ?? ZERO,
-      heaviest,
       nextDue,
       hasIncome: months.some((m) => m.income > 0),
     },

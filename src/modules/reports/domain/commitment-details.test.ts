@@ -369,7 +369,7 @@ describe("buildAccountRows", () => {
 });
 
 describe("buildCommitmentDetails", () => {
-  it("compõe meses, categorias, contas e o mês do menor saldo", () => {
+  it("compõe meses, categorias e contas", () => {
     const result = buildCommitments({
       today: TODAY,
       horizon: 1 as 6,
@@ -382,8 +382,6 @@ describe("buildCommitmentDetails", () => {
     );
     const details = buildCommitmentDetails({
       today: TODAY,
-      label: result.overview.label,
-      totalCommitted: result.overview.totalCommitted,
       currentBalance: asCents(10000),
       openCardDebt: asCents(0),
       months: result.overview.months,
@@ -407,7 +405,6 @@ describe("buildCommitmentDetails", () => {
     });
     expect(details.months).toHaveLength(2);
     expect(details.categories[0]?.months[0]?.total).toBe(40000);
-    expect(details.lowestMonth).toBe("2026-10-01");
     expect(details.months[0]?.closing).toBe(-30000);
   });
 });

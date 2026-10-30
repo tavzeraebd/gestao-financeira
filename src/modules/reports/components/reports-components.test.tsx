@@ -146,7 +146,7 @@ describe("Próximos vencimentos (CA-E5-58)", () => {
   it("sem vencimentos: estado vazio apenas informativo, sem atalho de criação", () => {
     render(<UpcomingBillsCard items={[]} />);
     expect(
-      screen.getByText("Nenhum vencimento nos próximos 30 dias"),
+      screen.getByText("Nenhum vencimento até o fim do mês"),
     ).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });

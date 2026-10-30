@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commitmentFiltersSchema, dashboardFiltersSchema } from "./schemas";
+import { dashboardFiltersSchema } from "./schemas";
 
 describe("dashboardFiltersSchema (tolerante)", () => {
   it("vazio -> mes_atual", () => {
@@ -37,21 +37,5 @@ describe("dashboardFiltersSchema (tolerante)", () => {
     expect(dashboardFiltersSchema.parse(null)).toEqual({
       periodo: "mes_atual",
     });
-  });
-});
-
-describe("commitmentFiltersSchema (tolerante)", () => {
-  it("padrão 12; aceita 6 e 12; resto vira 12", () => {
-    expect(commitmentFiltersSchema.parse({})).toEqual({ horizonte: 12 });
-    expect(commitmentFiltersSchema.parse({ horizonte: "6" })).toEqual({
-      horizonte: 6,
-    });
-    expect(commitmentFiltersSchema.parse({ horizonte: ["6", "12"] })).toEqual({
-      horizonte: 6,
-    });
-    expect(commitmentFiltersSchema.parse({ horizonte: "99" })).toEqual({
-      horizonte: 12,
-    });
-    expect(commitmentFiltersSchema.parse(null)).toEqual({ horizonte: 12 });
   });
 });

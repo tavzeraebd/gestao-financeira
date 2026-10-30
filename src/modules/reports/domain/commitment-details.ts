@@ -208,13 +208,12 @@ export function buildAccountRows(
 
 export type CommitmentDetailsInput = {
   today: ISODate;
-  label: string;
-  totalCommitted: Cents;
   currentBalance: Cents;
   openCardDebt: Cents;
   months: readonly CommitmentMonth[];
   projection: ProjectedBalance;
   entries: readonly CommitmentEntry[];
+  /** Despesas do mês corrente (base da rosca); as outras janelas não entram. */
   expenses: readonly CommitmentEntry[];
   slices: readonly CategorySlice[];
   names: ReadonlyMap<string, string>;
@@ -226,8 +225,6 @@ export function buildCommitmentDetails(
 ): CommitmentDetails {
   const context = { today: input.today, names: input.names };
   return {
-    label: input.label,
-    totalCommitted: input.totalCommitted,
     currentBalance: input.currentBalance,
     openCardDebt: input.openCardDebt,
     months: buildMonthDetails(
@@ -244,6 +241,5 @@ export function buildCommitmentDetails(
       context,
     ),
     accounts: [...input.accounts],
-    lowestMonth: input.projection.lowest?.month ?? null,
   };
 }

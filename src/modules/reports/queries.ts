@@ -37,7 +37,11 @@ import { listRecentTransactions } from "@/modules/transactions/queries";
 import { rpcPeriodSummary } from "@/modules/transactions/repository";
 import { requireMembership } from "@/server/auth";
 import { AppError } from "@/server/errors";
-import { DASHBOARD_GOALS_LIMIT, RECENT_TRANSACTIONS_LIMIT } from "./constants";
+import {
+  COMMITMENT_HORIZON_MONTHS,
+  DASHBOARD_GOALS_LIMIT,
+  RECENT_TRANSACTIONS_LIMIT,
+} from "./constants";
 import { buildCategoryBreakdown } from "./domain/breakdown";
 import { buildCashFlowMonths } from "./domain/cash-flow";
 import {
@@ -45,7 +49,11 @@ import {
   buildCommitmentDetails,
   categoryNames,
 } from "./domain/commitment-details";
-import { buildCommitments, totalsByCategory } from "./domain/commitments";
+import {
+  buildCommitments,
+  entriesOfMonth,
+  totalsByCategory,
+} from "./domain/commitments";
 import { buildProjectedBalance } from "./domain/projected-balance";
 import { compare } from "./domain/comparison";
 import { cashFlowWindow, resolvePeriod } from "./domain/period";
@@ -74,7 +82,6 @@ import type {
   CategoryReport,
   CategoryReportFilters,
   CommitmentDashboard,
-  CommitmentFilters,
   Dashboard,
   DashboardFilters,
   DashboardGoal,
@@ -242,22 +249,25 @@ export async function getDashboard(
 }
 
 /**
- * /inicio: acompanhamento do comprometimento futuro (somente leitura). Reaproveita as contas em aberto e
- * as séries recorrentes ativas; a agregação mensal é `buildCommitments` (domínio puro). Nenhuma consulta
- * recebe `family_id`: a RLS decide a família.
+ * /inicio: acompanhamento do comprometimento (somente leitura). Só o gráfico mensal olha a janela de
+ * `COMMITMENT_HORIZON_MONTHS` meses à frente; cards, rosca e próximos vencimentos são do mês corrente e saem
+ * dos mesmos dados já lidos. Reaproveita as contas em aberto e as séries recorrentes ativas; a agregação
+ * mensal é `buildCommitments` (domínio puro). Nenhuma consulta recebe `family_id`: a RLS decide a família.
  */
-export async function getCommitmentDashboard(
-  filters: CommitmentFilters,
-): Promise<CommitmentDashboard> {
+export async function getCommitmentDashboard(): Promise<CommitmentDashboard> {
   await requireMembership();
   await ensureRecurrencesMaterialized();
   const supabase = await createClient();
   const now = today();
-  const end = startOfMonth(addMonths(startOfMonth(now), filters.horizonte + 1));
+  const firstOfMonth = startOfMonth(now);
+  const end = startOfMonth(
+    addMonths(firstOfMonth, COMMITMENT_HORIZON_MONTHS + 1),
+  );
+  const lastOfMonth = addDays(startOfMonth(addMonths(firstOfMonth, 1)), -1);
 
   return guardAggregates(async () => {
     // Saldo de hoje (só efetivados) contra o fim do mês anterior.
-    const previousAsOf = addDays(startOfMonth(now), -1);
+    const previousAsOf = addDays(firstOfMonth, -1);
     const [
       pending,
       series,
@@ -283,17 +293,19 @@ export async function getCommitmentDashboard(
     );
     const { overview, expenses, entries } = buildCommitments({
       today: now,
-      horizon: filters.horizonte,
+      horizon: COMMITMENT_HORIZON_MONTHS,
       pending,
       series,
     });
-    const total = sumCents(expenses.map((e) => e.amount));
+    // Rosca e detalhamento por categoria: só o mês corrente.
+    const monthExpenses = entriesOfMonth(expenses, firstOfMonth);
+    const total = sumCents(monthExpenses.map((e) => e.amount));
     const projection = buildProjectedBalance(
       balance.consolidated.current,
       overview.months,
     );
     const byCategory = buildCategoryBreakdown(
-      totalsByCategory(expenses),
+      totalsByCategory(monthExpenses),
       new Map(categories.map((c) => [c.id, c])),
       total,
     );
@@ -304,19 +316,17 @@ export async function getCommitmentDashboard(
       byCategory,
       details: buildCommitmentDetails({
         today: now,
-        label: overview.label,
-        totalCommitted: overview.totalCommitted,
         currentBalance: balance.consolidated.current,
         openCardDebt: balance.openCardDebt,
         months: overview.months,
         projection,
         entries,
-        expenses,
+        expenses: monthExpenses,
         slices: byCategory.slices,
         names: categoryNames(categories),
         accounts: buildAccountRows(accounts, balances),
       }),
-      upcomingBills,
+      upcomingBills: upcomingBills.filter((b) => b.dueDate <= lastOfMonth),
     };
   });
 }

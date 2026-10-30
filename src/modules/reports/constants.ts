@@ -42,10 +42,8 @@ export const REMOVED_CATEGORY_NAME = "Categoria removida";
 
 export const RECENT_TRANSACTIONS_LIMIT = 5;
 
-/** Horizontes (meses à frente, além do mês atual) do acompanhamento do comprometimento futuro. */
-export const COMMITMENT_HORIZONS = [6, 12] as const;
-
-export const DEFAULT_COMMITMENT_HORIZON = 12 as const;
+/** Janela fixa do gráfico de comprometimento mensal: meses à frente, além do mês atual. */
+export const COMMITMENT_HORIZON_MONTHS = 12;
 
 /** Teto de ocorrências geradas por série no horizonte (semanal em 13 meses ≈ 57). */
 export const MAX_OCCURRENCES_PER_SERIES = 120;

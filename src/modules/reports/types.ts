@@ -10,7 +10,6 @@ import type { GoalIconName, GoalStatus } from "@/modules/goals/constants";
 import type { BillListItem } from "@/modules/bills/types";
 import type { TransactionListItem } from "@/modules/transactions/types";
 import type {
-  COMMITMENT_HORIZONS,
   PERIOD_PRESETS,
   REPORT_CATEGORY_TYPES,
   REPORT_PRESETS,
@@ -106,11 +105,6 @@ export type Dashboard = {
 
 // --- Comprometimento futuro (/inicio) ---
 
-export type CommitmentHorizon = (typeof COMMITMENT_HORIZONS)[number];
-
-/** Filtros de URL do /inicio já normalizados. */
-export type CommitmentFilters = { horizonte: CommitmentHorizon };
-
 export type CommitmentOrigin = "bill" | "series";
 
 /** Despesa ou receita em aberto, já com a data de vencimento (vencidos entram com a data original). */
@@ -173,17 +167,14 @@ export type CommitmentNextDue = {
 };
 
 export type CommitmentOverview = {
-  /** Primeiro dia do mês atual e do último mês do horizonte. */
+  /** Primeiro dia do mês atual e do último mês da janela do gráfico mensal. */
   from: ISODate;
   to: ISODate;
-  horizon: CommitmentHorizon;
-  /** `"outubro de 2026 a outubro de 2027"`. */
+  /** `"outubro de 2026 a outubro de 2027"` (janela do gráfico mensal). */
   label: string;
+  /** Mês atual + 12 à frente; o primeiro é o mês corrente, base dos cards e da rosca. */
   months: CommitmentMonth[];
-  totalCommitted: Cents;
-  currentMonthCommitted: Cents;
-  /** Mês de maior comprometimento (`null` sem nenhum compromisso). */
-  heaviest: { month: ISODate; longLabel: string; committed: Cents } | null;
+  /** Próximo vencimento ainda dentro do mês corrente (vencidos incluídos). */
   nextDue: CommitmentNextDue | null;
   hasIncome: boolean;
 };
@@ -205,9 +196,6 @@ export type ProjectedBalanceMonth = {
 
 export type ProjectedBalance = {
   months: ProjectedBalanceMonth[];
-  /** Mês de menor saldo projetado (o primeiro, em empate); `null` sem meses. */
-  lowest: ProjectedBalanceMonth | null;
-  hasNegative: boolean;
 };
 
 /** Grupos do detalhamento do mês: contas em aberto, recorrências, desconto em folha e receitas esperadas. */
@@ -262,15 +250,13 @@ export type AccountBalanceRow = {
 
 /** Tudo o que os detalhamentos do /inicio mostram, calculado no servidor (sem consulta por clique). */
 export type CommitmentDetails = {
-  label: string;
-  totalCommitted: Cents;
   currentBalance: Cents;
   openCardDebt: Cents;
+  /** Um detalhe por mês da janela (a barra de qualquer mês abre o seu). */
   months: MonthDetail[];
+  /** Fatias da rosca: só itens do mês corrente. */
   categories: CategoryDetail[];
   accounts: AccountBalanceRow[];
-  /** Mês do menor saldo projetado (`null` sem meses). */
-  lowestMonth: ISODate | null;
 };
 
 export type CommitmentDashboard = {
@@ -278,8 +264,9 @@ export type CommitmentDashboard = {
   balance: BalanceSnapshot;
   details: CommitmentDetails;
   projection: ProjectedBalance;
+  /** Despesas comprometidas do mês corrente, por categoria. */
   byCategory: CategoryBreakdown;
-  /** Até 5 compromissos em aberto com vencimento em 30 dias (vencidos incluídos), só leitura. */
+  /** Até 5 compromissos em aberto com vencimento até o fim do mês corrente (vencidos incluídos), só leitura. */
   upcomingBills: BillListItem[];
 };
 

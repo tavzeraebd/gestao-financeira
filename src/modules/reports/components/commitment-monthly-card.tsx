@@ -53,7 +53,7 @@ export function CommitmentMonthlyCard({
     <ChartCard
       title="Comprometimento mensal"
       period={label}
-      isEmpty={overview.totalCommitted === 0}
+      isEmpty={months.every((m) => m.committed === 0)}
       empty={{
         title: "Nenhum compromisso em aberto neste período",
         description:

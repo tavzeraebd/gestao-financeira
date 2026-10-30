@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateBR } from "@/lib/dates";
 import { formatPercent } from "@/lib/format";
-import { formatBRL } from "@/lib/money";
+import { asCents, formatBRL } from "@/lib/money";
 import type {
   BalanceSnapshot,
   CommitmentOverview,
@@ -88,7 +88,7 @@ function SummaryCard({
   );
 }
 
-/** Saldo atual em destaque e cinco resumos do comprometimento futuro; valores em texto, sem depender de cor. */
+/** Saldo atual em destaque e três resumos do mês corrente; valores em texto, sem depender de cor. */
 export function CommitmentSummaryCards({
   overview,
   balance,
@@ -98,50 +98,26 @@ export function CommitmentSummaryCards({
   balance: BalanceSnapshot;
   projection: ProjectedBalance;
 }) {
-  const { lowest } = projection;
-  const { months, nextDue, heaviest } = overview;
+  const { months, nextDue } = overview;
   const current = months[0];
+  const endOfMonth = projection.months[0];
   const currentNote =
     current?.percent != null
       ? `${formatPercent(current.percent)} da receita esperada do mês`
       : "Sem receita esperada para calcular o percentual";
+  const monthTarget: SummaryTarget = current
+    ? { kind: "view", view: { kind: "month", month: current.month } }
+    : null;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <BalanceCard {...balance} />
       <SummaryCard
-        title="Menor saldo projetado"
-        testId="resumo-menor-saldo-projetado"
-        value={lowest ? formatBRL(lowest.balance) : "—"}
-        alert={lowest?.negative ?? false}
-        target={lowest ? { kind: "view", view: { kind: "lowest" } } : null}
-        note={
-          lowest
-            ? `${lowest.negative ? "Saldo negativo em " : "Em "}${lowest.longLabel}`
-            : "Sem meses no período"
-        }
-      />
-      <SummaryCard
-        title="Total comprometido"
-        testId="resumo-total-comprometido"
-        value={formatBRL(overview.totalCommitted)}
-        note={overview.label}
-        target={
-          overview.totalCommitted > 0
-            ? { kind: "view", view: { kind: "total" } }
-            : null
-        }
-      />
-      <SummaryCard
-        title="Comprometido neste mês"
+        title="Comprometido no mês"
         testId="resumo-mes-atual"
-        value={formatBRL(overview.currentMonthCommitted)}
+        value={formatBRL(current?.committed ?? asCents(0))}
         note={currentNote}
-        target={
-          current
-            ? { kind: "view", view: { kind: "month", month: current.month } }
-            : null
-        }
+        target={monthTarget}
       />
       <SummaryCard
         title="Próximo vencimento"
@@ -152,7 +128,7 @@ export function CommitmentSummaryCards({
             ? `${nextDue.description}, ${
                 nextDue.overdue ? "venceu em" : "vence em"
               } ${formatDateBR(nextDue.date)}`
-            : "Nenhum vencimento em aberto"
+            : "Nenhum vencimento em aberto neste mês"
         }
         target={
           nextDue
@@ -164,14 +140,15 @@ export function CommitmentSummaryCards({
         }
       />
       <SummaryCard
-        title="Mês mais pesado"
-        testId="resumo-mes-mais-pesado"
-        value={heaviest ? formatBRL(heaviest.committed) : "—"}
-        note={heaviest ? heaviest.longLabel : "Nenhum compromisso no período"}
-        target={
-          heaviest
-            ? { kind: "view", view: { kind: "month", month: heaviest.month } }
-            : null
+        title="Saldo projetado no fim do mês"
+        testId="resumo-saldo-fim-do-mes"
+        value={endOfMonth ? formatBRL(endOfMonth.balance) : "—"}
+        alert={endOfMonth?.negative ?? false}
+        target={monthTarget}
+        note={
+          endOfMonth
+            ? `${endOfMonth.negative ? "Saldo negativo no fim de " : "No fim de "}${endOfMonth.longLabel}`
+            : "Sem mês corrente"
         }
       />
     </div>

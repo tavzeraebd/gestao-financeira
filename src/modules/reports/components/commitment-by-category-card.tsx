@@ -1,5 +1,6 @@
 import { ChartCard } from "@/components/charts/chart-card";
 import { CHART_GREEN_SCALE } from "@/components/charts/colors";
+import { InfoHint } from "@/components/shared/info-hint";
 import { formatPercent } from "@/lib/format";
 import { formatBRL } from "@/lib/money";
 import type { CommitmentDashboard } from "@/modules/reports/types";
@@ -19,7 +20,7 @@ function sliceName(slice: { name: string; archived: boolean }): string {
   return slice.archived ? `${slice.name} (arquivada)` : slice.name;
 }
 
-/** Despesas comprometidas no horizonte, por categoria (rosca + legenda + tabela). */
+/** Despesas comprometidas do mês corrente, por categoria (rosca + legenda + tabela). */
 export function CommitmentByCategoryCard({
   breakdown,
   periodLabel,
@@ -41,11 +42,18 @@ export function CommitmentByCategoryCard({
     <ChartCard
       title="Comprometimento por categoria"
       period={periodLabel}
+      info={
+        <InfoHint label="o período do gráfico por categoria">
+          Mostra só o mês atual: contas em aberto (as vencidas entram aqui) e
+          despesas recorrentes que ainda vão ser lançadas neste mês, somadas por
+          categoria.
+        </InfoHint>
+      }
       isEmpty={slices.length === 0}
       empty={{
-        title: "Nenhum compromisso por categoria neste período",
+        title: "Nenhum compromisso por categoria neste mês",
         description:
-          "Quando houver contas a pagar ou despesas recorrentes à frente, elas aparecem aqui agrupadas por categoria.",
+          "Quando houver contas a pagar ou despesas recorrentes neste mês, elas aparecem aqui agrupadas por categoria.",
       }}
       table={{
         caption: `Comprometimento por categoria de ${periodLabel}`,

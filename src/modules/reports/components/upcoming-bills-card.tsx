@@ -10,7 +10,7 @@ import { BillStatusBadge } from "@/modules/bills/components/bill-status-badge";
 import { UPCOMING_LIMIT } from "@/modules/bills/constants";
 import type { BillListItem } from "@/modules/bills/types";
 
-/** D19: até 5 compromissos `pending` com vencimento nos próximos 30 dias (inclui vencidos). */
+/** Até 5 compromissos `pending` com vencimento até o fim do mês corrente (inclui vencidos). */
 export function UpcomingBillsCard({ items }: { items: BillListItem[] }) {
   const shown = items.slice(0, UPCOMING_LIMIT);
   return (
@@ -30,8 +30,8 @@ export function UpcomingBillsCard({ items }: { items: BillListItem[] }) {
         {shown.length === 0 ? (
           <EmptyState
             icon={CalendarClockIcon}
-            title="Nenhum vencimento nos próximos 30 dias"
-            description="As contas em aberto com vencimento nos próximos 30 dias aparecem aqui."
+            title="Nenhum vencimento até o fim do mês"
+            description="As contas em aberto com vencimento neste mês aparecem aqui."
           />
         ) : (
           <ul className="flex flex-col divide-y">

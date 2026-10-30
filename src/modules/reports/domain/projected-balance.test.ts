@@ -40,11 +40,10 @@ describe("buildProjectedBalance", () => {
       month("2026-12", 0, 40000),
     ]);
     expect(r.months.map((m) => m.balance)).toEqual([80000, 30000, 70000]);
-    expect(r.hasNegative).toBe(false);
-    expect(r.lowest?.month).toBe("2026-11-01");
+    expect(r.months.some((m) => m.negative)).toBe(false);
   });
 
-  it("sinaliza meses negativos e acha o menor saldo", () => {
+  it("sinaliza meses negativos", () => {
     const r = buildProjectedBalance(asCents(10000), [
       month("2026-10", 5000, 0),
       month("2026-11", 20000, 0),
@@ -52,22 +51,17 @@ describe("buildProjectedBalance", () => {
     ]);
     expect(r.months.map((m) => m.negative)).toEqual([false, true, true]);
     expect(r.months[2]?.balance).toBe(-3000);
-    expect(r.lowest?.balance).toBe(-15000);
-    expect(r.hasNegative).toBe(true);
   });
 
-  it("saldo inicial negativo e empate fica com o primeiro mês", () => {
+  it("saldo inicial negativo mantém todos os meses negativos", () => {
     const r = buildProjectedBalance(asCents(-100), [
       month("2026-10", 0, 0),
       month("2026-11", 0, 0),
     ]);
-    expect(r.lowest?.month).toBe("2026-10-01");
     expect(r.months.every((m) => m.negative)).toBe(true);
   });
 
-  it("sem meses: sem menor saldo", () => {
-    const r = buildProjectedBalance(asCents(5), []);
-    expect(r.lowest).toBeNull();
-    expect(r.hasNegative).toBe(false);
+  it("sem meses: nenhuma projeção", () => {
+    expect(buildProjectedBalance(asCents(5), []).months).toEqual([]);
   });
 });

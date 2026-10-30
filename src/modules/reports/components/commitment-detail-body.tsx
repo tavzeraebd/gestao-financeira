@@ -1,4 +1,3 @@
-import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -19,8 +18,6 @@ import type {
 } from "@/modules/reports/types";
 
 import type { DetailView } from "./commitment-detail-views";
-
-type Navigate = (view: DetailView) => void;
 
 const GROUP_TITLES: Record<CommitmentItemGroup, string> = {
   bills: "Contas em aberto",
@@ -321,143 +318,13 @@ function AccountsBody({ details }: { details: CommitmentDetails }) {
   );
 }
 
-function MonthButton({
-  month,
-  onNavigate,
-  children,
-}: {
-  month: MonthDetail;
-  onNavigate: Navigate;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={`Ver detalhes de ${month.longLabel}`}
-      onClick={() => onNavigate({ kind: "month", month: month.month })}
-      className="focus-visible:ring-ring hover:bg-muted flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2 text-left outline-none focus-visible:ring-3"
-    >
-      {children}
-      <ChevronRightIcon
-        aria-hidden="true"
-        className="text-muted-foreground size-4 shrink-0"
-      />
-    </button>
-  );
-}
-
-function TotalBody({
-  details,
-  onNavigate,
-}: {
-  details: CommitmentDetails;
-  onNavigate: Navigate;
-}) {
-  return (
-    <ul className="flex flex-col divide-y" data-testid="detalhe-total">
-      {details.months.map((m) => (
-        <li key={m.month}>
-          <MonthButton month={m} onNavigate={onNavigate}>
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-sm font-medium">{m.longLabel}</span>
-              <span className="text-muted-foreground text-xs">
-                Contas <Money cents={m.pending} /> · Recorrências{" "}
-                <Money cents={m.recurring} /> · Folha{" "}
-                <Money cents={m.payroll} />
-              </span>
-            </span>
-            <span className="text-sm font-semibold tabular-nums">
-              <Money cents={m.committed} />
-            </span>
-          </MonthButton>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function LowestBody({
-  details,
-  onNavigate,
-}: {
-  details: CommitmentDetails;
-  onNavigate: Navigate;
-}) {
-  const index = details.months.findIndex(
-    (m) => m.month === details.lowestMonth,
-  );
-  if (index < 0) {
-    return (
-      <p className="text-muted-foreground text-sm" role="status">
-        Sem meses no período.
-      </p>
-    );
-  }
-  const steps = details.months.slice(0, index + 1);
-  const lowest = details.months[index];
-  return (
-    <div className="flex flex-col gap-5" data-testid="detalhe-menor-saldo">
-      <section aria-labelledby="menor-saldo-conta">
-        <h3
-          id="menor-saldo-conta"
-          className="mb-2 flex items-center gap-1 text-sm font-semibold"
-        >
-          Como se chega ao menor saldo
-          <InfoHint label="como se chega ao menor saldo">
-            Cada mês parte do saldo do mês anterior, soma a receita esperada e
-            subtrai o que sai do caixa (contas em aberto e recorrências).
-          </InfoHint>
-        </h3>
-        <div className="flex items-baseline justify-between gap-3 rounded-md border px-3 py-2">
-          <span className="text-sm">Saldo atual</span>
-          <span className="text-sm font-semibold tabular-nums">
-            <Money cents={details.currentBalance} />
-          </span>
-        </div>
-        <ul className="mt-2 flex flex-col divide-y rounded-lg border">
-          {steps.map((m) => (
-            <li key={m.month}>
-              <MonthButton month={m} onNavigate={onNavigate}>
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-sm font-medium">{m.longLabel}</span>
-                  <span className="text-muted-foreground text-xs">
-                    Receita <Money cents={m.income} direction="in" /> · Sai do
-                    caixa <Money cents={m.cashCommitted} direction="out" />
-                  </span>
-                </span>
-                <span className="text-sm font-semibold tabular-nums">
-                  <Money cents={m.closing} />
-                  {m.negative ? " (negativo)" : ""}
-                </span>
-              </MonthButton>
-            </li>
-          ))}
-        </ul>
-      </section>
-      {lowest ? (
-        <section
-          aria-labelledby="menor-saldo-mes"
-          className="flex flex-col gap-3"
-        >
-          <h3 id="menor-saldo-mes" className="text-sm font-semibold">
-            Detalhes de {lowest.longLabel}
-          </h3>
-          <MonthBody month={lowest} />
-        </section>
-      ) : null}
-    </div>
-  );
-}
-
 /** Conteúdo do diálogo para a visão aberta; tudo vem pronto de `details` (nenhuma consulta). */
 export function CommitmentDetailBody({
   details,
   view,
-  onNavigate,
 }: {
   details: CommitmentDetails;
   view: DetailView;
-  onNavigate: Navigate;
 }) {
   switch (view.kind) {
     case "month": {
@@ -482,9 +349,5 @@ export function CommitmentDetailBody({
     }
     case "accounts":
       return <AccountsBody details={details} />;
-    case "total":
-      return <TotalBody details={details} onNavigate={onNavigate} />;
-    case "lowest":
-      return <LowestBody details={details} onNavigate={onNavigate} />;
   }
 }
