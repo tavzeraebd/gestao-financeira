@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 export type ChartCardTable = {
   caption: string;
   columns: { id: string; header: string; align?: "start" | "end" }[];
-  rows: { key: string; cells: string[] }[];
+  rows: { key: string; cells: ReactNode[] }[];
 };
 
 export type ChartCardProps = {

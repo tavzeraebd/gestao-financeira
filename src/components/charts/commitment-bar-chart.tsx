@@ -41,6 +41,8 @@ export type CommitmentBarChartProps = {
   /** Mostra a linha e a legenda da receita esperada. */
   showIncome: boolean;
   ariaLabel: string;
+  /** Clique numa barra ou ponto de um mês; o teclado usa os botões de mês fora do gráfico. */
+  onSelect?: (key: string) => void;
 };
 
 const HEIGHT = 288;
@@ -105,6 +107,7 @@ export default function CommitmentBarChart({
   data,
   showIncome,
   ariaLabel,
+  onSelect,
 }: CommitmentBarChartProps) {
   const reduceMotion = useReducedMotion();
   // Cents -> reais só para a escala do SVG; a exibição usa formatBRL.
@@ -117,6 +120,11 @@ export default function CommitmentBarChart({
     projectedReais: d.projected / 100,
   }));
   const hasNegative = data.some((d) => d.projected < 0);
+  const select = (index: number | undefined) => {
+    const key = index === undefined ? undefined : data[index]?.key;
+    if (key !== undefined) onSelect?.(key);
+  };
+  const clickable = onSelect ? { cursor: "pointer" } : undefined;
 
   const legend: ChartLegendItem[] = [
     { key: "pending", label: "Contas em aberto", color: "chart-green-1" },
@@ -155,6 +163,11 @@ export default function CommitmentBarChart({
             data={rows}
             accessibilityLayer={false}
             margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+            style={clickable}
+            onClick={(state) => {
+              const index = Number(state?.activeTooltipIndex);
+              if (Number.isInteger(index)) select(index);
+            }}
           >
             <CartesianGrid
               vertical={false}

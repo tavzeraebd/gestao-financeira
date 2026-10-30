@@ -1,10 +1,14 @@
 import { ChartCard } from "@/components/charts/chart-card";
-import { ChartLegend } from "@/components/charts/chart-legend";
 import { CHART_GREEN_SCALE } from "@/components/charts/colors";
-import { LazyDonutChart } from "@/components/charts/lazy";
 import { formatPercent } from "@/lib/format";
 import { formatBRL } from "@/lib/money";
 import type { CommitmentDashboard } from "@/modules/reports/types";
+
+import {
+  ClickableCategoryLegend,
+  ClickableDonutChart,
+} from "./commitment-clickable-charts";
+import { DetailTrigger } from "./commitment-detail-provider";
 
 type CommitmentByCategoryCardProps = {
   breakdown: CommitmentDashboard["byCategory"];
@@ -53,14 +57,25 @@ export function CommitmentByCategoryCard({
         rows: rows.map((row) => ({
           key: row.key,
           cells: [
-            sliceName(row),
+            row.amount > 0 ? (
+              <DetailTrigger
+                key="categoria"
+                view={{ kind: "category", key: row.key }}
+                aria-label={`Ver itens de ${sliceName(row)}`}
+                className="min-h-10 text-left underline underline-offset-2"
+              >
+                {sliceName(row)}
+              </DetailTrigger>
+            ) : (
+              sliceName(row)
+            ),
             formatBRL(row.amount),
             row.amount > 0 ? formatPercent(row.percent) : "—",
           ],
         })),
       }}
       legend={
-        <ChartLegend
+        <ClickableCategoryLegend
           aria-label="Legenda: comprometimento por categoria"
           items={slices.map((slice) => ({
             key: slice.key,
@@ -71,7 +86,7 @@ export function CommitmentByCategoryCard({
         />
       }
     >
-      <LazyDonutChart
+      <ClickableDonutChart
         data={slices.map((slice) => ({
           key: slice.key,
           label: sliceName(slice),

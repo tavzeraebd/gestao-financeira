@@ -39,7 +39,9 @@ export async function selectPendingCommitments(
 ): Promise<CommitmentEntry[]> {
   const { data, error } = await supabase
     .from("transactions")
-    .select("type, description, amount::text, transaction_date, category_id")
+    .select(
+      "id, type, description, amount::text, transaction_date, category_id",
+    )
     .eq("status", "pending")
     .is("deleted_at", null)
     .in("type", ["income", "expense"])
@@ -50,6 +52,7 @@ export async function selectPendingCommitments(
   if (error) throw error;
   return (
     data as unknown as {
+      id: string;
       type: string;
       description: string;
       amount: string;
@@ -62,6 +65,8 @@ export async function selectPendingCommitments(
     amount: fromDbNumeric(row.amount),
     date: dbDate(row.transaction_date),
     categoryId: row.category_id,
+    origin: "bill" as const,
+    sourceId: row.id,
   }));
 }
 
@@ -72,7 +77,7 @@ export async function selectActiveCommitmentSeries(
   const { data, error } = await supabase
     .from("recurrences")
     .select(
-      "type, description, amount::text, frequency, interval_count, start_date, end_date, next_occurrence_date, category_id, payroll_deduction",
+      "id, type, description, amount::text, frequency, interval_count, start_date, end_date, next_occurrence_date, category_id, payroll_deduction",
     )
     .eq("is_active", true)
     .order("id", { ascending: true })
@@ -80,6 +85,7 @@ export async function selectActiveCommitmentSeries(
   if (error) throw error;
   return (
     data as unknown as {
+      id: string;
       type: string;
       description: string;
       amount: string;
@@ -92,6 +98,7 @@ export async function selectActiveCommitmentSeries(
       payroll_deduction: boolean;
     }[]
   ).map((row) => ({
+    id: row.id,
     type: toCommitmentType(row.type),
     description: row.description,
     amount: fromDbNumeric(row.amount),

@@ -40,6 +40,11 @@ import { AppError } from "@/server/errors";
 import { DASHBOARD_GOALS_LIMIT, RECENT_TRANSACTIONS_LIMIT } from "./constants";
 import { buildCategoryBreakdown } from "./domain/breakdown";
 import { buildCashFlowMonths } from "./domain/cash-flow";
+import {
+  buildAccountRows,
+  buildCommitmentDetails,
+  categoryNames,
+} from "./domain/commitment-details";
 import { buildCommitments, totalsByCategory } from "./domain/commitments";
 import { buildProjectedBalance } from "./domain/projected-balance";
 import { compare } from "./domain/comparison";
@@ -276,25 +281,41 @@ export async function getCommitmentDashboard(
       previousBalances,
       previousAsOf,
     );
-    const { overview, expenses } = buildCommitments({
+    const { overview, expenses, entries } = buildCommitments({
       today: now,
       horizon: filters.horizonte,
       pending,
       series,
     });
     const total = sumCents(expenses.map((e) => e.amount));
+    const projection = buildProjectedBalance(
+      balance.consolidated.current,
+      overview.months,
+    );
+    const byCategory = buildCategoryBreakdown(
+      totalsByCategory(expenses),
+      new Map(categories.map((c) => [c.id, c])),
+      total,
+    );
     return {
       overview,
       balance,
-      projection: buildProjectedBalance(
-        balance.consolidated.current,
-        overview.months,
-      ),
-      byCategory: buildCategoryBreakdown(
-        totalsByCategory(expenses),
-        new Map(categories.map((c) => [c.id, c])),
-        total,
-      ),
+      projection,
+      byCategory,
+      details: buildCommitmentDetails({
+        today: now,
+        label: overview.label,
+        totalCommitted: overview.totalCommitted,
+        currentBalance: balance.consolidated.current,
+        openCardDebt: balance.openCardDebt,
+        months: overview.months,
+        projection,
+        entries,
+        expenses,
+        slices: byCategory.slices,
+        names: categoryNames(categories),
+        accounts: buildAccountRows(accounts, balances),
+      }),
       upcomingBills,
     };
   });

@@ -22,9 +22,12 @@ const entry = (
   amount: asCents(cents),
   categoryId,
   description: `${type} ${date}`,
+  origin: "bill",
+  sourceId: `t-${type}-${date}`,
 });
 
 const series = (over: Partial<CommitmentSeries> = {}): CommitmentSeries => ({
+  id: "s1",
   type: "expense",
   amount: asCents(10000),
   description: "Aluguel",
@@ -296,5 +299,24 @@ describe("totalsByCategory", () => {
       { categoryId: "a", amount: 350 },
       { categoryId: "b", amount: 50 },
     ]);
+  });
+});
+
+describe("buildCommitments: entradas com origem", () => {
+  it("devolve contas em aberto e ocorrências de série com id e origem", () => {
+    const result = buildCommitments({
+      today: d("2026-10-29"),
+      horizon: 1 as 6,
+      pending: [entry("expense", "2026-10-30", 5000)],
+      series: [series()],
+    });
+    const bill = result.entries.find((e) => e.origin === "bill");
+    const recurring = result.entries.find((e) => e.origin === "series");
+    expect(bill?.sourceId).toBe("t-expense-2026-10-30");
+    expect(recurring?.sourceId).toBe("s1");
+    expect(result.overview.nextDue).toMatchObject({
+      origin: "bill",
+      sourceId: "t-expense-2026-10-30",
+    });
   });
 });

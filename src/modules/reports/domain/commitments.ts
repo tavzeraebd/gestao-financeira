@@ -67,10 +67,17 @@ export function expandSeries(
       date,
       categoryId: series.categoryId,
       description: series.description,
+      origin: "series",
+      sourceId: series.id,
       ...(series.payrollDeduction ? { payroll: true } : {}),
     });
   }
   return entries;
+}
+
+/** Mês (1º dia) em que a entrada conta: vencidas entram no mês de `first` (o mês de hoje). */
+export function bucketMonth(entry: { date: ISODate }, first: ISODate): ISODate {
+  return entry.date < first ? first : startOfMonth(entry.date);
 }
 
 function monthLabel(month: ISODate): string {
@@ -90,6 +97,8 @@ export type CommitmentResult = {
   overview: CommitmentOverview;
   /** Despesas comprometidas no horizonte (contas em aberto + recorrências futuras). */
   expenses: CommitmentEntry[];
+  /** Todas as entradas (despesas e receitas) do horizonte, com origem: base dos detalhamentos. */
+  entries: CommitmentEntry[];
 };
 
 /**
@@ -117,9 +126,7 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
     income: [] as Cents[],
   }));
   const bucket = (entry: CommitmentEntry) =>
-    slots[
-      index.get(entry.date < first ? first : startOfMonth(entry.date)) ?? 0
-    ];
+    slots[index.get(bucketMonth(entry, first)) ?? 0];
 
   for (const entry of pending) {
     const slot = bucket(entry);
@@ -181,6 +188,8 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
         description: e.description,
         amount: e.amount,
         overdue: e.date < today,
+        origin: e.origin,
+        sourceId: e.sourceId,
       };
     }
   }
@@ -189,6 +198,7 @@ export function buildCommitments(input: CommitmentInput): CommitmentResult {
   const firstMonth = months[0];
   return {
     expenses,
+    entries: [...pending, ...virtual],
     overview: {
       from: first,
       to: last?.month ?? first,

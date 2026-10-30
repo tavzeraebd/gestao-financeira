@@ -258,6 +258,8 @@ describe("CommitmentSummaryCards", () => {
             description: "Luz",
             amount: asCents(8000),
             overdue: false,
+            origin: "bill",
+            sourceId: "t1",
           },
         })}
         balance={balanceOf(50000)}

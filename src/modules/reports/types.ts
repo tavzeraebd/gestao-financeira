@@ -111,6 +111,8 @@ export type CommitmentHorizon = (typeof COMMITMENT_HORIZONS)[number];
 /** Filtros de URL do /inicio já normalizados. */
 export type CommitmentFilters = { horizonte: CommitmentHorizon };
 
+export type CommitmentOrigin = "bill" | "series";
+
 /** Despesa ou receita em aberto, já com a data de vencimento (vencidos entram com a data original). */
 export type CommitmentEntry = {
   type: "income" | "expense";
@@ -118,12 +120,16 @@ export type CommitmentEntry = {
   date: ISODate;
   categoryId: string;
   description: string;
+  /** `bill` = lançamento em aberto (id da transação); `series` = ocorrência futura (id da série). */
+  origin: CommitmentOrigin;
+  sourceId: string;
   /** Ocorrência de série em desconto em folha (já vem fora do salário líquido; não sai do saldo). */
   payroll?: boolean;
 };
 
 /** Série recorrente ativa (a agenda ainda não materializada vem de `nextOccurrenceDate`). */
 export type CommitmentSeries = {
+  id: string;
   type: "income" | "expense";
   amount: Cents;
   description: string;
@@ -162,6 +168,8 @@ export type CommitmentNextDue = {
   description: string;
   amount: Cents;
   overdue: boolean;
+  origin: CommitmentOrigin;
+  sourceId: string;
 };
 
 export type CommitmentOverview = {
@@ -202,9 +210,73 @@ export type ProjectedBalance = {
   hasNegative: boolean;
 };
 
+/** Grupos do detalhamento do mês: contas em aberto, recorrências, desconto em folha e receitas esperadas. */
+export type CommitmentItemGroup = "bills" | "recurring" | "payroll" | "income";
+
+export type CommitmentDetailItem = {
+  key: string;
+  group: CommitmentItemGroup;
+  type: "income" | "expense";
+  description: string;
+  date: ISODate;
+  amount: Cents;
+  categoryName: string;
+  origin: CommitmentOrigin;
+  sourceId: string;
+  /** Conta em aberto já vencida (entra no mês atual com a data original). */
+  overdue: boolean;
+};
+
+export type MonthDetail = CommitmentMonth & {
+  /** Saldo projetado do mês anterior (no primeiro mês, o saldo atual). */
+  opening: Cents;
+  /** Saldo projetado ao fim do mês: `opening + income − cashCommitted`. */
+  closing: Cents;
+  negative: boolean;
+  groups: Record<CommitmentItemGroup, CommitmentDetailItem[]>;
+};
+
+export type CategoryDetailMonth = {
+  month: ISODate;
+  longLabel: string;
+  total: Cents;
+  items: CommitmentDetailItem[];
+};
+
+export type CategoryDetail = {
+  /** Igual à `key` da fatia do gráfico. */
+  key: string;
+  name: string;
+  total: Cents;
+  percent: number;
+  months: CategoryDetailMonth[];
+};
+
+export type AccountBalanceRow = {
+  id: string;
+  name: string;
+  type: AccountType;
+  balance: Cents;
+  archived: boolean;
+};
+
+/** Tudo o que os detalhamentos do /inicio mostram, calculado no servidor (sem consulta por clique). */
+export type CommitmentDetails = {
+  label: string;
+  totalCommitted: Cents;
+  currentBalance: Cents;
+  openCardDebt: Cents;
+  months: MonthDetail[];
+  categories: CategoryDetail[];
+  accounts: AccountBalanceRow[];
+  /** Mês do menor saldo projetado (`null` sem meses). */
+  lowestMonth: ISODate | null;
+};
+
 export type CommitmentDashboard = {
   overview: CommitmentOverview;
   balance: BalanceSnapshot;
+  details: CommitmentDetails;
   projection: ProjectedBalance;
   byCategory: CategoryBreakdown;
   /** Até 5 compromissos em aberto com vencimento em 30 dias (vencidos incluídos), só leitura. */

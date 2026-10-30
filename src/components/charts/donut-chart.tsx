@@ -20,6 +20,8 @@ export type DonutChartProps = {
   centerLabel: string;
   centerValue: string;
   ariaLabel: string;
+  /** Clique numa fatia; o teclado usa os botões da legenda. */
+  onSelect?: (key: string) => void;
 };
 
 const HEIGHT = 224;
@@ -50,6 +52,7 @@ export default function DonutChart({
   centerLabel,
   centerValue,
   ariaLabel,
+  onSelect,
 }: DonutChartProps) {
   const reduceMotion = useReducedMotion();
   // Cents -> reais só para o ângulo das fatias; a exibição usa formatBRL.
@@ -84,6 +87,11 @@ export default function DonutChart({
             stroke="var(--card)"
             strokeWidth={2}
             isAnimationActive={!reduceMotion}
+            style={onSelect ? { cursor: "pointer" } : undefined}
+            onClick={(_slice, index) => {
+              const key = slices[index]?.key;
+              if (key !== undefined) onSelect?.(key);
+            }}
           />
           <Tooltip content={DonutTooltip} />
         </PieChart>

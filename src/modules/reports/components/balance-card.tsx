@@ -1,4 +1,4 @@
-import { TrendingUpIcon } from "lucide-react";
+import { ChevronRightIcon, TrendingUpIcon } from "lucide-react";
 
 import { Money } from "@/components/shared/money";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { formatDateBR } from "@/lib/dates";
 import type { Dashboard } from "@/modules/reports/types";
 
 import { ComparisonText } from "./comparison-text";
+import { DetailTrigger } from "./commitment-detail-provider";
 import { IndicatorInfo } from "./indicator-info";
 
 type BalanceCardProps = Pick<
@@ -35,7 +36,17 @@ export function BalanceCard({
           />
         </div>
         <p className="text-3xl font-bold" data-testid="valor">
-          <Money cents={consolidated.current} />
+          <DetailTrigger
+            view={{ kind: "accounts" }}
+            className="hover:bg-muted -mx-2 inline-flex items-center gap-1 px-2 py-1 transition-colors"
+          >
+            <Money cents={consolidated.current} />
+            <ChevronRightIcon
+              aria-hidden="true"
+              className="text-muted-foreground size-5 shrink-0"
+            />
+            <span className="sr-only">Ver saldo por conta</span>
+          </DetailTrigger>
         </p>
         <ComparisonText
           comparison={consolidated}

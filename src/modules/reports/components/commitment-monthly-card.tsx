@@ -1,5 +1,4 @@
 import { ChartCard } from "@/components/charts/chart-card";
-import { LazyCommitmentBarChart } from "@/components/charts/lazy";
 import { formatPercent } from "@/lib/format";
 import { asCents, formatBRL } from "@/lib/money";
 import { TriangleAlertIcon } from "lucide-react";
@@ -8,6 +7,12 @@ import type {
   CommitmentOverview,
   ProjectedBalance,
 } from "@/modules/reports/types";
+
+import {
+  ClickableCommitmentBarChart,
+  MonthDetailButtons,
+} from "./commitment-clickable-charts";
+import { DetailTrigger } from "./commitment-detail-provider";
 
 /**
  * Barras empilhadas por mês (contas em aberto + recorrências + desconto em folha), linha da receita esperada e % de
@@ -65,7 +70,14 @@ export function CommitmentMonthlyCard({
         rows: months.map((m) => ({
           key: m.month,
           cells: [
-            m.longLabel,
+            <DetailTrigger
+              key="mes"
+              view={{ kind: "month", month: m.month }}
+              aria-label={`Ver detalhes de ${m.longLabel}`}
+              className="min-h-10 text-left underline underline-offset-2"
+            >
+              {m.longLabel}
+            </DetailTrigger>,
             formatBRL(m.pending),
             formatBRL(m.recurring),
             formatBRL(m.payroll),
@@ -87,7 +99,7 @@ export function CommitmentMonthlyCard({
         })),
       }}
     >
-      <LazyCommitmentBarChart
+      <ClickableCommitmentBarChart
         data={months.map((m) => ({
           key: m.month,
           label: m.label,
@@ -101,6 +113,15 @@ export function CommitmentMonthlyCard({
         showIncome={hasIncome}
         ariaLabel={`Comprometimento mensal de ${label}. ${summary}.`}
       />
+      <div className="mt-3">
+        <MonthDetailButtons
+          months={months.map((m) => ({
+            month: m.month,
+            label: m.label,
+            longLabel: m.longLabel,
+          }))}
+        />
+      </div>
       {negativeMonths.length > 0 ? (
         <p
           role="status"

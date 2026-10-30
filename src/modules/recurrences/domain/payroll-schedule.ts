@@ -21,6 +21,7 @@ export function nextPayrollOccurrence(
   today: ISODate,
 ): ISODate | null {
   const base = {
+    id: "",
     type: "expense" as const,
     amount: asCents(0),
     description: "",
