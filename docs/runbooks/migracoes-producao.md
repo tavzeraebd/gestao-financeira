@@ -38,3 +38,4 @@ Os tetos vivem em `private.volume_limits`. Ajuste: no SQL Editor do painel, `upd
 | Data | Migrations aplicadas | Dry-run | Lint remoto | Types sem diff | Quem |
 |---|---|---|---|---|---|
 | 2026-10-31 | 20261031100000_installment_purchases | só a 20261031100000 | sem erro (extensions, private, public) | sem diff de schema; só estilo do gerador (Args never × Record<PropertyKey, never>, ComputedFields, NonNullable<Json>), tipos locais mantidos | Claude (pedido do usuário) |
+| 2026-10-31 | 20261101100000_card_expense_invoice_month (ADR-0041) | só a 20261101100000 | sem erro | campo computado reporting_date e funções presentes; diferença só de estilo do gerador, tipos locais mantidos | Claude (pedido do usuário) |
