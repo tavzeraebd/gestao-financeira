@@ -11,6 +11,11 @@ const FUNCTIONS = [
   "enforce_volume_limit",
   "log_member_denial",
   "log_password_changed",
+  // ADR-0041: funções privadas da data de apuração e da fatura
+  "card_invoice_closing",
+  "card_invoice_due",
+  "reporting_date_of",
+  "reporting_transactions",
 ];
 
 async function callRpc(name: string, bearer: string): Promise<number> {

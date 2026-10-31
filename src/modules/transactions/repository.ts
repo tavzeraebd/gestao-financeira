@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fromDbNumeric, type Cents } from "@/lib/money";
 import { dbDate, numericParam } from "@/lib/supabase/db-values";
+import { reportingPrefilterStart } from "@/modules/reports/domain/card-invoices";
 import {
   toCategoryColor,
   toCategoryIcon,
@@ -32,7 +33,7 @@ type Client = SupabaseClient<Database>;
 
 /** Montantes só com `::text` (contrato §3.2). Embeds pelos nomes de FK do contrato §3.1. */
 const ITEM_COLUMNS =
-  "id, type, description, amount::text, transaction_date, status, reversal_of_id, created_by, recurrence_id, " +
+  "id, type, description, amount::text, transaction_date, reporting_date, status, reversal_of_id, created_by, recurrence_id, " +
   "installment_group_id, installment_number, installment_total, " +
   "account:accounts!transactions_account_fk(id, name), " +
   "destination_account:accounts!transactions_destination_account_fk(id, name), " +
@@ -45,6 +46,7 @@ type ItemRow = {
   description: string;
   amount: string;
   transaction_date: string;
+  reporting_date: string;
   status: string;
   reversal_of_id: string | null;
   created_by: string;
@@ -100,6 +102,7 @@ export function toListItem(
       accountFilterId: viewer.accountFilterId,
     }),
     transactionDate: dbDate(row.transaction_date),
+    reportingDate: dbDate(row.reporting_date),
     status: toStatus(row.status),
     account: { id: row.account.id, name: row.account.name },
     destinationAccount: row.destination_account
@@ -163,8 +166,17 @@ export async function selectTransactionPage(
       // Lançamentos são só efetivados; pendentes e cancelados vivem em /compromissos (ADR-0022 §6).
       .eq("status", "paid")
       .is("deleted_at", null);
-    if (filters.de) query = query.gte("transaction_date", filters.de);
-    if (filters.ate) query = query.lte("transaction_date", filters.ate);
+    // ADR-0041: o período vale sobre a data de apuração; o prefiltro em transaction_date mantém o índice útil.
+    if (filters.de) {
+      query = query
+        .gte("reporting_date", filters.de)
+        .gte("transaction_date", reportingPrefilterStart(dbDate(filters.de)));
+    }
+    if (filters.ate) {
+      query = query
+        .lte("reporting_date", filters.ate)
+        .lte("transaction_date", filters.ate);
+    }
     if (filters.tipo)
       query = query.eq("type", TYPE_FILTER_VALUES[filters.tipo]);
     // `conta` é uuid validado pelo schema: seguro dentro da expressão `or`.
@@ -221,7 +233,9 @@ export async function selectRecentTransactions(
     .select(ITEM_COLUMNS)
     .eq("status", "paid")
     .is("deleted_at", null)
-    .gte("transaction_date", from)
+    .gte("reporting_date", from)
+    .gte("transaction_date", reportingPrefilterStart(dbDate(from)))
+    .lte("reporting_date", to)
     .lte("transaction_date", to)
     .order("transaction_date", { ascending: false })
     .order("created_at", { ascending: false })

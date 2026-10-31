@@ -27,6 +27,7 @@ import {
   type AccountType,
 } from "@/modules/accounts/constants";
 import type { AccountView } from "@/modules/accounts/types";
+import { invoiceMonthLabel } from "@/modules/reports/domain/invoice-month-label";
 
 const TYPE_ICONS: Record<AccountType, LucideIcon> = {
   checking: LandmarkIcon,
@@ -94,10 +95,11 @@ export function AccountCard({
             {invoices ? (
               <div data-testid="fatura-aberta">
                 <dt className="text-muted-foreground flex items-center gap-1">
-                  Fatura aberta
-                  <InfoHint label="fatura aberta">
-                    Compras feitas do dia do fechamento em diante entram na
-                    fatura seguinte.
+                  {invoiceMonthLabel(invoices.open.dueDate, "long")}
+                  <InfoHint label="fatura em aberto">
+                    Fatura em aberto: compras feitas do dia do fechamento em
+                    diante entram na fatura seguinte. A fatura fechada, a pagar,
+                    aparece logo abaixo.
                   </InfoHint>
                 </dt>
                 <dd>
@@ -113,7 +115,9 @@ export function AccountCard({
             ) : null}
             {invoices && invoices.closed.amount > 0 ? (
               <div data-testid="fatura-fechada">
-                <dt className="text-muted-foreground">Fatura fechada</dt>
+                <dt className="text-muted-foreground">
+                  {invoiceMonthLabel(invoices.closed.dueDate, "long")}
+                </dt>
                 <dd>
                   <span className="block text-lg font-semibold">
                     <Money cents={invoices.closed.amount} />

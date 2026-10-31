@@ -967,8 +967,9 @@ export type Database = {
           transaction_date: string;
           type: string;
           updated_at: string;
+          reporting_date: string | null;
         };
-        ComputedFields: never;
+        ComputedFields: "reporting_date";
         Insert: {
           account_id: string;
           amount: number;
@@ -1258,6 +1259,15 @@ export type Database = {
         Returns: number;
       };
       remove_family_member: { Args: { p_member_id: string }; Returns: string };
+      reporting_date: {
+        Args: {
+          t: Omit<
+            Database["public"]["Tables"]["transactions"]["Row"],
+            Database["public"]["Tables"]["transactions"]["ComputedFields"]
+          >;
+        };
+        Returns: string;
+      };
       revoke_family_invite: {
         Args: { p_invite_id: string };
         Returns: undefined;

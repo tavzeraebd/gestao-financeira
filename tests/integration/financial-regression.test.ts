@@ -167,12 +167,13 @@ describe("regressão financeira (D1, D3, D4, D5, D6, D8) pela camada de serviço
     });
     expect(pay).toMatchObject({ ok: true });
 
+    // v1.5/D26: fecha 10, vence 20 -> a compra de 15/03 fecha 10/04 e vence 20/04: conta em abril, não em março.
     expect(
       await getPeriodSummary("2026-03-01" as ISODate, "2026-03-31" as ISODate),
-    ).toMatchObject({ expense: c(30000) });
+    ).toMatchObject({ expense: c(0) });
     expect(
       await getPeriodSummary("2026-04-01" as ISODate, "2026-04-30" as ISODate),
-    ).toMatchObject({ expense: c(0) });
+    ).toMatchObject({ expense: c(30000) });
 
     const asOf = async (date: string) => {
       const { data } = await fam.owner.client.rpc("account_balances", {

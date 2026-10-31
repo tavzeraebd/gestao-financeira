@@ -10,6 +10,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { addDays, addMonths, startOfMonth, today } from "@/lib/dates";
 import { asCents, sumCents } from "@/lib/money";
+import { invoiceOf } from "@/modules/reports/domain/card-invoices";
 import { createCategory } from "@/modules/categories/actions";
 import { getDashboard } from "@/modules/reports/queries";
 import { dashboardFiltersSchema } from "@/modules/reports/schemas";
@@ -158,9 +159,11 @@ describe("dashboard: regressão R1, variação, saldo e estados", () => {
       statementDueDay: 20,
     });
     const cat = await defaultCategoryId(family.owner, "expense", "Compras");
+    // Compra no dia 15 do mês anterior (passado em qualquer dia de execução). Fecha dia 10 deste mês e vence dia 20 deste mês.
+    const purchase = addDays(PREV_MONTH, 14);
     await mkTx(family.owner, {
       amount: "300,00",
-      transactionDate: TODAY,
+      transactionDate: purchase,
       accountId: card,
       categoryId: cat,
     });
@@ -168,6 +171,8 @@ describe("dashboard: regressão R1, variação, saldo e estados", () => {
     expect(d.consolidated.current).toBe(c(100000));
     expect(d.openCardDebt).toBe(c(30000));
     expect(d.hasCreditCards).toBe(true);
+    // D26 (ADR-0041): a compra conta no mês do vencimento da fatura (mês corrente), não no mês da compra.
+    expect(startOfMonth(invoiceOf(purchase, 10, 20).dueDate)).toBe(THIS_MONTH);
     expect(d.expense.current).toBe(c(30000));
   });
 

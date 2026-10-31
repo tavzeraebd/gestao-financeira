@@ -116,5 +116,14 @@ select throws_ok($$select private.enforce_volume_limit('transactions', gen_rando
   'CA-E9-01: authenticated não chama enforce_volume_limit diretamente');
 select tests.logout();
 
+-- ADR-0041 / D26: as 5 funções novas da data de apuração — invoker com search_path vazio, sem EXECUTE para anon/PUBLIC, com EXECUTE para authenticated.
+select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where ((n.nspname = 'private' and p.proname in ('card_invoice_closing', 'card_invoice_due', 'reporting_date_of', 'reporting_transactions'))
+        or (n.nspname = 'public' and p.proname = 'reporting_date'))
+      and not p.prosecdef and p.proconfig @> array['search_path=""']
+      and has_function_privilege('authenticated', p.oid, 'execute')
+      and not has_function_privilege('anon', p.oid, 'execute') and not has_function_privilege('public', p.oid, 'execute')),
+  5, 'D26: as 5 funções novas são security invoker, search_path vazio, authenticated executa e anon/PUBLIC não');
+
 select * from finish();
 rollback;

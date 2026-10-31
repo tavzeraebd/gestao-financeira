@@ -78,11 +78,11 @@ describe("AccountCard — faturas", () => {
       />,
     );
     const aberta = screen.getByTestId("fatura-aberta");
-    expect(within(aberta).getByText("Fatura aberta")).toBeInTheDocument();
+    expect(within(aberta).getByText("Fatura de dezembro")).toBeInTheDocument();
     expect(aberta).toHaveTextContent("Fecha 25/11 · vence 05/12");
     expect(
       within(aberta).getByRole("button", {
-        name: "Mais informações sobre fatura aberta",
+        name: "Mais informações sobre fatura em aberto",
       }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("fatura-fechada")).not.toBeInTheDocument();
@@ -107,7 +107,7 @@ describe("AccountCard — faturas", () => {
       />,
     );
     const fechada = screen.getByTestId("fatura-fechada");
-    expect(fechada).toHaveTextContent("Fatura fechada");
+    expect(fechada).toHaveTextContent("Fatura de novembro");
     expect(fechada).toHaveTextContent("Vence 05/11");
     expect(within(fechada).queryByText("Vencida")).not.toBeInTheDocument();
   });

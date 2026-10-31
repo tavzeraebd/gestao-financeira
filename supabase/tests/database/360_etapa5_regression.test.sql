@@ -88,9 +88,9 @@ select ok((select deleted_at is not null from public.transactions where id = 'fa
 -- R4 · cartão em março, pagamento da fatura em abril/2021 -------------------------------------------------------------------------------
 insert into public.transactions (family_id, type, account_id, destination_account_id, category_id, description, amount, transaction_date) values
   (tests.fid('A'), 'expense', 'aa000000-0000-0000-0000-000000000003', null, 'ca000000-0000-0000-0000-000000000001', 'R4 compra', 300, '2021-03-15'),
-  (tests.fid('A'), 'transfer', 'aa000000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000003', null, 'R4 fatura', 300, '2021-04-10');
-select is((select expense from public.period_summary('2021-03-01', '2021-03-31')), '300.00', 'CA-E5-17 R4: despesas de março 300,00');
-select is((select expense from public.period_summary('2021-04-01', '2021-04-30')), '0.00', 'CA-E5-17 R4: abril 0,00 (pagamento da fatura não é despesa)');
+  (tests.fid('A'), 'transfer', 'aa000000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000003', null, 'R4 fatura', 300, '2021-04-20');
+select is((select expense from public.period_summary('2021-03-01', '2021-03-31')), '0.00', 'CA-E5-17 R4: despesas de março 0,00 (a compra de 15/03 vence em 20/04, D26)');
+select is((select expense from public.period_summary('2021-04-01', '2021-04-30')), '300.00', 'CA-E5-17 R4: abril 300,00 (mês do vencimento; pagamento da fatura não é despesa)');
 
 -- R14 · orçamento em ago/2022 -----------------------------------------------------------------------------------------------------------------
 insert into public.transactions (id, family_id, type, account_id, destination_account_id, category_id, description, amount, transaction_date, status) values

@@ -119,6 +119,24 @@ select results_eq($$select transaction_date, status, amount::text from public.tr
 select is((select count(*)::int from public.transactions where installment_group_id = current_setting('tests.g_31')::uuid and due_date is null),
   3, 'dia 31: parcelas efetivadas na criação não têm due_date');
 
+-- ADR-0041 / D26 · R22 (v1.5): cada parcela efetivada conta no mês da fatura da própria data (cartão fecha 10 e vence 20): ----------------
+-- 31/01 -> vence 20/02 · 28/02 -> vence 20/03 · 31/03 -> vence 20/04. Janeiro/2025 fica sem despesa de cartão.
+select results_eq($$select (select expense from public.period_summary(m, (m + interval '1 month - 1 day')::date))
+    from (values ('2025-01-01'::date), ('2025-02-01'), ('2025-03-01'), ('2025-04-01')) as v(m) order by m$$,
+  $$values ('0.00'::text), ('100.00'), ('100.00'), ('100.00')$$,
+  'R22/D26: despesas de jan 0,00 e de fev, mar e abr = 100,00 (cada parcela no mês da sua fatura)');
+-- R21 (v1.5): a 1ª parcela (paga hoje) conta no mês do vencimento da fatura de hoje, não necessariamente no mês de hoje.
+select results_eq($$select public.reporting_date(t) from public.transactions t
+    where t.installment_group_id = current_setting('tests.g_r21')::uuid order by t.installment_number$$,
+  $$select private.card_invoice_due(d, 10::smallint, 20::smallint)
+    from (values (private.today()), (private.recurrence_occurrence(private.today(), 'monthly', 1::smallint, 1)),
+                 (private.recurrence_occurrence(private.today(), 'monthly', 1::smallint, 2))) as v(d)$$,
+  'R21/D26: cada parcela tem data de apuração = vencimento da fatura da própria data');
+select is((select sum(r.amount)::text from private.reporting_transactions(
+      private.card_invoice_due(private.today(), 10::smallint, 20::smallint), private.card_invoice_due(private.today(), 10::smallint, 20::smallint)) r
+    where r.id in (select id from public.transactions where installment_group_id = current_setting('tests.g_r21')::uuid) and r.status = 'paid'),
+  '33.34', 'R21/D26: a parcela paga hoje entra nas despesas do mês do vencimento da sua fatura');
+
 -- Limites de parcelas: 2 e 36 passam; 0, 1 e 37 não ---------------------------------------------------------------------------------
 select set_config('tests.g_2x', tests.inst('a6800000-0000-0000-0000-000000000001', 'c6800000-0000-0000-0000-000000000001', 10.01, 2)::text, true);
 select results_eq($$select amount::text from public.transactions where installment_group_id = current_setting('tests.g_2x')::uuid order by installment_number$$,

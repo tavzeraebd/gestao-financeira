@@ -48,7 +48,7 @@ export default async function BudgetsPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Orçamentos"
-        description="Quanto a família pode gastar por mês, por categoria."
+        description="Quanto a família pode gastar por mês, por categoria. Compras no cartão de crédito contam no mês de vencimento da fatura."
         actions={newBudget}
       />
 

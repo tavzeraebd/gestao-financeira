@@ -129,5 +129,26 @@ select is((select amount from public.member_expense_totals('2025-03-01', '2025-0
   'member lê os mesmos relatórios que o owner');
 select tests.logout();
 
+-- ADR-0041 / D26 · Σ por integrante = despesas quando a compra de cartão atravessa o mês (cartão fecha 11, vence 16, 2024) ----------------
+-- 10/03 (30,00, A) vence 16/03 · 11/03 (50,00, m) vence 16/04 · estorno de 10,00 da primeira em 20/03 cai na fatura de abril.
+insert into public.accounts (id, family_id, name, type, opening_balance, opening_balance_date, statement_closing_day, statement_due_day, is_active, created_by) values
+  ('a7540000-0000-0000-0000-000000000009', tests.fid('A'), 'Cartão D26', 'credit_card', 0, '2020-01-01', 11, 16, true, tests.uid('a'));
+insert into public.transactions (id, family_id, type, account_id, destination_account_id, category_id, assigned_member_id, description, amount, transaction_date, status, created_by) values
+  ('f7540000-0000-0000-0000-0000000000d1', tests.fid('A'), 'expense', 'a7540000-0000-0000-0000-000000000009', null, 'c7540000-0000-0000-0000-000000000001', tests.mem('a'), 'Cartão antes do fechamento', 30, '2024-03-10', 'paid', tests.uid('a')),
+  ('f7540000-0000-0000-0000-0000000000d2', tests.fid('A'), 'expense', 'a7540000-0000-0000-0000-000000000009', null, 'c7540000-0000-0000-0000-000000000001', tests.mem('m'), 'Cartão no fechamento', 50, '2024-03-11', 'paid', tests.uid('a'));
+select tests.login_as('a');
+insert into public.transactions (family_id, type, account_id, category_id, description, amount, transaction_date, status, reversal_of_id) values
+  (tests.fid('A'), 'expense', 'a7540000-0000-0000-0000-000000000009', 'c7540000-0000-0000-0000-000000000001', 'Estorno cartão', 10, '2024-03-20', 'paid', 'f7540000-0000-0000-0000-0000000000d1');
+select results_eq($$select member_id, amount from public.member_expense_totals('2024-03-01', '2024-03-31')$$,
+  $$select tests.mem('a'), '30.00'::text$$, 'D26: março/2024 só tem a compra de 10/03 (A, 30,00)');
+select results_eq($$select member_id, amount from public.member_expense_totals('2024-04-01', '2024-04-30') order by amount desc$$,
+  $$values (tests.mem('m'), '50.00'::text), (tests.mem('a'), '-10.00'::text)$$,
+  'D26: abril/2024 = compra de 11/03 (m, 50,00) e estorno de 20/03 (A, -10,00)');
+select is((select sum(amount::numeric) from public.member_expense_totals('2024-03-01', '2024-03-31')),
+  (select expense::numeric from public.period_summary('2024-03-01', '2024-03-31')), 'D26: Σ por integrante = despesas em março/2024 (30,00)');
+select is((select sum(amount::numeric) from public.member_expense_totals('2024-04-01', '2024-04-30')),
+  (select expense::numeric from public.period_summary('2024-04-01', '2024-04-30')), 'D26: Σ por integrante = despesas em abril/2024 (40,00)');
+select is((select expense from public.period_summary('2024-04-01', '2024-04-30')), '40.00', 'D26: despesas de abril/2024 = 50,00 - 10,00');
+
 select * from finish();
 rollback;

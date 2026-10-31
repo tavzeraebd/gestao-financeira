@@ -72,7 +72,7 @@ select results_eq($$select income, expense, result from public.period_summary('2
 
 -- R11 · janela jan–jun/2022 -------------------------------------------------------------------------------------------------------------------
 insert into public.transactions (family_id, type, account_id, destination_account_id, category_id, description, amount, transaction_date) values
-  (tests.fid('A'), 'expense', 'a3000000-0000-0000-0000-000000000002', null, 'c3000000-0000-0000-0000-000000000001', 'R11 compra no cartão', 300, '2022-03-15'),
+  (tests.fid('A'), 'expense', 'a3000000-0000-0000-0000-000000000002', null, 'c3000000-0000-0000-0000-000000000001', 'R11 compra no cartão', 300, '2022-03-05'),
   (tests.fid('A'), 'transfer', 'a3000000-0000-0000-0000-000000000001', 'a3000000-0000-0000-0000-000000000002', null, 'R11 pagamento da fatura', 300, '2022-04-10'),
   (tests.fid('A'), 'income', 'a3000000-0000-0000-0000-000000000001', null, 'c3000000-0000-0000-0000-000000000005', 'R11 receita', 500, '2022-05-05'),
   (tests.fid('A'), 'expense', 'a3000000-0000-0000-0000-000000000001', null, 'c3000000-0000-0000-0000-000000000001', 'R11 despesa', 100, '2022-05-06');

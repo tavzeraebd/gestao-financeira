@@ -49,6 +49,14 @@ export function invoiceOf(
   return { closingDate, dueDate };
 }
 
+/**
+ * ADR-0041: início do prefiltro em `transaction_date` para um filtro `de` sobre `reporting_date`.
+ * A fatura vence no máximo 2 meses depois da compra, então nenhuma compra anterior a este dia pode ter `reporting_date >= from`.
+ */
+export function reportingPrefilterStart(from: ISODate): ISODate {
+  return addMonths(startOfMonth(from), -2);
+}
+
 /** Compra efetivada no cartão, lida do banco (despesa paga, não estorno). */
 export type CardPurchase = {
   id: string;

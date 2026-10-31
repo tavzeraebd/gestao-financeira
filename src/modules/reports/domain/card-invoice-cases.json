@@ -1,0 +1,298 @@
+[
+  {
+    "purchase": "2026-10-10",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2026-10-11",
+    "due": "2026-10-16",
+    "note": "R25/D24: um dia antes do fechamento fica na fatura do mês"
+  },
+  {
+    "purchase": "2026-10-11",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2026-11-11",
+    "due": "2026-11-16",
+    "note": "R25/D24: no dia do fechamento vai para a fatura seguinte"
+  },
+  {
+    "purchase": "2026-10-12",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2026-11-11",
+    "due": "2026-11-16",
+    "note": "D24: depois do fechamento vai para a fatura seguinte"
+  },
+  {
+    "purchase": "2026-12-20",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2027-01-11",
+    "due": "2027-01-16",
+    "note": "R25: virada de ano"
+  },
+  {
+    "purchase": "2026-10-26",
+    "closingDay": 25,
+    "dueDay": 5,
+    "closing": "2026-11-25",
+    "due": "2026-12-05",
+    "note": "R25: vencimento menor que o fechamento cai no mês seguinte ao fechamento"
+  },
+  {
+    "purchase": "2026-12-26",
+    "closingDay": 25,
+    "dueDay": 5,
+    "closing": "2027-01-25",
+    "due": "2027-02-05",
+    "note": "R25: V<C com virada de ano"
+  },
+  {
+    "purchase": "2026-09-29",
+    "closingDay": 31,
+    "dueDay": 10,
+    "closing": "2026-09-30",
+    "due": "2026-10-10",
+    "note": "R25: fechamento 31 ajustado a 30 em setembro"
+  },
+  {
+    "purchase": "2026-09-30",
+    "closingDay": 31,
+    "dueDay": 10,
+    "closing": "2026-10-31",
+    "due": "2026-11-10",
+    "note": "R25: no dia do fechamento ajustado vai para o mês seguinte"
+  },
+  {
+    "purchase": "2027-02-10",
+    "closingDay": 30,
+    "dueDay": 31,
+    "closing": "2027-02-28",
+    "due": "2027-03-31",
+    "note": "R25: V ajustado = C em fevereiro, vence no mês seguinte"
+  },
+  {
+    "purchase": "2026-10-14",
+    "closingDay": 15,
+    "dueDay": 15,
+    "closing": "2026-10-15",
+    "due": "2026-11-15",
+    "note": "R25: V=C vence no mês seguinte"
+  },
+  {
+    "purchase": "2028-02-29",
+    "closingDay": 29,
+    "dueDay": 5,
+    "closing": "2028-03-29",
+    "due": "2028-04-05",
+    "note": "R25: ano bissexto, compra no dia do fechamento"
+  },
+  {
+    "purchase": "2027-01-31",
+    "closingDay": 31,
+    "dueDay": 5,
+    "closing": "2027-02-28",
+    "due": "2027-03-05",
+    "note": "R25: fechamento 31 em fevereiro curto"
+  },
+  {
+    "purchase": "2026-09-20",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2026-10-11",
+    "due": "2026-10-16",
+    "note": "R23: compra de 20/09"
+  },
+  {
+    "purchase": "2026-10-15",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2026-11-11",
+    "due": "2026-11-16",
+    "note": "R23: compra de 15/10"
+  },
+  {
+    "purchase": "2026-10-25",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2026-11-11",
+    "due": "2026-11-16",
+    "note": "R23: parcela pendente de 25/10"
+  },
+  {
+    "purchase": "2027-02-15",
+    "closingDay": 31,
+    "dueDay": 10,
+    "closing": "2027-02-28",
+    "due": "2027-03-10",
+    "note": "C=31 em mês curto (fevereiro/2027)"
+  },
+  {
+    "purchase": "2027-02-28",
+    "closingDay": 31,
+    "dueDay": 10,
+    "closing": "2027-03-31",
+    "due": "2027-04-10",
+    "note": "C=31: dia 28/02 é o fechamento ajustado, vai para março"
+  },
+  {
+    "purchase": "2027-03-31",
+    "closingDay": 31,
+    "dueDay": 10,
+    "closing": "2027-04-30",
+    "due": "2027-05-10",
+    "note": "C=31: fechamento 31 vira 30 em abril"
+  },
+  {
+    "purchase": "2028-02-28",
+    "closingDay": 31,
+    "dueDay": 10,
+    "closing": "2028-02-29",
+    "due": "2028-03-10",
+    "note": "C=31 em fevereiro bissexto"
+  },
+  {
+    "purchase": "2028-02-29",
+    "closingDay": 31,
+    "dueDay": 10,
+    "closing": "2028-03-31",
+    "due": "2028-04-10",
+    "note": "C=31: 29/02 é o fechamento ajustado em ano bissexto"
+  },
+  {
+    "purchase": "2026-12-19",
+    "closingDay": 20,
+    "dueDay": 28,
+    "closing": "2026-12-20",
+    "due": "2026-12-28",
+    "note": "virada de ano: ainda dezembro"
+  },
+  {
+    "purchase": "2026-12-20",
+    "closingDay": 20,
+    "dueDay": 28,
+    "closing": "2027-01-20",
+    "due": "2027-01-28",
+    "note": "virada de ano: fechamento em janeiro"
+  },
+  {
+    "purchase": "2026-12-31",
+    "closingDay": 5,
+    "dueDay": 10,
+    "closing": "2027-01-05",
+    "due": "2027-01-10",
+    "note": "virada de ano: compra em 31/12"
+  },
+  {
+    "purchase": "2026-01-10",
+    "closingDay": 28,
+    "dueDay": 3,
+    "closing": "2026-01-28",
+    "due": "2026-02-03",
+    "note": "V<C: vence no mês seguinte"
+  },
+  {
+    "purchase": "2026-10-09",
+    "closingDay": 10,
+    "dueDay": 10,
+    "closing": "2026-10-10",
+    "due": "2026-11-10",
+    "note": "V=C: vence no mês seguinte ao fechamento"
+  },
+  {
+    "purchase": "2026-10-10",
+    "closingDay": 10,
+    "dueDay": 10,
+    "closing": "2026-11-10",
+    "due": "2026-12-10",
+    "note": "V=C: no dia do fechamento"
+  },
+  {
+    "purchase": "2026-03-15",
+    "closingDay": 10,
+    "dueDay": 20,
+    "closing": "2026-04-10",
+    "due": "2026-04-20",
+    "note": "R4: compra 15/03 vence em abril"
+  },
+  {
+    "purchase": "2026-03-05",
+    "closingDay": 10,
+    "dueDay": 20,
+    "closing": "2026-03-10",
+    "due": "2026-03-20",
+    "note": "R11: compra 05/03 vence em março"
+  },
+  {
+    "purchase": "2027-01-15",
+    "closingDay": 20,
+    "dueDay": 28,
+    "closing": "2027-01-20",
+    "due": "2027-01-28",
+    "note": "R21: parcela 1"
+  },
+  {
+    "purchase": "2027-02-15",
+    "closingDay": 20,
+    "dueDay": 28,
+    "closing": "2027-02-20",
+    "due": "2027-02-28",
+    "note": "R21: parcela 2 (V=28 em fevereiro de 28 dias)"
+  },
+  {
+    "purchase": "2027-03-15",
+    "closingDay": 20,
+    "dueDay": 28,
+    "closing": "2027-03-20",
+    "due": "2027-03-28",
+    "note": "R21: parcela 3"
+  },
+  {
+    "purchase": "2026-09-10",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2026-09-11",
+    "due": "2026-09-16",
+    "note": "R24: compra de 10/09"
+  },
+  {
+    "purchase": "2026-09-11",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2026-10-11",
+    "due": "2026-10-16",
+    "note": "R24: compra de 11/09"
+  },
+  {
+    "purchase": "2026-10-20",
+    "closingDay": 11,
+    "dueDay": 16,
+    "closing": "2026-11-11",
+    "due": "2026-11-16",
+    "note": "R24: estorno de 20/10 cai na fatura de novembro"
+  },
+  {
+    "purchase": "2027-01-29",
+    "closingDay": 30,
+    "dueDay": 5,
+    "closing": "2027-01-30",
+    "due": "2027-02-05",
+    "note": "R26: parcela 1"
+  },
+  {
+    "purchase": "2027-02-28",
+    "closingDay": 30,
+    "dueDay": 5,
+    "closing": "2027-03-30",
+    "due": "2027-04-05",
+    "note": "R26: parcela 2 (fechamento 30 ajustado a 28 em fevereiro)"
+  },
+  {
+    "purchase": "2027-03-29",
+    "closingDay": 30,
+    "dueDay": 5,
+    "closing": "2027-03-30",
+    "due": "2027-04-05",
+    "note": "R26: parcela 3 cai na mesma fatura da parcela 2"
+  }
+]

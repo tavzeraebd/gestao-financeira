@@ -54,8 +54,8 @@ test("CA-E3-61: cartão com limite, compra e pagamento da fatura", async ({
   await escolher(page, "Tipo", "Cartão de crédito");
   await page.getByLabel("Fatura atual (valor devido)", { exact: true }).fill("0,00");
   await page.getByLabel(/Limite do cartão/).fill("2000,00");
-  await page.getByLabel("Dia de fechamento").fill("10");
-  await page.getByLabel("Dia de vencimento").fill("20");
+  await page.getByLabel("Dia de fechamento", { exact: true }).fill("10");
+  await page.getByLabel("Dia de vencimento", { exact: true }).fill("20");
   await page.getByRole("button", { name: "Criar conta" }).click();
   await expect(page).toHaveURL(/\/contas$/);
 

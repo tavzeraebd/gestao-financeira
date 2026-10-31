@@ -95,15 +95,15 @@ select is((select sum(amount)::text from public.transactions where status = 'pen
 select results_eq($$select income, expense, result from public.period_summary('2025-04-01', '2025-04-30')$$,
   $$values ('500.00'::text, '200.00'::text, '300.00'::text)$$, 'R3: pendente fora dos totais realizados');
 
--- R4 · cartão: compra de 300,00 em maio, pagamento da fatura de 300,00 em junho ---------------------------------------------------------
+-- R4 (v1.5, D26) · cartão fecha 10 e vence 20: compra de 300,00 em 15/05 vence em 20/06; pagamento da fatura em 20/06 --------------
 insert into public.transactions (family_id, type, account_id, destination_account_id, category_id, description, amount, transaction_date) values
   (tests.fid('A'), 'expense', 'a1000000-0000-0000-0000-000000000042', null, 'c1000000-0000-0000-0000-000000000001', 'R4 compra no cartão', 300, '2025-05-15'),
-  (tests.fid('A'), 'transfer', 'a1000000-0000-0000-0000-000000000041', 'a1000000-0000-0000-0000-000000000042', null, 'R4 pagamento da fatura', 300, '2025-06-10');
+  (tests.fid('A'), 'transfer', 'a1000000-0000-0000-0000-000000000041', 'a1000000-0000-0000-0000-000000000042', null, 'R4 pagamento da fatura', 300, '2025-06-20');
 
 select results_eq($$select income, expense, result from public.period_summary('2025-05-01', '2025-05-31')$$,
-  $$values ('0.00'::text, '300.00'::text, '-300.00'::text)$$, 'CA-E3-16 R4: despesa de maio 300,00');
+  $$values ('0.00'::text, '0.00'::text, '0.00'::text)$$, 'CA-E3-16 R4: despesa de maio 0 (a compra de 15/05 vence em 20/06, D26)');
 select results_eq($$select income, expense, result from public.period_summary('2025-06-01', '2025-06-30')$$,
-  $$values ('0.00'::text, '0.00'::text, '0.00'::text)$$, 'CA-E3-16 R4: despesa de junho 0 (pagamento não é despesa)');
+  $$values ('0.00'::text, '300.00'::text, '-300.00'::text)$$, 'CA-E3-16 R4: despesa de junho 300,00 (mês do vencimento; pagamento da fatura não é despesa)');
 select is((select balance from public.account_balances('2025-05-31') where account_id = 'a1000000-0000-0000-0000-000000000041'), '1000.00',
   'CA-E3-16 R4: consolidado de ativos em maio não cai (1.000,00)');
 select is((select balance from public.account_balances('2025-06-30') where account_id = 'a1000000-0000-0000-0000-000000000041'), '700.00',

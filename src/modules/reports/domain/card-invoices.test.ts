@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import type { ISODate } from "@/lib/dates";
 import { asCents } from "@/lib/money";
+import CASOS from "./card-invoice-cases.json";
 import type { CommitmentEntry } from "../types";
 import {
   allocateOpenDebt,
   cardInvoices,
   invoiceOf,
   openPurchaseEntries,
+  reportingPrefilterStart,
   withInvoice,
   type CardPurchase,
   type CardTerms,
@@ -18,6 +20,25 @@ const inv = (date: string, c: number, v: number) => {
   const r = invoiceOf(d(date), c, v);
   return [r.closingDate, r.dueDate];
 };
+
+describe("invoiceOf contra a tabela compartilhada (R25, 690)", () => {
+  it("tem casos", () => expect(CASOS.length).toBeGreaterThan(0));
+  it.each(CASOS.map((c, i) => [i + 1, c] as const))("caso %i", (_n, c) => {
+    const r = invoiceOf(c.purchase as ISODate, c.closingDay, c.dueDay);
+    expect({ closing: r.closingDate, due: r.dueDate }, c.note).toEqual({
+      closing: c.closing,
+      due: c.due,
+    });
+  });
+});
+
+describe("reportingPrefilterStart (ADR-0041)", () => {
+  it("dois meses antes do primeiro dia do mês de de", () => {
+    expect(reportingPrefilterStart("2026-10-01" as ISODate)).toBe("2026-08-01");
+    expect(reportingPrefilterStart("2026-10-17" as ISODate)).toBe("2026-08-01");
+    expect(reportingPrefilterStart("2026-01-31" as ISODate)).toBe("2025-11-01");
+  });
+});
 
 describe("invoiceOf (D24)", () => {
   it("fecha 11, vence 16: antes do fechamento paga no mesmo mês; no dia ou depois, no seguinte", () => {

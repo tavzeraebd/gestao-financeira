@@ -299,6 +299,7 @@ export function AccountForm({
               name="statementClosingDay"
               id="conta-fechamento"
               label="Dia de fechamento"
+              description="Mudar este dia recalcula o mês das compras já lançadas neste cartão."
             >
               {(f) => (
                 <Input
@@ -322,6 +323,7 @@ export function AccountForm({
               name="statementDueDay"
               id="conta-vencimento"
               label="Dia de vencimento"
+              description="Mudar este dia recalcula o mês das compras já lançadas neste cartão."
             >
               {(f) => (
                 <Input

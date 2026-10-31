@@ -1,6 +1,8 @@
 # Definições financeiras — Núcleo
 
-Versão 1.4 (2026-10-30, vigente): D8 e D24 revisadas (compra no dia do fechamento vai para a fatura seguinte; compras
+Versão 1.5 (2026-10-31, **vigente**: [ADR-0041](adr/0041-despesa-de-cartao-no-mes-da-fatura.md) aceita; `period_summary`, `monthly_cash_flow`, `category_totals`, `budget_progress` e `member_expense_totals` passam a rejeitar `±infinity` e datas fora de 2000-01-01..9999-12-31 com `INVALID_INPUT`, SEC-35): D26 nova
+(despesa no cartão conta no mês do vencimento da fatura); D4, D5, D8, D10, D11, D14, D22, D23 e D24 revisadas; R4, R11, R21 e
+R22 revisados; R24–R26 novos. Versão 1.4 (2026-10-30): D8 e D24 revisadas (compra no dia do fechamento vai para a fatura seguinte; compras
 líquidas de estornos); D25 e R23 novas (fatura aberta e fatura fechada a pagar de cada cartão). Versão 1.3 (2026-10-30;
 ADR-0040 aceita): D4, D6 e D8 revisadas; D23 e R21–R22 novas
 (compra parcelada no cartão; [ADR-0040](adr/0040-compra-parcelada-no-cartao.md)). Versão 1.2 (2026-10-24): D9 e D10 revisadas, D13 e D15 ampliadas, D21–D22 e R15–R20 novas (contratos `etapa-6.md` e
@@ -94,13 +96,13 @@ as duas datas ([ADR-0020](adr/0020-dashboard-agregacao-compartilhada.md) §4; é
 - `despesas(P) = Σ amount` de `expense` efetivados com `transaction_date ∈ P` − Σ estornos de `expense` com data ∈ P.
 - `resultado(P) = receitas(P) − despesas(P)`.
 - **Transferências nunca entram** em receitas, despesas ou resultado (inclui pagamento de fatura e aportes a metas vinculados a transferência).
-- Despesa no cartão entra na data da compra (D8). Compra parcelada: cada parcela entra na própria data, quando efetivada (D23).
+- Despesa no cartão entra pela **data de apuração** (D26, v1.5): o vencimento da fatura da data da compra (antes, a data da compra). Compra parcelada: cada parcela entra pela fatura da própria data, quando efetivada (D23). Nas fórmulas acima, "data ∈ P" é "data de apuração ∈ P"; fora do cartão, data de apuração = `transaction_date`.
 - Por categoria: mesmo critério agrupado por `category_id`; categoria-pai soma as subcategorias.
 - Comparação de períodos: período anterior = mesmo comprimento imediatamente antes (mês civil → mês civil anterior; intervalo de N dias → N dias anteriores). Variação % com anterior = 0 → `null`.
 
 ### D5 — Estornos
 - Estorno = novo lançamento com `reversal_of_id` = original, **mesmo `type`, mesma conta, mesma categoria**, `status='paid'`, data própria, valor ≤ valor original − estornos anteriores (trigger com lock).
-- Efeito: inverte o sentido do original na conta (estorno de despesa é entrada) e **abate** o total do tipo/categoria no período da **data do estorno** (meses passados não são reescritos; uma categoria pode ficar negativa num mês — exibido como tal).
+- Efeito: inverte o sentido do original na conta (estorno de despesa é entrada) e **abate** o total do tipo/categoria no período da **data do estorno** (no cartão, o da fatura da data do estorno, D26; meses passados não são reescritos; uma categoria pode ficar negativa num mês — exibido como tal).
 - Devolução do lojista = estorno. Reembolso de terceiro (empresa, plano de saúde) = **receita** na categoria "Reembolsos". Esta é a política da spec §7.5.
 - Transferência não tem estorno: corrige-se editando ou excluindo (lógico).
 - Diferença para exclusão: exclusão lógica remove todo o efeito (lançamento errado); estorno registra um fato real e preserva o original.
@@ -124,7 +126,7 @@ as duas datas ([ADR-0020](adr/0020-dashboard-agregacao-compartilhada.md) §4; é
 
 ### D8 — Cartão de crédito ([ADR-0013](adr/0013-cartao-como-conta-passivo.md))
 - Cartão é uma conta `credit_card` (passivo) com `credit_limit`, `statement_closing_day`, `statement_due_day`.
-- Compra = `expense` `paid` na conta do cartão, na data da compra → entra em despesas do período da compra (D4) e aumenta a dívida.
+- Compra = `expense` `paid` na conta do cartão, na data da compra → aumenta a dívida na data da compra (D1) e entra em despesas no mês do vencimento da fatura (D26, v1.5; antes, no período da compra).
 - Pagamento de fatura = `transfer` da conta de ativo para o cartão → reduz saldo consolidado (D3) e a dívida; **não** é despesa.
 - Fatura é **derivada**: compras com `transaction_date` do dia do fechamento anterior até a véspera do fechamento
   atual (a compra feita no dia do fechamento vai para a fatura seguinte; dia de fechamento > dias do mês → último dia, D12).
@@ -157,7 +159,7 @@ as duas datas ([ADR-0020](adr/0020-dashboard-agregacao-compartilhada.md) §4; é
   `post_due_installments()` ao acessar o app. Não é "pagar por vencer" (D6): no cartão, o pagamento real é a fatura
   (transferência, D8). Cartão arquivado: a parcela fica pendente até a reativação.
 - **Efeitos (sem fórmula nova):**
-  - parcela efetivada = compra no cartão (D8) na data dela: entra em despesas (D4), na categoria (D16), no orçamento
+  - parcela efetivada = compra no cartão (D8) na data dela: entra, no mês da fatura dessa data (D26), em despesas (D4), na categoria (D16), no orçamento
     realizado (D14), no fluxo (D17) e na dívida do cartão;
   - parcela pendente = despesa prevista (D6): fica fora do saldo e do realizado, e entra no comprometido (D14), no "a
     pagar" (D19), no comprometimento futuro do dashboard e em `projected_cash_flow` (D15) no mês dela. Cada parcela é
@@ -190,12 +192,14 @@ as duas datas ([ADR-0020](adr/0020-dashboard-agregacao-compartilhada.md) §4; é
 - Valor da despesa mudou (pagamento com o valor real, edição): as parcelas são **reescaladas** na proporção anterior por D13 (pesos = parcelas antigas).
 - Estorno de despesa dividida herda a proporção do original: parcelas do estorno = D13(valor do estorno, pesos = parcelas atuais do original), com sinal negativo, na data do estorno (D5).
 - Pagador = `assigned_member_id` da despesa (do original, no caso do estorno).
-- Relatório por integrante, período P (`member_expense_totals`): para cada `expense` efetivada não excluída com data ∈ P (estornos com sinal invertido): com divisão → cada integrante recebe a sua parcela; sem divisão → o valor inteiro vai ao `assigned_member_id`; sem responsável → "Família (sem responsável)" (`member_id` nulo). **Σ do relatório = despesas(P) (D4).**
+- Relatório por integrante, período P (`member_expense_totals`): para cada `expense` efetivada não excluída com data de apuração ∈ P (D26) (estornos com sinal invertido): com divisão → cada integrante recebe a sua parcela; sem divisão → o valor inteiro vai ao `assigned_member_id`; sem responsável → "Família (sem responsável)" (`member_id` nulo). **Σ do relatório = despesas(P) (D4).**
 - Saldo entre integrantes (`member_balances`, todas as datas, só efetivados): `deve(X→Y)` = Σ parcelas líquidas de X em despesas pagas por Y (X ≠ Y) − Σ liquidações não excluídas de X para Y. Por par, mostra-se só o líquido positivo (`deve(X→Y) − deve(Y→X)`). Parcela do próprio pagador e despesa sem responsável não geram dívida. Pendentes não geram dívida (aparecem como "a dividir").
 
 ### D11 — Data que define o período
 `transaction_date` é a única data de período e de efeito no saldo (regime de caixa, simples para família):
 efetivado = data em que o dinheiro entrou/saiu (no cartão, a data da compra); pendente = vencimento.
+**Exceção (v1.5, D26):** despesa em cartão entra nos totais por período (D4, D10, D14, D16, D17, D18 e o filtro de Transações) pela data de
+apuração (vencimento da fatura). Saldo (D1/D3), dívida e limite (D8), movimento por conta (D22) e compromissos (D19) seguem `transaction_date`.
 `created_at` nunca define período. Aportes usam `contribution_date`; liquidações, `settlement_date`.
 
 ### D12 — Recorrências e meses curtos ([ADR-0011](adr/0011-recorrencias-materializadas-sob-demanda.md))
@@ -223,7 +227,7 @@ pelo índice do array, que o chamador ordena por `joined_at`, `id`), fonte de ve
 ### D14 — Orçamento ([ADR-0024](adr/0024-orcamentos-mensais.md))
 - Só mensal: P = cada mês civil de `start_month` a `end_month` (opcional); o mesmo limite vale em todos os meses.
 - Realizado(P) = despesas(P) (D4) da categoria do orçamento e das subcategorias (categoria nula = todas as despesas): efetivadas, não excluídas, estornos abatendo pela data do estorno (D5). Pode ser negativo.
-- Comprometido(P) = Σ `expense` `pending` não excluídos com data ∈ P, **no mesmo recorte de categoria** (revisão da v1.0, que não recortava). **"Comprometido" = despesa pendente ("a pagar"); receita pendente ("a receber") nunca entra.** O mesmo vale para o "comprometido" do consolidado (R3/R12): `getPendingCommitted` devolve só o `payable` de `pending_summary` (D19); o a receber aparece à parte em `getBillsSummary`.
+- Comprometido(P) = Σ `expense` `pending` não excluídos com data de apuração ∈ P (D26: pendente no cartão conta no mês da fatura da própria data), **no mesmo recorte de categoria** (revisão da v1.0, que não recortava). **"Comprometido" = despesa pendente ("a pagar"); receita pendente ("a receber") nunca entra.** O mesmo vale para o "comprometido" do consolidado (R3/R12): `getPendingCommitted` devolve só o `payable` de `pending_summary` (D19); o a receber aparece à parte em `getBillsSummary`.
 - Disponível = limite − realizado (negativo = acima do limite). % consumido = realizado / limite × 100 (só exibição). Estado: `ok` < 80%; `attention` de 80% a 100%, inclusive; `exceeded` > 100%; realizado ≤ 0 → `ok`.
 - Transferências, pendentes (fora do comprometido), cancelados e aportes de meta não entram no realizado.
 - Comparação: os 3 meses anteriores dentro da vigência, com o limite atual. Categoria arquivada: o orçamento continua calculando.
@@ -282,6 +286,7 @@ Os 5 lançamentos efetivados, não excluídos, mais recentes **dentro do períod
 - Para cada conta (ativo e cartão, ativas e arquivadas), em P, só efetivados não excluídos: entradas = `income` na conta +
   `transfer` recebida + estorno de `expense` na conta; saídas = `expense` na conta + `transfer` enviada + estorno de `income`.
   Líquido = entradas − saídas. **Aqui as transferências entram** (o relatório é da conta, não do consolidado).
+  Aqui vale `transaction_date` também no cartão (D26 não se aplica): o relatório reconcilia saldos, e fim = início + líquido exige a data do efeito no saldo.
 - Saldo no início = `account_balances(início − 1)`; no fim = `account_balances(fim)`; fim = início + líquido.
 - Σ líquido das contas de ativo = variação do consolidado (D3) no período: as transferências entre contas de ativo se anulam,
   e o pagamento de fatura sai do ativo (D8). Conta sem movimento no período e com saldo 0 é omitida.
@@ -292,7 +297,8 @@ Os 5 lançamentos efetivados, não excluídos, mais recentes **dentro do períod
   Ex.: C=11, V=16: compra 10/10 → fecha 11/10, vence 16/10; compra 11/10 → fecha 11/11, vence 16/11; compra 12/10 → vence 16/11.
   C=31 em setembro (fecha 30/09): 29/09 fecha em 30/09; 30/09 fecha em 31/10.
 - No comprometimento (/inicio), toda despesa em conta de cartão (efetivada em aberto, pendente, parcela futura ou ocorrência de recorrência) conta no **mês do vencimento da fatura**.
-  Fatura vencida e não paga conta no mês atual. Não muda o gasto por categoria dos relatórios (data da compra, D4) nem o saldo (D1/D8).
+  Fatura vencida e não paga conta no mês atual. Desde a v1.5, a mesma regra vale para todos os totais por período (D26); o saldo (D1/D8) continua pela data da compra.
+  A regra existe uma vez em TS (`invoiceOf`) e uma vez em SQL (`private.card_invoice_due`), provadas iguais pela mesma tabela de casos (D26).
 - Em aberto = dívida do cartão (D8) alocada às compras efetivadas **mais recentes** (pagamento quita as faturas mais antigas); a última pode entrar parcial.
   Cada compra entra com o valor **líquido dos próprios estornos** (Σ estornos `paid` não excluídos com `reversal_of_id` = compra, até hoje; líquido ≤ 0 sai da lista).
   Histórico lido insuficiente (≤ 1000 compras) marca o resultado como possivelmente subestimado. Pendentes entram pela lista de pendentes, sem dupla contagem.
@@ -309,6 +315,25 @@ Os 5 lançamentos efetivados, não excluídos, mais recentes **dentro do períod
 - Saldo ≥ 0 (crédito a favor): nada é alocado; fechada = 0 e aberta = só as parcelas pendentes do ciclo.
 - Pagamento adiantado (D menor que as compras do ciclo aberto): aberta = D, fechada = 0.
 
+### D26 — Data de apuração: despesa no cartão no mês do vencimento da fatura ([ADR-0041](adr/0041-despesa-de-cartao-no-mes-da-fatura.md); v1.5)
+- **Data de apuração** = o vencimento de `invoiceOf(transaction_date, fechamento, vencimento)` (D24) para `expense` em conta `credit_card`
+  com os dois dias; nos demais casos, `transaction_date`. Vale para compra paga, pendente, parcela (D23), ocorrência materializada e estorno
+  (pela data **do estorno**: o crédito entra na fatura em que é lançado, D5). Derivada na leitura, nunca gravada.
+- Ex.: fecha 11, vence 16 → outubro conta as compras de 11/09 a 10/10; a de 11/10 vai para novembro. Fecha 25, vence 5: compra 26/10 →
+  fecha 25/11, vence 05/12 → dezembro.
+- **Usam a data de apuração:** D4, D10 (`member_expense_totals`), D14 (realizado e comprometido), D15 base conhecida (via D4/D16), D16, D17,
+  D18 e o filtro de período de Transações. A lista exibe e ordena pela data real e marca a fatura ("Fatura nov/26").
+- **Não usam** (seguem `transaction_date`): D1/D3, dívida, "faturas em aberto" e limite (D8), D19, D22, D15 saldo futuro
+  (`projected_cash_flow`), D25 (ciclos já por fatura) e as notificações de vencimento. Transferência e pagamento de fatura nunca são despesa (D8).
+- **Dias atuais do cartão:** a classificação usa os dias vigentes. Mudar fechamento ou vencimento reclassifica todo o histórico do
+  cartão (totais e orçamentos de meses passados); o saldo não muda. Cartão arquivado continua classificado pelos seus dias.
+- **Bordas:** dia inexistente → último dia do mês (D12); o vencimento é sempre **depois** do fechamento (V ≤ C, ou V igual a C depois do
+  ajuste de mês curto → mês seguinte); virada de ano; com fechamento entre 29 e 31, duas parcelas podem cair na mesma fatura (e nenhuma na
+  anterior), e cada uma conta na sua.
+- **Prefiltro exato:** data de apuração ∈ [a, b] ⇒ `transaction_date` ∈ [1º dia do mês de a − 2 meses, b] (o vencimento é posterior à compra
+  e cai no mês dela ou em um dos dois seguintes).
+- **TS = SQL:** `invoiceOf` e `private.card_invoice_due` são testadas com a mesma tabela (`card-invoice-cases.json`, que contém R25).
+
 ## 3. Regressão financeira obrigatória (spec §13)
 
 | Caso | Dados | Esperado |
@@ -316,14 +341,14 @@ Os 5 lançamentos efetivados, não excluídos, mais recentes **dentro do períod
 | R1 | Conta corrente saldo inicial 1.000,00; receita 500,00; despesa 200,00; transferência 100,00 corrente→poupança (saldo inicial 0) | consolidado 1.300,00; receitas 500,00; despesas 200,00; resultado 300,00; corrente 1.200,00; poupança 100,00 |
 | R2 | R1 + estorno de 50,00 da despesa | consolidado 1.350,00; despesas 150,00 |
 | R3 | R1 + despesa pendente 80,00 | consolidado 1.300,00; comprometido 80,00 |
-| R4 | Compra no cartão 300,00 em março; pagamento da fatura 300,00 em abril | despesas março 300,00, abril 0; consolidado cai 300,00 só em abril |
+| R4 | (v1.5) Cartão fecha 10, vence 20. Compra no cartão 300,00 em 15/03; pagamento da fatura 300,00 em 20/04 | fatura fecha 10/04, vence 20/04: despesas março 0, abril 300,00; consolidado cai 300,00 só em abril; saldo do cartão −300,00 de 15/03 a 19/04 |
 | R5 | Recorrência mensal início 31/01/2027 | 31/01, 28/02, 31/03, 30/04/2027; 2028: 29/02 |
 | R6 | Divisão de 100,00 em 3 | 33,34 + 33,33 + 33,33 = 100,00 |
 | R7 | Edição de despesa 200,00 → 250,00 | despesas 250,00; audit com old/new |
 | R8 | Exclusão lógica da despesa | despesas 0; linha preservada com `deleted_at` |
 | R9 | Categoria Alimentação com subcategoria Mercado. Setembro: despesa 80,00 em Alimentação, 120,00 em Mercado, 50,00 em Transporte; transferência 100,00; pendente 30,00 em Alimentação. Outubro: estorno 20,00 da despesa de Mercado | `category_totals(set)`: Alimentação 200,00, Transporte 50,00 (Mercado não aparece separada; transferência e pendente fora); fatias 80,0% e 20,0%. `category_totals(out)`: Alimentação −20,00; outubro sem fatias; despesas(out) = −20,00 |
 | R10 | Setembro: receitas 0, despesas 200,00. Outubro: receitas 500,00, despesas 250,00 | receitas: delta +500,00, percentual `null` ("sem base de comparação"); despesas: +50,00 e +25,0%; resultado: −200,00 → +250,00, delta +450,00, +225,0% (sobre \|−200,00\|) |
-| R11 | Janela jan–jun/2026: março, compra no cartão 300,00; abril, pagamento da fatura 300,00 (transferência); maio, receita 500,00, despesa 100,00 e estorno 50,00 dela | 6 linhas: jan 0/0, fev 0/0, mar 0/300,00, abr 0/0, mai 500,00/50,00, jun 0/0; Σ = `period_summary(jan..jun)` = 500,00/350,00 |
+| R11 | Janela jan–jun/2026: março, compra no cartão 300,00 em 05/03 (v1.5: cartão fecha 10, vence 20 → vence 20/03); abril, pagamento da fatura 300,00 (transferência); maio, receita 500,00, despesa 100,00 e estorno 50,00 dela | 6 linhas: jan 0/0, fev 0/0, mar 0/300,00, abr 0/0, mai 500,00/50,00, jun 0/0; Σ = `period_summary(jan..jun)` = 500,00/350,00 |
 | R12 | R3 com vencimento ontem; pagar hoje com 85,00 | antes: vencido (derivado), consolidado inalterado, comprometido 80,00. Depois: a **mesma linha** `paid`, `transaction_date` = hoje, `due_date` = ontem, despesas do mês +85,00, saldo −85,00, comprometido 0; contagem de linhas igual; segundo pagamento → `INVALID_STATUS_TRANSITION` |
 | R13 | Série mensal de 1.200,00 com início = hoje − 2 meses; chamar a materialização duas vezes | 4 ocorrências (−2, −1, este mês, próximo mês), as 2 primeiras vencidas; a segunda chamada devolve 0; pausar remove as intocadas com data ≥ hoje; reativar recria as de data ≥ hoje, sem as do período pausado |
 | R14 | Orçamento de Alimentação (pai) com limite 500,00 no mês M: despesa 300,00 em Alimentação, 150,00 em Mercado (filha), estorno 50,00 da primeira no mês M, transferência 100,00, despesa 60,00 em Transporte, pendente 80,00 em Alimentação. Orçamento "Todas as despesas" com limite 400,00 | Alimentação: realizado 400,00, comprometido 80,00, disponível 100,00, 80,0% → `attention`. Todas: realizado 460,00, 115,0% → `exceeded`, disponível −60,00 |
@@ -333,6 +358,9 @@ Os 5 lançamentos efetivados, não excluídos, mais recentes **dentro do períod
 | R18 | Despesa 300,00 paga por A dividida igualmente entre A, B, C; despesa 90,00 paga por B dividida por valores A 30,00 · B 60,00; despesa 50,00 sem responsável dividida entre B e C; liquidação de B para A de 50,00 | saldos: B deve 20,00 a A (100,00 − 30,00 − 50,00); C deve 100,00 a A; nenhuma dívida da despesa sem responsável; consolidado e despesas iguais aos sem divisão (440,00 de despesas) |
 | R19 | Financiamento: valor 80.000,00, entrada 20.000,00, 36 meses | `i = 0`: parcela 1.666,67, total das parcelas 60.000,00, juros 0,00, custo total 80.000,00. `i = 1,5%`: parcela 2.169,14, total das parcelas 78.089,17, juros 18.089,17, custo total 98.089,17. `i = 0,4%`: parcela 1.792,87, total 64.543,36 |
 | R20 | Mês M com R1 + despesa 90,00 sem responsável; a despesa de 200,00 com responsável A, sem divisão | por conta: corrente início 1.000,00, entradas 500,00, saídas 390,00 (200,00 + 90,00 + 100,00), fim 1.110,00; poupança início 0,00, entradas 100,00, fim 100,00; Σ líquido ativo = 210,00 = variação do consolidado; por integrante: A 200,00, "Família (sem responsável)" 90,00, Σ 290,00 = despesas(M) |
-| R21 | Hoje 20/01/2027. Cartão com limite 5.000,00, saldo inicial 0,00 em 01/01/2027. Compra 100,00 em 3x em 15/01/2027. Depois, com hoje 15/02/2027, `post_due_installments()` duas vezes. Depois, com hoje 20/02/2027, "Cancelar parcelas futuras" | criação: 3 linhas, 15/01 `paid` 33,34 · 15/02 `pending` 33,33 · 15/03 `pending` 33,33; despesas(jan) 33,34; saldo do cartão −33,34; faturas em aberto 33,34; limite disponível 4.900,00; a pagar 66,66; comprometimento futuro fev 33,33 e mar 33,33; consolidado inalterado. Em 15/02: a 1ª chamada devolve 1 e a 2ª devolve 0; a linha de 15/02 fica `paid` com a data 15/02; despesas(fev) 33,33; saldo do cartão −66,67; limite 4.900,00. Depois do cancelamento: 15/03 `canceled`; limite 4.933,33; a pagar 0,00; 3 linhas no grupo |
-| R22 | Hoje 30/04/2027. Cartão com saldo inicial em 01/01/2027. Compra 1.000,00 em 6x em 31/01/2027 (compra antiga lançada hoje), repetida com a mesma chave de idempotência. Também: 0,05 em 6x; 37x; 2x em conta corrente; compra datada de amanhã | datas 31/01, 28/02, 31/03, 30/04, 31/05, 30/06; valores 166,67 ×4 e 166,66 ×2 (Σ 1.000,00); as 4 primeiras `paid` e as 2 últimas `pending`; despesas de jan, fev, mar e abr = 166,67 cada; a pagar 333,32. A repetição devolve o mesmo grupo e continua com 6 linhas. Erros: `INSTALLMENT_AMOUNT_TOO_SMALL`, `INVALID_INPUT`, `INSTALLMENT_REQUIRES_CREDIT_CARD` e `FUTURE_DATE_NOT_ALLOWED`, nessa ordem, sem nenhuma linha gravada |
+| R21 | Hoje 20/01/2027. Cartão com limite 5.000,00 (v1.5: fecha 20, vence 28), saldo inicial 0,00 em 01/01/2027. Compra 100,00 em 3x em 15/01/2027. Depois, com hoje 15/02/2027, `post_due_installments()` duas vezes. Depois, com hoje 20/02/2027, "Cancelar parcelas futuras" | criação: 3 linhas, 15/01 `paid` 33,34 · 15/02 `pending` 33,33 · 15/03 `pending` 33,33; despesas(jan) 33,34; saldo do cartão −33,34; faturas em aberto 33,34; limite disponível 4.900,00; a pagar 66,66; comprometimento futuro fev 33,33 e mar 33,33; consolidado inalterado. Em 15/02: a 1ª chamada devolve 1 e a 2ª devolve 0; a linha de 15/02 fica `paid` com a data 15/02; despesas(fev) 33,33; saldo do cartão −66,67; limite 4.900,00. Depois do cancelamento: 15/03 `canceled`; limite 4.933,33; a pagar 0,00; 3 linhas no grupo |
+| R22 | Hoje 30/04/2027. Cartão com saldo inicial em 01/01/2027. Compra 1.000,00 em 6x em 31/01/2027 (compra antiga lançada hoje), repetida com a mesma chave de idempotência. Também: 0,05 em 6x; 37x; 2x em conta corrente; compra datada de amanhã | datas 31/01, 28/02, 31/03, 30/04, 31/05, 30/06; valores 166,67 ×4 e 166,66 ×2 (Σ 1.000,00); as 4 primeiras `paid` e as 2 últimas `pending`; com o cartão fechando 10 e vencendo 20 (v1.5): despesas de jan 0,00 e de fev, mar, abr e mai = 166,67 cada (cada parcela efetivada no mês da sua fatura; a de 30/04 vence 20/05); a pagar 333,32. A repetição devolve o mesmo grupo e continua com 6 linhas. Erros: `INSTALLMENT_AMOUNT_TOO_SMALL`, `INVALID_INPUT`, `INSTALLMENT_REQUIRES_CREDIT_CARD` e `FUTURE_DATE_NOT_ALLOWED`, nessa ordem, sem nenhuma linha gravada |
 | R23 | Cartão fecha 11, vence 16; hoje 20/10/2026; saldo inicial 0,00. Compras: 20/09 80,00; 10/10 40,00; 11/10 20,00; 15/10 30,00; estorno de 10,00 da compra de 15/10. Parcela pendente de 12,00 em 25/10 | dívida 160,00; compras líquidas 80,00 · 40,00 · 20,00 · 20,00 (15/10); a de 11/10 vai para a fatura que fecha em 11/11. Aberta (fecha 11/11, vence 16/11) = 20,00 + 20,00 + 12,00 = 52,00; fechada (fechou 11/10, vence 16/10, vencida) = 160,00 − 40,00 = 120,00. Com um pagamento de 130,00 (dívida 30,00): aberta = 20,00 + 10,00 + 12,00 = 42,00, fechada 0,00 |
+| R24 | (v1.5, D26) Cartão fecha 11, vence 16, saldo inicial 0,00 em 01/09/2026; conta corrente. Compras no cartão: 10/09 50,00; 11/09 80,00; 10/10 40,00; 11/10 10,00. Estorno de 15,00 da compra de 10/10 em 20/10. Despesa 100,00 na corrente em 11/10. Pagamento da fatura 50,00 em 16/09 | despesas set 50,00; out 220,00 (80,00 + 40,00 + 100,00); nov −5,00 (10,00 − 15,00); `monthly_cash_flow` set..nov = 50,00 / 220,00 / −5,00 e Σ = `period_summary(set..nov)` = 265,00; `category_totals`, `budget_progress` ("Todas", out: realizado 220,00) e Σ `member_expense_totals` iguais às despesas de cada mês; Transações com filtro de outubro listam 11/09 e 10/10 (cartão, com a data real) e 11/10 (corrente), e não a de 11/10 do cartão; saldo do cartão em 31/10 = −115,00 (data real); `account_flows(out)` do cartão: saídas 50,00 (10/10 e 11/10), entradas 15,00 |
+| R25 | (v1.5) `invoiceOf` = `private.card_invoice_closing/_due` (fecha, vence; compra → fechamento, vencimento) | 11,16: 10/10/2026 → 11/10, 16/10 · 11/10/2026 → 11/11, 16/11 · 20/12/2026 → 11/01/2027, 16/01/2027. 25,5: 26/10/2026 → 25/11, 05/12 · 26/12/2026 → 25/01/2027, 05/02/2027. 31,10: 29/09/2026 → 30/09, 10/10 · 30/09/2026 → 31/10, 10/11. 30,31: 10/02/2027 → 28/02, 31/03 (V ajustado = C → mês seguinte). 15,15: 14/10/2026 → 15/10, 15/11. 29,5: 29/02/2028 → 29/03, 05/04. 31,5: 31/01/2027 → 28/02, 05/03 |
+| R26 | (v1.5) Cartão fecha 30, vence 5. Compra 300,00 em 3x em 29/01/2027 (parcelas 29/01, 28/02, 29/03). Compromisso pendente de 50,00 no cartão em 10/03/2027. Depois, arquivar o cartão | parcelas vencem 05/02, 05/04 e 05/04: por data de apuração, fev 100,00, mar 0,00, abr 200,00 (efetivadas em despesas, pendentes no comprometido); o pendente de 10/03 conta no comprometido de abril; arquivar não muda nenhum mês |

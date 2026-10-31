@@ -6,6 +6,7 @@ import { Money } from "@/components/shared/money";
 import { ResponsiveList } from "@/components/shared/responsive-list";
 import { Badge } from "@/components/ui/badge";
 import { formatDateBR } from "@/lib/dates";
+import { invoiceMonthLabel } from "@/modules/reports/domain/invoice-month-label";
 import { TRANSACTION_TYPE_LABELS } from "@/modules/transactions/constants";
 import type { TransactionListItem } from "@/modules/transactions/types";
 
@@ -39,6 +40,11 @@ function Title({ item }: { item: TransactionListItem }) {
         <Badge variant="outline">
           <RepeatIcon aria-hidden="true" />
           Recorrente
+        </Badge>
+      ) : null}
+      {item.reportingDate !== item.transactionDate ? (
+        <Badge variant="outline">
+          {invoiceMonthLabel(item.reportingDate, "short")}
         </Badge>
       ) : null}
     </span>

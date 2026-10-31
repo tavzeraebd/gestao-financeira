@@ -294,9 +294,12 @@ export async function getCommitmentDashboard(): Promise<CommitmentDashboard> {
       previousAsOf,
     );
     // D24: cartões com fechamento e vencimento; compra efetivada ainda não quitada conta no vencimento da fatura.
+    // ADR-0041: os arquivados entram em `cards` (a despesa deles também vai para o mês da fatura); só os ativos têm dívida aberta alocada.
+    const activeCardIds = new Set(
+      accounts.filter((a) => a.isActive).map((a) => a.id),
+    );
     const cards: CardTerms[] = accounts.flatMap((a) =>
       a.type === "credit_card" &&
-      a.isActive &&
       a.statementClosingDay !== null &&
       a.statementDueDay !== null
         ? [
@@ -309,13 +312,14 @@ export async function getCommitmentDashboard(): Promise<CommitmentDashboard> {
           ]
         : [],
     );
+    const activeCards = cards.filter((c) => activeCardIds.has(c.id));
     const purchases = await selectCardPurchases(
       supabase,
-      cards.map((c) => c.id),
+      activeCards.map((c) => c.id),
       now,
     );
     let cardCommitmentUnderestimated = false;
-    const cardPurchases = cards.flatMap((card) => {
+    const cardPurchases = activeCards.flatMap((card) => {
       const balance = balances.get(card.id) ?? ZERO;
       if (balance >= 0) return [];
       const result = openPurchaseEntries(

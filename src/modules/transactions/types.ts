@@ -26,6 +26,8 @@ export type TransactionListItem = {
   amount: Cents;
   direction: TransactionDirection;
   transactionDate: ISODate;
+  /** ADR-0041: mês da fatura para despesa de cartão (vencimento); igual a `transactionDate` nos demais casos. */
+  reportingDate: ISODate;
   status: TransactionStatus;
   account: { id: string; name: string };
   destinationAccount: { id: string; name: string } | null;

@@ -35,7 +35,7 @@ export const INDICATOR_DEFINITIONS: Record<
   expense: {
     title: "Despesas",
     description:
-      "Soma das despesas efetivadas no período, inclusive compras no cartão. Transferências e lançamentos pendentes ficam de fora; estornos reduzem o total.",
+      "Soma das despesas efetivadas no período, inclusive compras no cartão, que contam no mês de vencimento da fatura. Transferências e lançamentos pendentes ficam de fora; estornos reduzem o total.",
     ref: "D4",
   },
   result: {

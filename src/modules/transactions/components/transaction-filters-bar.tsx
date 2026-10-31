@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { DatePicker } from "@/components/shared/date-picker";
 import { FiltersPanel } from "@/components/shared/filters-panel";
 import { SearchInput } from "@/components/shared/search-input";
@@ -194,7 +195,13 @@ export function TransactionFiltersBar({
 
       <FiltersPanel activeCount={countActive(state)} onClear={clearAll}>
         <div className={FIELD_CLASS}>
-          <Label htmlFor="filtro-de">De</Label>
+          <div className="flex items-center gap-1">
+            <Label htmlFor="filtro-de">De</Label>
+            <InfoHint label="período">
+              Compras no cartão de crédito contam no mês de vencimento da
+              fatura.
+            </InfoHint>
+          </div>
           <DatePicker
             id="filtro-de"
             value={state.de ?? ""}
