@@ -14,10 +14,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { InfoHint } from "@/components/shared/info-hint";
 import { Money } from "@/components/shared/money";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateBR, type ISODate } from "@/lib/dates";
 import { asCents, negCents } from "@/lib/money";
 import { AccountStatusButton } from "@/modules/accounts/components/account-status-button";
 import {
@@ -38,6 +40,8 @@ const TYPE_ICONS: Record<AccountType, LucideIcon> = {
 
 const ACTION = buttonVariants({ variant: "outline" });
 
+const shortDay = (d: ISODate) => formatDateBR(d).slice(0, 5);
+
 export function AccountCard({
   account,
   canManage,
@@ -48,6 +52,7 @@ export function AccountCard({
   const Icon = TYPE_ICONS[account.type];
   const isCard = account.type === "credit_card";
   const debt = account.balance < 0 ? negCents(account.balance) : asCents(0);
+  const invoices = account.invoices;
 
   return (
     <Card className="[--card-spacing:--spacing(5)]" data-testid="conta">
@@ -83,6 +88,48 @@ export function AccountCard({
                 <dt className="text-muted-foreground">Limite disponível</dt>
                 <dd className="text-lg font-semibold">
                   <Money cents={account.availableCredit} />
+                </dd>
+              </div>
+            ) : null}
+            {invoices ? (
+              <div data-testid="fatura-aberta">
+                <dt className="text-muted-foreground flex items-center gap-1">
+                  Fatura aberta
+                  <InfoHint label="fatura aberta">
+                    Compras feitas do dia do fechamento em diante entram na
+                    fatura seguinte.
+                  </InfoHint>
+                </dt>
+                <dd>
+                  <span className="block text-lg font-semibold">
+                    <Money cents={invoices.open.amount} />
+                  </span>
+                  <span className="text-muted-foreground block text-xs">
+                    Fecha {shortDay(invoices.open.closingDate)} · vence{" "}
+                    {shortDay(invoices.open.dueDate)}
+                  </span>
+                </dd>
+              </div>
+            ) : null}
+            {invoices && invoices.closed.amount > 0 ? (
+              <div data-testid="fatura-fechada">
+                <dt className="text-muted-foreground">Fatura fechada</dt>
+                <dd>
+                  <span className="block text-lg font-semibold">
+                    <Money cents={invoices.closed.amount} />
+                  </span>
+                  {invoices.closed.overdue ? (
+                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
+                      <Badge variant="danger">Vencida</Badge>
+                      <span className="text-muted-foreground">
+                        Venceu {shortDay(invoices.closed.dueDate)}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground block text-xs">
+                      Vence {shortDay(invoices.closed.dueDate)}
+                    </span>
+                  )}
                 </dd>
               </div>
             ) : null}

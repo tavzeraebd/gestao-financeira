@@ -16,4 +16,7 @@ Pedido do usuário: telas o mais limpas possíveis, objetivas e diretas.
 - `PageHeader.description` e `LabeledField.description` já renderizam o ⓘ sozinhos.
 - O texto só existe no DOM com o popover aberto: testes devem clicar no botão "Mais informações sobre
   <assunto>" antes de procurar o texto.
+- O `aria-label` do ⓘ contém o rótulo do campo: `getByLabel("Saldo inicial")` casa com o input **e** com o
+  botão (strict mode violation). Em E2E, use `getByRole("textbox", { name: "..." })` ou `getByLabel(..., { exact: true })`.
+  Foi o que quebrou CA-E3-50 e CA-E3-61 em `e2e/contas.spec.ts` (visto em 2026-10-31).
 - Dúvida: se o usuário perde a capacidade de agir ou de entender o risco sem o texto, ele fica na tela.

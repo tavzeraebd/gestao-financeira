@@ -5,8 +5,15 @@ import type { Membership } from "@/modules/family/types";
 import { DESCRIPTION_MAX } from "@/modules/transactions/constants";
 import {
   insertTransaction,
+  rpcCancelInstallmentRemaining,
+  rpcCreateInstallmentPurchase,
+  selectAccountType,
+  selectDeletableInstallmentIds,
+  selectFirstInstallmentId,
+  selectGroupByIdempotencyKey,
   selectIdByIdempotencyKey,
   selectTransactionHead,
+  softDeleteInstallmentGroup,
   softDeleteTransaction,
   updateTransactionRow,
   type TransactionWrite,
@@ -65,18 +72,90 @@ async function insertIdempotent(
   }
 }
 
+export type CreatedTransaction = {
+  /** Lançamento criado; em compra parcelada, a 1ª parcela. */
+  id: string;
+  /** Grupo da compra parcelada (D23); `null` em lançamento comum. */
+  installmentGroupId: string | null;
+};
+
+/** D23: compra parcelada via RPC (atômica, idempotente pela chave na 1ª parcela). */
+async function createInstallmentPurchase(
+  supabase: Client,
+  membership: Membership,
+  data: Extract<TransactionInput, { type: "expense" }>,
+): Promise<CreatedTransaction> {
+  // Não confia no cliente: só cartão de crédito parcela (a RPC confere de novo).
+  const accountType = await selectAccountType(supabase, data.accountId);
+  if (accountType !== "credit_card") {
+    throw new AppError("INSTALLMENT_REQUIRES_CREDIT_CARD");
+  }
+  let groupId: string;
+  try {
+    groupId = await rpcCreateInstallmentPurchase(supabase, {
+      accountId: data.accountId,
+      categoryId: data.categoryId,
+      assignedMemberId: data.assignedMemberId ?? null,
+      description: data.description,
+      totalAmount: data.amount,
+      installments: data.installments,
+      purchaseDate: data.transactionDate,
+      notes: data.notes ?? null,
+      idempotencyKey: data.idempotencyKey,
+    });
+  } catch (e) {
+    // Corrida na chave: outra chamada gravou o grupo primeiro; devolve o dela.
+    if (!isConstraintViolation(e, "23505", IDEMPOTENCY_KEY)) throw e;
+    const existing = await selectGroupByIdempotencyKey(
+      supabase,
+      membership.familyId,
+      data.idempotencyKey,
+    );
+    if (!existing) throw e;
+    groupId = existing;
+  }
+  const id = await selectFirstInstallmentId(supabase, groupId);
+  if (!id) throw new AppError("NOT_FOUND");
+  return { id, installmentGroupId: groupId };
+}
+
 export async function createTransaction(
   supabase: Client,
   membership: Membership,
   data: TransactionInput,
-): Promise<string> {
-  return insertIdempotent(supabase, membership, {
+): Promise<CreatedTransaction> {
+  if (data.type === "expense" && data.installments > 1) {
+    return createInstallmentPurchase(supabase, membership, data);
+  }
+  const id = await insertIdempotent(supabase, membership, {
     ...toWrite(data),
     familyId: membership.familyId,
     type: data.type,
     reversalOfId: null,
     idempotencyKey: data.idempotencyKey,
   });
+  return { id, installmentGroupId: null };
+}
+
+/** "Cancelar parcelas futuras": a RPC confere a permissão (owner, admin ou autor). Devolve quantas cancelou. */
+export async function cancelInstallmentRemaining(
+  supabase: Client,
+  groupId: string,
+): Promise<number> {
+  return rpcCancelInstallmentRemaining(supabase, groupId);
+}
+
+/** "Excluir compra": exclusão lógica de todas as parcelas não canceladas, numa só instrução. */
+export async function deleteInstallmentPurchase(
+  supabase: Client,
+  groupId: string,
+): Promise<number> {
+  const ids = await selectDeletableInstallmentIds(supabase, groupId);
+  if (ids.length === 0) throw new AppError("NOT_FOUND");
+  const deleted = await softDeleteInstallmentGroup(supabase, groupId);
+  // As parcelas são visíveis, mas o update não alcançou nenhuma: a RLS negou.
+  if (deleted === 0) throw new AppError("FORBIDDEN");
+  return deleted;
 }
 
 export async function updateTransaction(

@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { fromDbNumeric, type Cents } from "@/lib/money";
+import type { ISODate } from "@/lib/dates";
+import { addCents, asCents, fromDbNumeric, type Cents } from "@/lib/money";
 import { dbDate, numericParam } from "@/lib/supabase/db-values";
 import { toAccountType } from "@/modules/accounts/constants";
 import type { AccountView } from "@/modules/accounts/types";
@@ -12,7 +13,10 @@ type Client = SupabaseClient<Database>;
 const COLUMNS =
   "id, name, type, institution_name, is_active, opening_balance::text, opening_balance_date, credit_limit::text, statement_closing_day, statement_due_day";
 
-export type AccountBase = Omit<AccountView, "balance" | "availableCredit">;
+export type AccountBase = Omit<
+  AccountView,
+  "balance" | "availableCredit" | "invoices"
+>;
 
 function toBase(row: {
   id: string;
@@ -70,6 +74,58 @@ export async function selectBalances(
   const { data, error } = await supabase.rpc("account_balances", {});
   if (error) throw error;
   return new Map(data.map((r) => [r.account_id, fromDbNumeric(r.balance)]));
+}
+
+const PENDING_PAGE = 1000;
+
+/** Parcela pendente de compra parcelada (D23), com a conta e a data. */
+export type PendingInstallmentRow = {
+  accountId: string;
+  date: ISODate;
+  amount: Cents;
+};
+
+/**
+ * D23: parcelas pendentes não excluídas de compras parceladas, de todas as contas visíveis.
+ * Pagina em blocos de 1000 (limite do PostgREST); montante por string -> centavos, sem ponto flutuante.
+ */
+export async function selectPendingInstallmentRows(
+  supabase: Client,
+): Promise<PendingInstallmentRow[]> {
+  const rows: PendingInstallmentRow[] = [];
+  for (let from = 0; ; from += PENDING_PAGE) {
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("id, account_id, transaction_date, amount::text")
+      .not("installment_group_id", "is", null)
+      .eq("status", "pending")
+      .is("deleted_at", null)
+      .order("id", { ascending: true })
+      .range(from, from + PENDING_PAGE - 1);
+    if (error) throw error;
+    for (const row of data) {
+      rows.push({
+        accountId: row.account_id,
+        date: dbDate(row.transaction_date),
+        amount: fromDbNumeric(row.amount),
+      });
+    }
+    if (data.length < PENDING_PAGE) return rows;
+  }
+}
+
+/** D23: soma, por conta, das parcelas pendentes (a ser descontada do limite do cartão). */
+export function totalPendingInstallments(
+  rows: readonly PendingInstallmentRow[],
+): Map<string, Cents> {
+  const totals = new Map<string, Cents>();
+  for (const row of rows) {
+    totals.set(
+      row.accountId,
+      addCents(totals.get(row.accountId) ?? asCents(0), row.amount),
+    );
+  }
+  return totals;
 }
 
 export type AccountWrite = {

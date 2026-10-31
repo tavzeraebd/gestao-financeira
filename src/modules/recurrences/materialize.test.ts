@@ -15,6 +15,10 @@ vi.mock("@/server/request-id", () => ({
   getRequestId: async () => "6f1c2b3a-1111-4222-8333-944455556666",
 }));
 
+vi.mock("@/modules/transactions/installments-post", () => ({
+  ensureInstallmentsPosted: async () => {},
+}));
+
 import { ensureRecurrencesMaterialized } from "@/modules/recurrences/materialize";
 
 describe("ensureRecurrencesMaterialized", () => {

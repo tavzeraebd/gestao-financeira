@@ -1,5 +1,11 @@
-import { addMonths, endOfMonth, startOfMonth, type ISODate } from "@/lib/dates";
-import { subCents, type Cents } from "@/lib/money";
+import {
+  addDays,
+  addMonths,
+  endOfMonth,
+  startOfMonth,
+  type ISODate,
+} from "@/lib/dates";
+import { addCents, asCents, subCents, sumCents, type Cents } from "@/lib/money";
 import type { CommitmentEntry } from "../types";
 
 /** Cartão com os dias de fechamento e vencimento da fatura (1..31). */
@@ -20,8 +26,8 @@ function dayOfMonth(monthFirst: ISODate, day: number): ISODate {
 }
 
 /**
- * D24: fatura de uma compra. Fecha no mês da compra se o dia da compra é <= fechamento, senão no mês seguinte.
- * Vence no primeiro vencimento depois do fechamento (mesmo mês se vencimento > fechamento, senão o seguinte).
+ * D24: fatura de uma compra. Fecha no mês da compra se a compra é anterior ao fechamento daquele mês; a compra
+ * feita no dia do fechamento ou depois fecha no mês seguinte. Vence no primeiro vencimento depois do fechamento (mesmo mês se vencimento > fechamento, senão o seguinte).
  */
 export function invoiceOf(
   purchase: ISODate,
@@ -31,7 +37,7 @@ export function invoiceOf(
   const first = startOfMonth(purchase);
   const closingThisMonth = dayOfMonth(first, closingDay);
   const closingDate =
-    purchase <= closingThisMonth
+    purchase < closingThisMonth
       ? closingThisMonth
       : dayOfMonth(addMonths(first, 1), closingDay);
   const closingFirst = startOfMonth(closingDate);
@@ -114,5 +120,66 @@ export function openPurchaseEntries(
         card,
       ),
     ),
+  };
+}
+
+/** Parcela pendente de compra parcelada no cartão (D23); só data e valor entram na fatura aberta. */
+export type PendingInstallment = { date: ISODate; amount: Cents };
+
+export type OpenInvoice = {
+  closingDate: ISODate;
+  dueDate: ISODate;
+  amount: Cents;
+};
+
+export type ClosedInvoice = OpenInvoice & { overdue: boolean };
+
+/** D25: fatura aberta (ciclo de hoje) e fatura fechada a pagar de um cartão. */
+export type CardInvoices = { open: OpenInvoice; closed: ClosedInvoice };
+
+/**
+ * D25: faturas de um cartão em `today`.
+ * Ciclo aberto = [fechamento anterior, fechamento − 1 dia] (a fatura de `invoiceOf(today)`); fatura fechada mais
+ * recente = a que fecha no dia em que o ciclo aberto começa. `debt` é a dívida do cartão (>= 0, D8);
+ * `purchases` vem da mais nova para a mais antiga, com o valor líquido de estornos (D24).
+ * Aberta = dívida alocada às compras do ciclo + parcelas pendentes do ciclo; fechada = dívida − alocado do ciclo.
+ */
+export function cardInvoices(input: {
+  today: ISODate;
+  closingDay: number;
+  dueDay: number;
+  debt: Cents;
+  purchases: readonly CardPurchase[];
+  pendingInstallments: readonly PendingInstallment[];
+}): CardInvoices {
+  const { today, closingDay, dueDay, debt } = input;
+  const open = invoiceOf(today, closingDay, dueDay);
+  const cycleStart = dayOfMonth(
+    addMonths(startOfMonth(open.closingDate), -1),
+    closingDay,
+  );
+  const closed = invoiceOf(addDays(cycleStart, -1), closingDay, dueDay);
+  const inCycle = (date: ISODate) =>
+    date >= cycleStart && date < open.closingDate;
+
+  const allocated = sumCents(
+    allocateOpenDebt(input.purchases, debt)
+      .open.filter((p) => inCycle(p.date))
+      .map((p) => p.amount),
+  );
+  const installments = sumCents(
+    input.pendingInstallments
+      .filter((i) => inCycle(i.date))
+      .map((i) => i.amount),
+  );
+  const closedAmount =
+    debt > allocated ? subCents(debt, allocated) : asCents(0);
+  return {
+    open: { ...open, amount: addCents(allocated, installments) },
+    closed: {
+      ...closed,
+      amount: closedAmount,
+      overdue: closed.dueDate < today,
+    },
   };
 }

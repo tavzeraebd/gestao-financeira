@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ISODate } from "@/lib/dates";
-import { fromDbNumeric, type Cents } from "@/lib/money";
+import { addCents, fromDbNumeric, subCents, type Cents } from "@/lib/money";
 import { dbDate } from "@/lib/supabase/db-values";
 import { toFrequency } from "@/modules/recurrences/repository";
 import type { Database } from "@/types/database";
@@ -119,7 +119,8 @@ export async function selectActiveCommitmentSeries(
 
 /**
  * Compras efetivadas (despesa `paid`, não excluída, não estorno) dos cartões até `upTo`, da mais nova para a
- * mais antiga. Uma consulta para todos os cartões (D24); a RLS decide a família.
+ * mais antiga, com o valor líquido dos próprios estornos (D24); líquido <= 0 sai da lista.
+ * Duas consultas para todos os cartões; a RLS decide a família.
  */
 export async function selectCardPurchases(
   supabase: Client,
@@ -142,6 +143,7 @@ export async function selectCardPurchases(
     .order("id", { ascending: false })
     .limit(MAX_CARD_PURCHASE_ROWS);
   if (error) throw error;
+  const reversed = await selectCardReversals(supabase, cardIds, upTo);
   return (
     data as unknown as {
       id: string;
@@ -151,14 +153,53 @@ export async function selectCardPurchases(
       transaction_date: string;
       category_id: string;
     }[]
-  ).map((row) => ({
-    id: row.id,
-    accountId: row.account_id,
-    description: row.description,
-    amount: fromDbNumeric(row.amount),
-    date: dbDate(row.transaction_date),
-    categoryId: row.category_id,
-  }));
+  )
+    .map((row) => ({
+      id: row.id,
+      accountId: row.account_id,
+      description: row.description,
+      amount: subCents(fromDbNumeric(row.amount), reversed.get(row.id) ?? ZERO),
+      date: dbDate(row.transaction_date),
+      categoryId: row.category_id,
+    }))
+    .filter((p) => p.amount > 0);
+}
+
+const ZERO = 0 as Cents;
+
+/** Soma dos estornos efetivados (`paid`, não excluídos) até `upTo`, por compra original. */
+async function selectCardReversals(
+  supabase: Client,
+  cardIds: readonly string[],
+  upTo: ISODate,
+): Promise<Map<string, Cents>> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("reversal_of_id, amount::text")
+    .in("account_id", [...cardIds])
+    .eq("type", "expense")
+    .eq("status", "paid")
+    .is("deleted_at", null)
+    .not("reversal_of_id", "is", null)
+    .lte("transaction_date", upTo)
+    .order("transaction_date", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(MAX_CARD_PURCHASE_ROWS);
+  if (error) throw error;
+  const totals = new Map<string, Cents>();
+  for (const row of data as unknown as {
+    reversal_of_id: string;
+    amount: string;
+  }[]) {
+    totals.set(
+      row.reversal_of_id,
+      addCents(
+        totals.get(row.reversal_of_id) ?? ZERO,
+        fromDbNumeric(row.amount),
+      ),
+    );
+  }
+  return totals;
 }
 
 /** D4 por categoria (subcategoria somada à pai), em ordem decrescente. */

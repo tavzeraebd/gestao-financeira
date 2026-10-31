@@ -956,6 +956,9 @@ export type Database = {
           family_id: string;
           id: string;
           idempotency_key: string | null;
+          installment_group_id: string | null;
+          installment_number: number | null;
+          installment_total: number | null;
           notes: string | null;
           occurrence_date: string | null;
           recurrence_id: string | null;
@@ -981,6 +984,9 @@ export type Database = {
           family_id: string;
           id?: string;
           idempotency_key?: string | null;
+          installment_group_id?: string | null;
+          installment_number?: number | null;
+          installment_total?: number | null;
           notes?: string | null;
           occurrence_date?: string | null;
           recurrence_id?: string | null;
@@ -1005,6 +1011,9 @@ export type Database = {
           family_id?: string;
           id?: string;
           idempotency_key?: string | null;
+          installment_group_id?: string | null;
+          installment_number?: number | null;
+          installment_total?: number | null;
           notes?: string | null;
           occurrence_date?: string | null;
           recurrence_id?: string | null;
@@ -1112,6 +1121,10 @@ export type Database = {
           spent: string;
         }[];
       };
+      cancel_installment_remaining: {
+        Args: { p_group_id: string };
+        Returns: number;
+      };
       cancel_pending_transaction: {
         Args: { p_transaction_id: string };
         Returns: undefined;
@@ -1135,6 +1148,20 @@ export type Database = {
           invite_id: string;
           token: string;
         }[];
+      };
+      create_installment_purchase: {
+        Args: {
+          p_account_id: string;
+          p_assigned_member_id: string | null;
+          p_category_id: string;
+          p_description: string;
+          p_idempotency_key: string | null;
+          p_installments: number;
+          p_notes: string | null;
+          p_purchase_date: string;
+          p_total_amount: number;
+        };
+        Returns: string;
       };
       delete_my_account: { Args: Record<PropertyKey, never>; Returns: Json };
       get_invite_preview: {
@@ -1211,6 +1238,10 @@ export type Database = {
           income: string;
           result: string;
         }[];
+      };
+      post_due_installments: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
       };
       projected_cash_flow: {
         Args: { p_months: number };

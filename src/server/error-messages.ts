@@ -80,6 +80,9 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
     "A soma das partes precisa ser igual ao valor da despesa.",
   SPLIT_AMOUNT_TOO_SMALL:
     "O valor ficou pequeno demais para a divisão entre os integrantes. Remova a divisão ou aumente o valor.",
+  INSTALLMENT_REQUIRES_CREDIT_CARD: "Parcelamento só em cartão de crédito.",
+  INSTALLMENT_AMOUNT_TOO_SMALL:
+    "O valor é pequeno demais para esse número de parcelas: cada parcela precisa de pelo menos R$ 0,01.",
   MEMBER_INACTIVE:
     "Um dos integrantes não faz mais parte da família. Atualize a página.",
   NAME_TAKEN: "Já existe um item com este nome. Escolha outro nome.",

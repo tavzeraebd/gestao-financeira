@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { ensureInstallmentsPosted } from "@/modules/transactions/installments-post";
 import { rpcMaterializeRecurrences } from "@/modules/recurrences/repository";
 import { logger } from "@/server/logger";
 import { getRequestId } from "@/server/request-id";
@@ -11,6 +12,8 @@ import { getRequestId } from "@/server/request-id";
  * porque nenhum número realizado depende da materialização (contrato §0.2).
  */
 export const ensureRecurrencesMaterialized = cache(async (): Promise<void> => {
+  // D23: junto da materialização, lança na fatura as parcelas vencidas (falha silenciosa própria).
+  await ensureInstallmentsPosted();
   try {
     const supabase = await createClient();
     await rpcMaterializeRecurrences(supabase);

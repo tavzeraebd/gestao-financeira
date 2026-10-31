@@ -46,3 +46,7 @@ export const NO_MEMBER_FILTER = "nenhum";
 export const DESCRIPTION_MAX = 120;
 export const NOTES_MAX = 1000;
 export const SEARCH_MAX = 100;
+
+/** D23: compra parcelada no cartão. 1 = à vista (caminho comum). */
+export const MIN_INSTALLMENTS = 2;
+export const MAX_INSTALLMENTS = 36;

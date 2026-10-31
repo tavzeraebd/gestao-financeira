@@ -56,6 +56,10 @@ que registrou é apagado ([ADR-0030](adr/0030-gestao-de-integrantes-e-atividade.
 | Transações | editar, excluir (lógico), estornar, cancelar | ✔ | ✔ | P | 3 | RLS update `has_family_role(owner,admin) or created_by = auth.uid()`; delete físico negado |
 | Contas a pagar | criar compromisso (pendente); editar e cancelar | ✔ | ✔ | ✔ criar; P editar/cancelar | 5 | RLS insert/update de Transações; cancelar por RPC `cancel_pending_transaction` |
 | Contas a pagar | marcar pendente como paga | ✔ | ✔ | P ou responsável (`assigned_member_id` = seu vínculo) | 5 | RPC `pay_pending_transaction` (definer; ADR-0022) |
+| Compra parcelada | criar (2 a 36 parcelas, só cartão de crédito) | ✔ | ✔ | ✔ | — | RPC `create_installment_purchase` (definer; ADR-0040; mesma regra de criar lançamento: integrante ativo) |
+| Compra parcelada | cancelar parcelas futuras (pendentes) | ✔ | ✔ | P (autor da compra) | — | RPC `cancel_installment_remaining` (definer; ADR-0040; igual a `cancel_pending_transaction`) |
+| Compra parcelada | excluir a compra inteira | ✔ | ✔ | P | — | RLS update de Transações (`has_family_role(owner,admin) or created_by = auth.uid()`) sobre as parcelas não canceladas, numa instrução (ADR-0040) |
+| Compra parcelada | editar descrição, categoria, responsável e observações do grupo | ✔ | ✔ | P | — | RLS update de Transações, mesma regra de editar lançamento (ADR-0040) |
 | Recorrências | criar | ✔ | ✔ | ✔ | 5 | RLS |
 | Recorrências | editar série, pausar, reativar, encerrar | ✔ | ✔ | P | 5 | RLS |
 | Recorrências | materializar ocorrências (disparado ao acessar) | ✔ | ✔ | ✔ | 5 | RPC `materialize_recurrences` (definer, idempotente, só família do chamador) |

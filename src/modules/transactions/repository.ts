@@ -33,6 +33,7 @@ type Client = SupabaseClient<Database>;
 /** Montantes só com `::text` (contrato §3.2). Embeds pelos nomes de FK do contrato §3.1. */
 const ITEM_COLUMNS =
   "id, type, description, amount::text, transaction_date, status, reversal_of_id, created_by, recurrence_id, " +
+  "installment_group_id, installment_number, installment_total, " +
   "account:accounts!transactions_account_fk(id, name), " +
   "destination_account:accounts!transactions_destination_account_fk(id, name), " +
   "category:categories!transactions_category_fk(id, name, color, icon), " +
@@ -48,6 +49,9 @@ type ItemRow = {
   reversal_of_id: string | null;
   created_by: string;
   recurrence_id: string | null;
+  installment_group_id: string | null;
+  installment_number: number | null;
+  installment_total: number | null;
   account: { id: string; name: string } | null;
   destination_account: { id: string; name: string } | null;
   category: { id: string; name: string; color: string; icon: string } | null;
@@ -119,6 +123,9 @@ export function toListItem(
       : null,
     reversalOfId: row.reversal_of_id,
     recurrenceId: row.recurrence_id,
+    installmentGroupId: row.installment_group_id,
+    installmentNumber: row.installment_number,
+    installmentTotal: row.installment_total,
     canManage: canManageTransaction(viewer.role, row.created_by, viewer.userId),
   };
 }
@@ -548,6 +555,149 @@ export async function softDeleteTransaction(
     .from("transactions")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id)
+    .is("deleted_at", null)
+    .select("id");
+  if (error) throw error;
+  return data.length;
+}
+
+/** Todas as parcelas visíveis do grupo (inclusive pendentes e canceladas), na ordem da compra. */
+export async function selectInstallmentGroup(
+  supabase: Client,
+  groupId: string,
+  viewer: ViewerContext,
+): Promise<TransactionListItem[]> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select(ITEM_COLUMNS)
+    .eq("installment_group_id", groupId)
+    .is("deleted_at", null)
+    .order("installment_number", { ascending: true });
+  if (error) throw error;
+  return (data as unknown as ItemRow[]).map((r) => toListItem(r, viewer));
+}
+
+/** Tipo da conta (RLS: só da família do chamador); `null` se não for visível. */
+export async function selectAccountType(
+  supabase: Client,
+  accountId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("type")
+    .eq("id", accountId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.type ?? null;
+}
+
+/** `create_installment_purchase`: devolve o id do grupo (o mesmo grupo se a chave de idempotência já foi usada). */
+export async function rpcCreateInstallmentPurchase(
+  supabase: Client,
+  input: {
+    accountId: string;
+    categoryId: string;
+    assignedMemberId: string | null;
+    description: string;
+    totalAmount: Cents;
+    installments: number;
+    purchaseDate: string;
+    notes: string | null;
+    idempotencyKey: string;
+  },
+): Promise<string> {
+  const { data, error } = await supabase.rpc("create_installment_purchase", {
+    p_account_id: input.accountId,
+    p_category_id: input.categoryId,
+    p_assigned_member_id: input.assignedMemberId,
+    p_description: input.description,
+    p_total_amount: numericParam(input.totalAmount),
+    p_installments: input.installments,
+    p_purchase_date: input.purchaseDate,
+    p_notes: input.notes,
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** Id da 1ª parcela do grupo (a que carrega a chave de idempotência); `null` se não visível. */
+export async function selectFirstInstallmentId(
+  supabase: Client,
+  groupId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("installment_group_id", groupId)
+    .eq("installment_number", 1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
+/** Grupo da compra criada com a chave (a chave fica só na 1ª parcela); `null` se não existe. */
+export async function selectGroupByIdempotencyKey(
+  supabase: Client,
+  familyId: string,
+  key: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("installment_group_id")
+    .eq("family_id", familyId)
+    .eq("idempotency_key", key)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.installment_group_id ?? null;
+}
+
+/** `cancel_installment_remaining`: quantas parcelas pendentes cancelou (idempotente). */
+export async function rpcCancelInstallmentRemaining(
+  supabase: Client,
+  groupId: string,
+): Promise<number> {
+  const { data, error } = await supabase.rpc("cancel_installment_remaining", {
+    p_group_id: groupId,
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** `post_due_installments`: quantas parcelas passaram de pendente a lançada na fatura. */
+export async function rpcPostDueInstallments(
+  supabase: Client,
+): Promise<number> {
+  const { data, error } = await supabase.rpc("post_due_installments");
+  if (error) throw error;
+  return data;
+}
+
+/** Ids das parcelas do grupo que a exclusão alcança (não canceladas e não excluídas). */
+export async function selectDeletableInstallmentIds(
+  supabase: Client,
+  groupId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("installment_group_id", groupId)
+    .neq("status", "canceled")
+    .is("deleted_at", null);
+  if (error) throw error;
+  return data.map((r) => r.id);
+}
+
+/** Exclui a compra inteira numa só instrução (linha cancelada é imutável). Devolve as linhas alcançadas (0 = a RLS negou). */
+export async function softDeleteInstallmentGroup(
+  supabase: Client,
+  groupId: string,
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("installment_group_id", groupId)
+    .neq("status", "canceled")
     .is("deleted_at", null)
     .select("id");
   if (error) throw error;

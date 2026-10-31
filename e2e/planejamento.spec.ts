@@ -27,7 +27,7 @@ test("CA-E6-56: financiamento com 1,5% mostra parcela e total, origens, premissa
   await page.getByLabel("Valor do bem").fill("60000");
   await page.getByLabel("Entrada").fill("0");
   await page.getByLabel("Prazo em meses").fill("36");
-  await page.getByLabel("Taxa mensal (%)").fill("1,5");
+  await page.getByLabel("Taxa mensal (%)", { exact: true }).fill("1,5");
   await page.getByRole("button", { name: "Simular" }).click();
 
   await expect(visivel(page, /2\.169,14/)).toBeVisible();
@@ -82,7 +82,7 @@ test("CA-E6-56: sem contas, cenários com base ficam indisponíveis e financiame
 
   await escolher(page, CENARIO, "Juntar para uma viagem ou objetivo");
   await page.getByLabel("Valor do objetivo").fill("6000");
-  await page.getByLabel("Aporte mensal (opcional)").fill("500");
+  await page.getByLabel("Aporte mensal (opcional)", { exact: true }).fill("500");
   await page.getByRole("button", { name: "Simular" }).click();
   await expect(page.getByRole("heading", { name: "Premissas" })).toBeVisible();
 });

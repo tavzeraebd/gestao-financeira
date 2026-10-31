@@ -1,6 +1,9 @@
 # Definições financeiras — Núcleo
 
-Versão 1.2 (2026-10-24): D9 e D10 revisadas, D13 e D15 ampliadas, D21–D22 e R15–R20 novas (contratos `etapa-6.md` e
+Versão 1.4 (2026-10-30, vigente): D8 e D24 revisadas (compra no dia do fechamento vai para a fatura seguinte; compras
+líquidas de estornos); D25 e R23 novas (fatura aberta e fatura fechada a pagar de cada cartão). Versão 1.3 (2026-10-30;
+ADR-0040 aceita): D4, D6 e D8 revisadas; D23 e R21–R22 novas
+(compra parcelada no cartão; [ADR-0040](adr/0040-compra-parcelada-no-cartao.md)). Versão 1.2 (2026-10-24): D9 e D10 revisadas, D13 e D15 ampliadas, D21–D22 e R15–R20 novas (contratos `etapa-6.md` e
 `etapa-7.md`; ADRs 0025–0028). Versão 1.1 (2026-10-24): D3 (variação), D7 (pagamento), D12 (edição de série) e D14 (orçamento mensal) revisadas;
 D16–D20 e R9–R14 novas (contratos `etapa-4.md` e `etapa-5.md`; ADRs 0020–0024). Versão 1.0 (Etapa 0). Obrigatório antes de dashboards/relatórios (spec §8). Cada definição tem id
 (`Dn`) citado em código e testes (`describe("D3 ...")`). Toda fórmula é implementada **uma vez**
@@ -91,7 +94,7 @@ as duas datas ([ADR-0020](adr/0020-dashboard-agregacao-compartilhada.md) §4; é
 - `despesas(P) = Σ amount` de `expense` efetivados com `transaction_date ∈ P` − Σ estornos de `expense` com data ∈ P.
 - `resultado(P) = receitas(P) − despesas(P)`.
 - **Transferências nunca entram** em receitas, despesas ou resultado (inclui pagamento de fatura e aportes a metas vinculados a transferência).
-- Despesa no cartão entra na data da compra (D8).
+- Despesa no cartão entra na data da compra (D8). Compra parcelada: cada parcela entra na própria data, quando efetivada (D23).
 - Por categoria: mesmo critério agrupado por `category_id`; categoria-pai soma as subcategorias.
 - Comparação de períodos: período anterior = mesmo comprimento imediatamente antes (mês civil → mês civil anterior; intervalo de N dias → N dias anteriores). Variação % com anterior = 0 → `null`.
 
@@ -107,6 +110,7 @@ as duas datas ([ADR-0020](adr/0020-dashboard-agregacao-compartilhada.md) §4; é
 - Previsto (`pending`) **não** afeta saldo nem realizado; aparece em "Próximos vencimentos", em "previsto/comprometido" de orçamentos e em projeções.
 - `paid` exige `transaction_date <= hoje` (validação de domínio no servidor).
 - Vencido = `pending` com `transaction_date < hoje` — **derivado**, nunca armazenado; nada é marcado como pago por ter vencido.
+  **Única exceção:** parcela de compra parcelada no cartão, que é lançada na fatura na própria data (D23).
 
 ### D7 — Contas a pagar/receber ↔ transações ([ADR-0012](adr/0012-contas-a-pagar-como-transacoes-pendentes.md))
 - Conta a pagar = `expense` `pending`; a receber = `income` `pending`. Vencimento = `transaction_date` enquanto pendente; `due_date` guarda o vencimento original.
@@ -122,9 +126,53 @@ as duas datas ([ADR-0020](adr/0020-dashboard-agregacao-compartilhada.md) §4; é
 - Cartão é uma conta `credit_card` (passivo) com `credit_limit`, `statement_closing_day`, `statement_due_day`.
 - Compra = `expense` `paid` na conta do cartão, na data da compra → entra em despesas do período da compra (D4) e aumenta a dívida.
 - Pagamento de fatura = `transfer` da conta de ativo para o cartão → reduz saldo consolidado (D3) e a dívida; **não** é despesa.
-- Fatura é **derivada**: compras com `transaction_date` entre o dia seguinte ao fechamento anterior e o fechamento atual (dia de fechamento > dias do mês → último dia, D12). Sem tabela de fatura no MVP.
-- "Faturas em aberto" = −saldo(cartão, hoje) quando negativo. Limite disponível = `credit_limit + saldo(cartão)`.
-- Parcelamento: fora do escopo (não consta na spec).
+- Fatura é **derivada**: compras com `transaction_date` do dia do fechamento anterior até a véspera do fechamento
+  atual (a compra feita no dia do fechamento vai para a fatura seguinte; dia de fechamento > dias do mês → último dia, D12).
+  Sem tabela de fatura no MVP. Fatura aberta e fatura fechada a pagar de cada cartão: D25.
+- "Faturas em aberto" = −saldo(cartão, hoje) quando negativo (só parcelas já lançadas; as futuras não entram).
+- Limite disponível = `credit_limit + saldo(cartão) − Σ parcelas pendentes não excluídas do cartão` (v1.3: o banco
+  reserva o limite da compra parcelada inteira). Sem parcelamento, o resultado é igual ao da v1.2.
+- Parcelamento: ver D23 (v1.3; antes, fora do escopo).
+
+### D23 — Compra parcelada no cartão ([ADR-0040](adr/0040-compra-parcelada-no-cartao.md))
+- **Onde vale:** só `expense` em conta `credit_card`, criada pela RPC `create_installment_purchase`. N de **2 a 36**; "1x"
+  é a compra à vista de D8, que segue o caminho atual. O valor informado é o **total** da compra.
+- **Forma:** N lançamentos `expense` na mesma conta, categoria, responsável, descrição e observações, ligados por
+  `installment_group_id`, com `installment_number` (1..N) e `installment_total` (N). Não há linha de "compra": o total do
+  grupo = Σ das parcelas não excluídas.
+- **Valores:** D13 com pesos iguais (`private.allocate_cents(total, [1,…,1])`). base = `floor(total / N)` em centavos, e
+  os `total − N·base` centavos que sobram vão **1 a 1 às primeiras parcelas**. Σ parcelas = total, sempre. Cada parcela
+  ≥ 0,01, portanto total ≥ N centavos (senão `INSTALLMENT_AMOUNT_TOO_SMALL`).
+  - 100,00 em 3x → 33,34 · 33,33 · 33,33
+  - 1.000,00 em 6x → 166,67 · 166,67 · 166,67 · 166,67 · 166,66 · 166,66
+  - 1.200,00 em 10x → 10 × 120,00
+  - 0,05 em 6x → `INSTALLMENT_AMOUNT_TOO_SMALL`
+- **Datas:** parcela k = `addMonths(data da compra, k − 1)`, com a regra de dia curto de D12, calculada sempre a partir
+  da data da compra (sem encadear). Ex.: 31/01/2027 em 4x → 31/01, 28/02, 31/03, 30/04/2027. Os dias de fechamento e de
+  vencimento do cartão **não** deslocam as datas.
+- **Status na criação:** data ≤ hoje → `paid`; data > hoje → `pending`. A data da compra é ≤ hoje
+  (`FUTURE_DATE_NOT_ALLOWED`) e ≥ o saldo inicial do cartão (D2), então a 1ª parcela é sempre `paid`. Compra antiga
+  registrada hoje já nasce com as parcelas passadas efetivadas.
+- **Lançamento na fatura:** a parcela `pending` cuja data chegou (≤ hoje) passa a `paid` **sem mudar a data**, por
+  `post_due_installments()` ao acessar o app. Não é "pagar por vencer" (D6): no cartão, o pagamento real é a fatura
+  (transferência, D8). Cartão arquivado: a parcela fica pendente até a reativação.
+- **Efeitos (sem fórmula nova):**
+  - parcela efetivada = compra no cartão (D8) na data dela: entra em despesas (D4), na categoria (D16), no orçamento
+    realizado (D14), no fluxo (D17) e na dívida do cartão;
+  - parcela pendente = despesa prevista (D6): fica fora do saldo e do realizado, e entra no comprometido (D14), no "a
+    pagar" (D19), no comprometimento futuro do dashboard e em `projected_cash_flow` (D15) no mês dela. Cada parcela é
+    contada uma vez só, porque é uma linha `pending` comum, nunca uma ocorrência de série;
+  - limite disponível: D8 (desconta as pendentes).
+- **Correções:**
+  - estornar uma parcela efetivada = D5 (abate no mês do estorno);
+  - "Cancelar parcelas futuras" = as `pending` do grupo viram `canceled` (devolução, quitação). As efetivadas ficam;
+  - "Excluir compra" = exclusão lógica de todas as linhas não canceladas do grupo (lançamento errado). É bloqueada por
+    estorno ativo (`TRANSACTION_HAS_REVERSALS`);
+  - "Editar dados da compra" = descrição, categoria, responsável e observações em todas as linhas não canceladas.
+    Valor, data e conta não se editam pela tela: exclui-se e lança-se de novo.
+- **Divisão entre integrantes (D10):** por parcela, como qualquer despesa. As "parcelas" de D10 são as cotas de cada
+  integrante, um conceito diferente das parcelas desta definição.
+- **Volume:** cada parcela conta como 1 lançamento nos limites da ADR-0033.
 
 ### D9 — Metas: aportes e retiradas ([ADR-0025](adr/0025-metas-reserva-sem-transacao.md); revisão da v1.1)
 - Acumulado = Σ `deposit` − Σ `withdrawal` de `goal_contributions` não excluídas, de todas as datas (fonte única; sem `current_amount`).
@@ -238,6 +286,29 @@ Os 5 lançamentos efetivados, não excluídos, mais recentes **dentro do períod
 - Σ líquido das contas de ativo = variação do consolidado (D3) no período: as transferências entre contas de ativo se anulam,
   e o pagamento de fatura sai do ativo (D8). Conta sem movimento no período e com saldo 0 é omitida.
 
+### D24 — Mês comprometido de despesa no cartão (fatura)
+- Cartão com fechamento C e vencimento V (dia inexistente no mês = último dia). Compra com data **anterior** ao fechamento do próprio mês fecha nele;
+  compra no dia do fechamento ou depois fecha no mês seguinte. A fatura vence no primeiro V após o fechamento (mesmo mês se V > C; senão, o seguinte).
+  Ex.: C=11, V=16: compra 10/10 → fecha 11/10, vence 16/10; compra 11/10 → fecha 11/11, vence 16/11; compra 12/10 → vence 16/11.
+  C=31 em setembro (fecha 30/09): 29/09 fecha em 30/09; 30/09 fecha em 31/10.
+- No comprometimento (/inicio), toda despesa em conta de cartão (efetivada em aberto, pendente, parcela futura ou ocorrência de recorrência) conta no **mês do vencimento da fatura**.
+  Fatura vencida e não paga conta no mês atual. Não muda o gasto por categoria dos relatórios (data da compra, D4) nem o saldo (D1/D8).
+- Em aberto = dívida do cartão (D8) alocada às compras efetivadas **mais recentes** (pagamento quita as faturas mais antigas); a última pode entrar parcial.
+  Cada compra entra com o valor **líquido dos próprios estornos** (Σ estornos `paid` não excluídos com `reversal_of_id` = compra, até hoje; líquido ≤ 0 sai da lista).
+  Histórico lido insuficiente (≤ 1000 compras) marca o resultado como possivelmente subestimado. Pendentes entram pela lista de pendentes, sem dupla contagem.
+
+### D25 — Fatura aberta e fatura fechada a pagar (tela de Contas)
+- Só para cartão com fechamento e vencimento; para os demais, o campo `invoices` é `null`. "Hoje" = T; `invoiceOf` é a de D24.
+- **Ciclo aberto** em T = a fatura de `invoiceOf(T)`: compras de [fechamento anterior, fechamento − 1 dia]. **Fatura fechada mais recente** = a que fecha
+  no dia em que o ciclo aberto começa, com o vencimento dela pela regra de D24.
+- Dívida D = −saldo(cartão, T) quando negativo, senão 0 (D8). D é alocada às compras efetivadas mais recentes primeiro (D24, valores líquidos de estornos).
+- **Fatura aberta** = Σ alocado às compras do ciclo aberto + Σ parcelas pendentes de compra parcelada (D23: `pending`, não excluídas, não canceladas) com data no ciclo aberto.
+  Outras pendências e recorrências no cartão não entram.
+- **Fatura fechada a pagar** = D − Σ alocado do ciclo aberto (≥ 0). Inclui faturas anteriores não pagas e dívida sem compra no histórico (ex.: saldo inicial).
+  Vencimento exibido = o da fatura fechada mais recente; `vencida` quando esse vencimento < T. Valor 0 = paga.
+- Saldo ≥ 0 (crédito a favor): nada é alocado; fechada = 0 e aberta = só as parcelas pendentes do ciclo.
+- Pagamento adiantado (D menor que as compras do ciclo aberto): aberta = D, fechada = 0.
+
 ## 3. Regressão financeira obrigatória (spec §13)
 
 | Caso | Dados | Esperado |
@@ -262,3 +333,6 @@ Os 5 lançamentos efetivados, não excluídos, mais recentes **dentro do períod
 | R18 | Despesa 300,00 paga por A dividida igualmente entre A, B, C; despesa 90,00 paga por B dividida por valores A 30,00 · B 60,00; despesa 50,00 sem responsável dividida entre B e C; liquidação de B para A de 50,00 | saldos: B deve 20,00 a A (100,00 − 30,00 − 50,00); C deve 100,00 a A; nenhuma dívida da despesa sem responsável; consolidado e despesas iguais aos sem divisão (440,00 de despesas) |
 | R19 | Financiamento: valor 80.000,00, entrada 20.000,00, 36 meses | `i = 0`: parcela 1.666,67, total das parcelas 60.000,00, juros 0,00, custo total 80.000,00. `i = 1,5%`: parcela 2.169,14, total das parcelas 78.089,17, juros 18.089,17, custo total 98.089,17. `i = 0,4%`: parcela 1.792,87, total 64.543,36 |
 | R20 | Mês M com R1 + despesa 90,00 sem responsável; a despesa de 200,00 com responsável A, sem divisão | por conta: corrente início 1.000,00, entradas 500,00, saídas 390,00 (200,00 + 90,00 + 100,00), fim 1.110,00; poupança início 0,00, entradas 100,00, fim 100,00; Σ líquido ativo = 210,00 = variação do consolidado; por integrante: A 200,00, "Família (sem responsável)" 90,00, Σ 290,00 = despesas(M) |
+| R21 | Hoje 20/01/2027. Cartão com limite 5.000,00, saldo inicial 0,00 em 01/01/2027. Compra 100,00 em 3x em 15/01/2027. Depois, com hoje 15/02/2027, `post_due_installments()` duas vezes. Depois, com hoje 20/02/2027, "Cancelar parcelas futuras" | criação: 3 linhas, 15/01 `paid` 33,34 · 15/02 `pending` 33,33 · 15/03 `pending` 33,33; despesas(jan) 33,34; saldo do cartão −33,34; faturas em aberto 33,34; limite disponível 4.900,00; a pagar 66,66; comprometimento futuro fev 33,33 e mar 33,33; consolidado inalterado. Em 15/02: a 1ª chamada devolve 1 e a 2ª devolve 0; a linha de 15/02 fica `paid` com a data 15/02; despesas(fev) 33,33; saldo do cartão −66,67; limite 4.900,00. Depois do cancelamento: 15/03 `canceled`; limite 4.933,33; a pagar 0,00; 3 linhas no grupo |
+| R22 | Hoje 30/04/2027. Cartão com saldo inicial em 01/01/2027. Compra 1.000,00 em 6x em 31/01/2027 (compra antiga lançada hoje), repetida com a mesma chave de idempotência. Também: 0,05 em 6x; 37x; 2x em conta corrente; compra datada de amanhã | datas 31/01, 28/02, 31/03, 30/04, 31/05, 30/06; valores 166,67 ×4 e 166,66 ×2 (Σ 1.000,00); as 4 primeiras `paid` e as 2 últimas `pending`; despesas de jan, fev, mar e abr = 166,67 cada; a pagar 333,32. A repetição devolve o mesmo grupo e continua com 6 linhas. Erros: `INSTALLMENT_AMOUNT_TOO_SMALL`, `INVALID_INPUT`, `INSTALLMENT_REQUIRES_CREDIT_CARD` e `FUTURE_DATE_NOT_ALLOWED`, nessa ordem, sem nenhuma linha gravada |
+| R23 | Cartão fecha 11, vence 16; hoje 20/10/2026; saldo inicial 0,00. Compras: 20/09 80,00; 10/10 40,00; 11/10 20,00; 15/10 30,00; estorno de 10,00 da compra de 15/10. Parcela pendente de 12,00 em 25/10 | dívida 160,00; compras líquidas 80,00 · 40,00 · 20,00 · 20,00 (15/10); a de 11/10 vai para a fatura que fecha em 11/11. Aberta (fecha 11/11, vence 16/11) = 20,00 + 20,00 + 12,00 = 52,00; fechada (fechou 11/10, vence 16/10, vencida) = 160,00 − 40,00 = 120,00. Com um pagamento de 130,00 (dívida 30,00): aberta = 20,00 + 10,00 + 12,00 = 42,00, fechada 0,00 |

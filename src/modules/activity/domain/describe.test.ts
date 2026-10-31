@@ -91,6 +91,20 @@ describe("describeAuditEvent", () => {
     );
   });
 
+  it("compra parcelada criada mostra total, parcelas e 1ª data, sem descrição nem notas", () => {
+    const r = ev("transaction.installments_created", {
+      group_id: ID,
+      installment_total: 3,
+      total_amount: "300.00",
+      first_date: "2026-10-15",
+    });
+    expect(r.title).toBe("Compra parcelada criada");
+    expect(r.detail).toBe(
+      `${formatBRL(asCents(30000))} · 3 parcelas · 1ª parcela em 15/10/2026`,
+    );
+    expect(r.href).toBe(`/transacoes/${ID}`);
+  });
+
   it("ação desconhecida -> genérico, sem metadata crua", () => {
     const r = ev("coisa.nova", { segredo: "xyz" });
     expect(r).toEqual({

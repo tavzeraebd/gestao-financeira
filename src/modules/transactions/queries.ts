@@ -9,6 +9,7 @@ import { frequencyLabel } from "@/modules/recurrences/domain/labels";
 import {
   rpcPeriodSummary,
   selectActiveReversals,
+  selectInstallmentGroup,
   selectCategoryFamilyIds,
   selectRecentTransactions,
   selectTransactionDetail,
@@ -156,4 +157,17 @@ export async function getPendingCommitted(): Promise<Cents> {
   const supabase = await createClient();
   const summary = await rpcPendingSummary(supabase);
   return summary.payable;
+}
+
+/** D23: todas as parcelas visíveis do grupo (pendentes e canceladas inclusive), da 1ª à última. */
+export async function listInstallmentGroup(
+  groupId: string,
+): Promise<TransactionListItem[]> {
+  const membership = await requireMembership();
+  if (!UUID.test(groupId)) return [];
+  const supabase = await createClient();
+  return selectInstallmentGroup(supabase, groupId, {
+    role: membership.role,
+    userId: membership.userId,
+  });
 }

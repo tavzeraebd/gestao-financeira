@@ -39,6 +39,10 @@ export type TransactionListItem = {
   reversalOfId: string | null;
   /** Série de origem, se a ocorrência veio de uma recorrência. */
   recurrenceId: string | null;
+  /** Compra parcelada (D23): grupo e posição ("Parcela k/N"); `null` fora de parcelamento. */
+  installmentGroupId: string | null;
+  installmentNumber: number | null;
+  installmentTotal: number | null;
   canManage: boolean;
 };
 

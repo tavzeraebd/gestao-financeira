@@ -250,3 +250,56 @@ describe("transactionFiltersSchema (tolerante)", () => {
     expect(transactionFiltersSchema.parse({ q: "   " }).q).toBeUndefined();
   });
 });
+
+describe("transactionInputSchema: parcelamento (D23)", () => {
+  it("o padrão é 1 parcela (à vista)", () => {
+    expect(transactionInputSchema.parse(expense)).toMatchObject({
+      type: "expense",
+      installments: 1,
+    });
+  });
+
+  it("despesa aceita de 2 a 36 parcelas", () => {
+    for (const installments of [2, 12, 36]) {
+      expect(
+        transactionInputSchema.parse({ ...expense, installments }),
+      ).toMatchObject({ installments });
+    }
+  });
+
+  it.each([0, 37, 2.5, -1, "3"])(
+    "rejeita %j parcelas no campo installments",
+    (installments) => {
+      const errors = fieldErrors({ ...expense, installments });
+      expect(errors?.installments?.length).toBeGreaterThan(0);
+    },
+  );
+
+  it("R22: 0,05 em 6x -> erro no campo amount com a mensagem de centavos", () => {
+    expect(
+      fieldErrors({ ...expense, amount: "0,05", installments: 6 }),
+    ).toEqual({
+      amount: [
+        "O valor é pequeno demais para 6 parcelas: cada parcela precisa de pelo menos R$ 0,01.",
+      ],
+    });
+  });
+
+  it("0,06 em 6x passa (1 centavo por parcela) e 0,05 em 1x também", () => {
+    expect(
+      fieldErrors({ ...expense, amount: "0,06", installments: 6 }),
+    ).toBeNull();
+    expect(fieldErrors({ ...expense, amount: "0,05" })).toBeNull();
+  });
+
+  it("receita e transferência só aceitam 1 parcela", () => {
+    const income = { ...expense, type: "income" };
+    expect(fieldErrors({ ...income, installments: 3 })?.installments).toEqual([
+      "Parcelamento só em despesa.",
+    ]);
+    expect(fieldErrors({ ...transfer, installments: 2 })?.installments).toEqual(
+      ["Parcelamento só em despesa."],
+    );
+    expect(fieldErrors({ ...income, installments: 1 })).toBeNull();
+  });
+});

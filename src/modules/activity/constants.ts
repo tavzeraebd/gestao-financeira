@@ -46,6 +46,7 @@ export const AUDIT_ACTIONS = [
   "transaction.reversed",
   "transaction.paid",
   "transaction.splits_changed",
+  "transaction.installments_created",
   "recurrence.paused",
   "recurrence.resumed",
   "recurrence.series_updated",

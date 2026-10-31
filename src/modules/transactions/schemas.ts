@@ -6,6 +6,7 @@ import {
   DEFAULT_ORDER,
   DEFAULT_PAGE_SIZE,
   DESCRIPTION_MAX,
+  MAX_INSTALLMENTS,
   NO_MEMBER_FILTER,
   NOTES_MAX,
   ORDER_OPTIONS,
@@ -29,6 +30,34 @@ const notes = optionalText(
 );
 const assignedMemberId = optionalUuid("Responsável inválido.");
 const idempotencyKey = z.uuid("Chave de idempotência inválida.");
+
+const INSTALLMENTS_RANGE_MESSAGE = `Informe de 1 a ${MAX_INSTALLMENTS} parcelas.`;
+
+/** Despesa: 1 (à vista) a 36 parcelas (D23). A conta de cartão é conferida no service e no banco. */
+const installments = z
+  .number({ error: INSTALLMENTS_RANGE_MESSAGE })
+  .int(INSTALLMENTS_RANGE_MESSAGE)
+  .min(1, INSTALLMENTS_RANGE_MESSAGE)
+  .max(MAX_INSTALLMENTS, INSTALLMENTS_RANGE_MESSAGE)
+  .default(1);
+
+/** Receita e transferência não parcelam: só aceitam 1. */
+const singleInstallment = z
+  .number({ error: "Parcelamento só em despesa." })
+  .int("Parcelamento só em despesa.")
+  .max(1, "Parcelamento só em despesa.")
+  .min(1, "Parcelamento só em despesa.")
+  .default(1);
+
+/** Cada parcela precisa de ao menos 1 centavo (total >= N centavos). */
+const enoughForInstallments = {
+  check: (d: { amount: number; installments: number }) =>
+    d.installments <= 1 || d.amount >= d.installments,
+  params: (d: { installments: number }) => ({
+    path: ["amount"],
+    message: `O valor é pequeno demais para ${d.installments} parcelas: cada parcela precisa de pelo menos R$ 0,01.`,
+  }),
+};
 
 /** Campos comuns de receita e despesa (sem `type`). */
 const categorizedFields = {
@@ -61,18 +90,36 @@ const differentAccounts = {
 };
 
 export const transactionInputSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("expense"),
-    ...categorizedFields,
-    idempotencyKey,
-  }),
+  z
+    .object({
+      type: z.literal("expense"),
+      ...categorizedFields,
+      installments,
+      idempotencyKey,
+    })
+    .check((ctx) => {
+      const d = ctx.value;
+      if (!enoughForInstallments.check(d)) {
+        ctx.issues.push({
+          code: "custom",
+          input: d,
+          ...enoughForInstallments.params(d),
+        });
+      }
+    }),
   z.object({
     type: z.literal("income"),
     ...categorizedFields,
+    installments: singleInstallment,
     idempotencyKey,
   }),
   z
-    .object({ type: z.literal("transfer"), ...transferFields, idempotencyKey })
+    .object({
+      type: z.literal("transfer"),
+      ...transferFields,
+      installments: singleInstallment,
+      idempotencyKey,
+    })
     .refine(differentAccounts.check, differentAccounts.params),
 ]);
 
@@ -107,6 +154,10 @@ export const reverseTransactionSchema = z.object({
     `A descrição deve ter no máximo ${DESCRIPTION_MAX} caracteres.`,
   ),
   idempotencyKey,
+});
+
+export const installmentGroupIdSchema = z.object({
+  groupId: z.uuid("Compra parcelada inválida."),
 });
 
 export const transactionIdSchema = z.object({

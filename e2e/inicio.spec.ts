@@ -301,13 +301,19 @@ test("Próximo vencimento: vazio informativo e o detalhe do mês lista as contas
 
   const agora = new Date();
   const fimDoMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
+  // Datas sempre distintas: o app desempata por descrição ("Internet" antes de "Luz"), então no último
+  // dia do mês, com as duas em hoje, apareceria "Internet". Nesse dia "Luz" vence ontem (vencida, ainda no mês).
+  const luz =
+    agora.getDate() === fimDoMes.getDate()
+      ? new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1)
+      : agora;
   await semearPendentes(c, conta, [
     {
       descricao: "Internet",
       valor: "50.00",
       data: fimDoMes.toLocaleDateString("sv-SE"),
     },
-    { descricao: "Luz", valor: "80.00", data: hoje() },
+    { descricao: "Luz", valor: "80.00", data: luz.toLocaleDateString("sv-SE") },
   ]);
   await page.goto("/inicio");
   await expect(proximo).toContainText("Luz");

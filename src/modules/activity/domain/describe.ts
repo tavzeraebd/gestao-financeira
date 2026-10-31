@@ -273,6 +273,18 @@ export function describeAuditEvent(
         ]),
         href: transactionHref(e.entityId, false),
       };
+    case "transaction.installments_created":
+      return {
+        title: "Compra parcelada criada",
+        detail: join([
+          money(meta.total_amount),
+          typeof meta.installment_total === "number"
+            ? `${meta.installment_total} parcelas`
+            : null,
+          day(meta.first_date) ? `1ª parcela em ${day(meta.first_date)}` : null,
+        ]),
+        href: transactionHref(e.entityId, false),
+      };
     case "transaction.splits_changed": {
       const id = uuid(e.entityId);
       const parts = typeof meta.parts === "number" ? meta.parts : null;

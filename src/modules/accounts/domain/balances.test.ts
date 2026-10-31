@@ -43,4 +43,10 @@ describe("D8 faturas em aberto e limite", () => {
     expect(availableCredit("credit_card", null, c(-30000))).toBeNull();
     expect(availableCredit("checking", c(500000), c(0))).toBeNull();
   });
+
+  it("D23/R21: desconta as parcelas pendentes do cartão (5.000,00 - 33,34 - 66,66 = 4.900,00)", () => {
+    expect(availableCredit("credit_card", c(500000), c(-3334), c(6666))).toBe(
+      c(490000),
+    );
+  });
 });
