@@ -67,12 +67,10 @@ test("CA-E3-51: valores inválidos não salvam; despesa de 200 baixa o saldo", a
   const c = await criarCenario(`t51-${testInfo.project.name}`);
   await criarContaNoBanco(c, "Corrente", "checking", "1000");
   await entrar(page, c.owner);
-  await preencherDespesa(page, "Supermercado", "0");
+  await preencherDespesa(page, "Supermercado", "0,00");
   const casos: [string, RegExp][] = [
-    ["0", /maior que zero/],
+    ["0,00", /maior que zero/],
     ["", /Informe o valor/],
-    ["-5", /maior que zero|negativo/],
-    ["1,234.56", /vírgula/],
   ];
   for (const [invalido, mensagem] of casos) {
     await page.getByLabel("Valor").fill("");
@@ -92,7 +90,11 @@ test("CA-E3-51: valores inválidos não salvam; despesa de 200 baixa o saldo", a
     .select("id", { count: "exact", head: true })
     .eq("family_id", c.familyId);
   expect(count).toBe(0);
-  await page.getByLabel("Valor").fill("200");
+  // Máscara de centavos: 3480 digitado vira 34,80 (não 3.480,00).
+  await page.getByLabel("Valor").fill("");
+  await page.getByLabel("Valor").pressSequentially("3480");
+  await expect(page.getByLabel("Valor")).toHaveValue("34,80");
+  await page.getByLabel("Valor").fill("200,00");
   await page.getByRole("button", { name: "Salvar despesa" }).click();
   await expect(page).toHaveURL(/\/transacoes$/);
   await expect(
@@ -111,21 +113,21 @@ test("CA-E3-52: receita, despesa e transferência (R1 pela tela)", async ({
   await lancar(page, {
     tipo: "Receita",
     descricao: "Salário",
-    valor: "500",
+    valor: "500,00",
     conta: "Corrente",
     categoria: "Salário",
   });
   await lancar(page, {
     tipo: "Despesa",
     descricao: "Aluguel",
-    valor: "200",
+    valor: "200,00",
     conta: "Corrente",
     categoria: "Mercado",
   });
   await lancar(page, {
     tipo: "Transferência",
     descricao: "Reserva",
-    valor: "100",
+    valor: "100,00",
     conta: "Corrente",
     destino: "Poupança",
   });
@@ -156,7 +158,7 @@ test("CA-E3-53: editar, histórico, estorno e exclusões", async ({
   await lancar(page, {
     tipo: "Despesa",
     descricao: "Reforma",
-    valor: "200",
+    valor: "200,00",
     conta: "Corrente",
     categoria: "Mercado",
   });
@@ -165,7 +167,7 @@ test("CA-E3-53: editar, histórico, estorno e exclusões", async ({
     .first()
     .click();
   await page.getByRole("link", { name: "Editar" }).click();
-  await page.getByLabel("Valor").fill("250");
+  await page.getByLabel("Valor").fill("250,00");
   await page.getByRole("button", { name: "Salvar alterações" }).click();
   await expect(page).toHaveURL(/\/transacoes\/[0-9a-f-]{36}$/);
   await expect(
@@ -179,7 +181,7 @@ test("CA-E3-53: editar, histórico, estorno e exclusões", async ({
     .first()
     .click();
   await page.getByRole("button", { name: "Estornar" }).click();
-  await page.getByLabel("Valor a estornar").fill("50");
+  await page.getByLabel("Valor a estornar").fill("50,00");
   await page.getByRole("button", { name: "Registrar estorno" }).click();
   await expect(
     page.getByText(/Valor ainda estornável/).locator(".."),
@@ -266,7 +268,7 @@ test("CA-E3-55: duplo clique cria um único lançamento", async ({
   const c = await criarCenario(`t55-${testInfo.project.name}`);
   await criarContaNoBanco(c, "Corrente", "checking", "100");
   await entrar(page, c.owner);
-  await preencherDespesa(page, "Duplo", "10");
+  await preencherDespesa(page, "Duplo", "10,00");
   await page.getByRole("button", { name: "Salvar despesa" }).dblclick();
   await expect(page).toHaveURL(/\/transacoes$/);
   await expect(
@@ -296,7 +298,7 @@ test("CA-E3-56: member cria, mas não gerencia lançamentos alheios", async ({
   await lancar(page, {
     tipo: "Despesa",
     descricao: "Do member",
-    valor: "5",
+    valor: "5,00",
     conta: "Corrente",
     categoria: "Mercado",
   });
@@ -371,7 +373,7 @@ test("CA-E3-59: falha de rede mantém os valores e mostra erro", async ({
   const c = await criarCenario(`t59-${testInfo.project.name}`);
   await criarContaNoBanco(c, "Corrente", "checking", "100");
   await entrar(page, c.owner);
-  await preencherDespesa(page, "Sem rede", "10");
+  await preencherDespesa(page, "Sem rede", "10,00");
   await page.route("**/*", (route) =>
     route.request().headers()["next-action"] ? route.abort() : route.continue(),
   );
@@ -390,7 +392,7 @@ test("CA-E3-60: sessão expirada leva ao login", async ({
   const c = await criarCenario(`t60-${testInfo.project.name}`);
   await criarContaNoBanco(c, "Corrente", "checking", "100");
   await entrar(page, c.owner);
-  await preencherDespesa(page, "Expirou", "10");
+  await preencherDespesa(page, "Expirou", "10,00");
   await context.clearCookies();
   await page.getByRole("button", { name: "Salvar despesa" }).click();
   await expect(page).toHaveURL(

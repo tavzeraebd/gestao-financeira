@@ -25,14 +25,14 @@ test("CA-E5-56: criar orçamento, atenção aos 80%, limite estourado e arquivar
   await page.getByRole("link", { name: "Criar orçamento" }).click();
   await expect(page).toHaveURL(/\/orcamentos\/novo$/);
   await escolher(page, "Categoria", "Mercado");
-  await page.getByLabel("Limite mensal").fill("500");
+  await page.getByLabel("Limite mensal").fill("500,00");
   await page.getByRole("button", { name: "Criar orçamento" }).click();
   await expect(page).toHaveURL(/\/orcamentos$/);
 
   await lancar(page, {
     tipo: "Despesa",
     descricao: "Feira",
-    valor: "400",
+    valor: "400,00",
     conta: "Corrente",
     categoria: "Mercado",
   });
@@ -54,7 +54,7 @@ test("CA-E5-56: criar orçamento, atenção aos 80%, limite estourado e arquivar
   await lancar(page, {
     tipo: "Despesa",
     descricao: "Festa",
-    valor: "150",
+    valor: "150,00",
     conta: "Corrente",
     categoria: "Mercado",
   });
@@ -65,7 +65,7 @@ test("CA-E5-56: criar orçamento, atenção aos 80%, limite estourado e arquivar
   // Duplicidade: segundo orçamento ativo da mesma categoria.
   await page.goto("/orcamentos/novo");
   await escolher(page, "Categoria", "Mercado");
-  await page.getByLabel("Limite mensal").fill("100");
+  await page.getByLabel("Limite mensal").fill("100,00");
   await page.getByRole("button", { name: "Criar orçamento" }).click();
   await expect(page.getByText(/Já existe um orçamento ativo/)).toBeVisible();
   await expect(page.getByLabel("Limite mensal")).toHaveValue("100,00");
@@ -131,7 +131,7 @@ test("categoria arquivada mostra o selo e edição mantém categoria travada", a
   ).toBeVisible();
   await page.goto(`/orcamentos/${orc.id}/editar`);
   await expect(page.getByLabel("Categoria", { exact: true })).toBeDisabled();
-  await page.getByLabel("Limite mensal").fill("350");
+  await page.getByLabel("Limite mensal").fill("350,00");
   await page.getByRole("button", { name: "Salvar alterações" }).click();
   await expect(page).toHaveURL(/\/orcamentos$/);
   await expect(

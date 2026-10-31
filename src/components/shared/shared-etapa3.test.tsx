@@ -72,28 +72,56 @@ function MoneyHarness({ allowNegative }: { allowNegative?: boolean }) {
 }
 
 describe("MoneyInput", () => {
-  it("reformata 1234,5 para 1.234,50 no blur", async () => {
+  it("digitar 3480 mostra 34,80 (máscara de centavos)", async () => {
     const user = userEvent.setup();
     render(<MoneyHarness />);
     const input = screen.getByRole("textbox", { name: "Valor" });
-    await user.type(input, "1234,5");
-    await user.tab();
-    expect(input).toHaveValue("1.234,50");
+    await user.type(input, "3");
+    expect(input).toHaveValue("0,03");
+    await user.type(input, "480");
+    expect(input).toHaveValue("34,80");
+    await user.type(input, "00");
+    expect(input).toHaveValue("3.480,00");
   });
 
-  it("mantém o texto inválido no blur", async () => {
+  it("backspace remove o último dígito e esvazia o campo", async () => {
     const user = userEvent.setup();
     render(<MoneyHarness />);
     const input = screen.getByRole("textbox", { name: "Valor" });
-    await user.type(input, "12,345");
-    await user.tab();
-    expect(input).toHaveValue("12,345");
+    await user.type(input, "3480");
+    await user.type(input, "{Backspace}");
+    expect(input).toHaveValue("3,48");
+    await user.type(input, "{Backspace}{Backspace}{Backspace}");
+    expect(input).toHaveValue("");
   });
 
-  it("usa teclado decimal, prefixo R$ oculto e números tabulares", () => {
+  it("colar valor formatado mantém o valor; sem vírgula segue a regra dos centavos", async () => {
+    const user = userEvent.setup();
     render(<MoneyHarness />);
     const input = screen.getByRole("textbox", { name: "Valor" });
-    expect(input).toHaveAttribute("inputmode", "decimal");
+    await user.click(input);
+    await user.paste("1.234,56");
+    expect(input).toHaveValue("1.234,56");
+    await user.clear(input);
+    await user.paste("1234,56");
+    expect(input).toHaveValue("1.234,56");
+    await user.clear(input);
+    await user.paste("1234");
+    expect(input).toHaveValue("12,34");
+  });
+
+  it("ignora dígitos acima do teto 99.999.999,99", async () => {
+    const user = userEvent.setup();
+    render(<MoneyHarness />);
+    const input = screen.getByRole("textbox", { name: "Valor" });
+    await user.type(input, "999999999912345");
+    expect(input).toHaveValue("99.999.999,99");
+  });
+
+  it("usa teclado numérico, prefixo R$ oculto e números tabulares", () => {
+    render(<MoneyHarness />);
+    const input = screen.getByRole("textbox", { name: "Valor" });
+    expect(input).toHaveAttribute("inputmode", "numeric");
     expect(input).toHaveAttribute("autocomplete", "off");
     expect(input).toHaveClass("tabular-nums");
     expect(screen.getByText("R$")).toHaveAttribute("aria-hidden", "true");
@@ -103,9 +131,28 @@ describe("MoneyInput", () => {
     const user = userEvent.setup();
     render(<MoneyHarness allowNegative />);
     const input = screen.getByRole("textbox", { name: "Valor" });
-    await user.type(input, "-50");
+    await user.type(input, "-5000");
     await user.tab();
     expect(input).toHaveValue("-50,00");
+    await user.type(input, "-");
+    expect(input).toHaveValue("50,00");
+  });
+
+  it("ignora o '-' sem allowNegative", async () => {
+    const user = userEvent.setup();
+    render(<MoneyHarness />);
+    const input = screen.getByRole("textbox", { name: "Valor" });
+    await user.type(input, "-5000");
+    expect(input).toHaveValue("50,00");
+  });
+
+  it("mostra igual o valor inicial vindo da edição", () => {
+    render(
+      <MoneyInput aria-label="Valor" value="3.480,00" onChange={() => {}} />,
+    );
+    expect(screen.getByRole("textbox", { name: "Valor" })).toHaveValue(
+      "3.480,00",
+    );
   });
 
   it("propaga aria-invalid e disabled", () => {

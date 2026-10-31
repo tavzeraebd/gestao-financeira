@@ -107,7 +107,7 @@ describe("AccountForm", () => {
       },
     });
     await user.type(screen.getByLabelText("Nome da conta"), "Principal");
-    await user.type(screen.getByLabelText("Saldo inicial"), "1000");
+    await user.type(screen.getByLabelText("Saldo inicial"), "100000");
     await user.click(screen.getByRole("button", { name: "Criar conta" }));
     expect(
       await screen.findByText("Já existe uma conta com este nome."),

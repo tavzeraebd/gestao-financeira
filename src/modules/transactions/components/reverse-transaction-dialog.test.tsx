@@ -66,7 +66,7 @@ describe("ReverseTransactionDialog", () => {
     const field = await screen.findByLabelText("Valor a estornar");
     expect(field).toHaveValue("200,00");
     await user.clear(field);
-    await user.type(field, "50");
+    await user.type(field, "5000");
     await user.click(screen.getByRole("button", { name: "Registrar estorno" }));
     await waitFor(() => expect(reverseTransaction).toHaveBeenCalledTimes(1));
     await waitFor(() =>
@@ -81,7 +81,7 @@ describe("ReverseTransactionDialog", () => {
     const second = await screen.findByLabelText("Valor a estornar");
     expect(second).toHaveValue("150,00");
     await user.clear(second);
-    await user.type(second, "30");
+    await user.type(second, "3000");
     await user.click(screen.getByRole("button", { name: "Registrar estorno" }));
     await waitFor(() => expect(reverseTransaction).toHaveBeenCalledTimes(2));
 

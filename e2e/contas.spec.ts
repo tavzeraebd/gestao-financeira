@@ -31,7 +31,7 @@ test("CA-E3-50: primeira conta criada em /contas/nova, saldo em /contas", async 
   await page.goto("/contas/nova");
   await expect(page).toHaveURL(/\/contas\/nova$/);
   await page.getByLabel("Nome da conta").fill("Conta principal");
-  await page.getByLabel("Saldo inicial", { exact: true }).fill("1000");
+  await page.getByLabel("Saldo inicial", { exact: true }).fill("1000,00");
   await page.getByRole("button", { name: "Criar conta" }).click();
   await expect(page).toHaveURL(/\/contas$/);
   const conta = page
@@ -52,8 +52,8 @@ test("CA-E3-61: cartão com limite, compra e pagamento da fatura", async ({
   await page.goto("/contas/nova");
   await page.getByLabel("Nome da conta").fill("Visa");
   await escolher(page, "Tipo", "Cartão de crédito");
-  await page.getByLabel("Fatura atual (valor devido)", { exact: true }).fill("0");
-  await page.getByLabel(/Limite do cartão/).fill("2000");
+  await page.getByLabel("Fatura atual (valor devido)", { exact: true }).fill("0,00");
+  await page.getByLabel(/Limite do cartão/).fill("2000,00");
   await page.getByLabel("Dia de fechamento").fill("10");
   await page.getByLabel("Dia de vencimento").fill("20");
   await page.getByRole("button", { name: "Criar conta" }).click();
@@ -62,7 +62,7 @@ test("CA-E3-61: cartão com limite, compra e pagamento da fatura", async ({
   await lancar(page, {
     tipo: "Despesa",
     descricao: "Compra",
-    valor: "300",
+    valor: "300,00",
     conta: "Visa",
     categoria: "Mercado",
   });
@@ -79,7 +79,7 @@ test("CA-E3-61: cartão com limite, compra e pagamento da fatura", async ({
   await lancar(page, {
     tipo: "Transferência",
     descricao: "Pagamento da fatura",
-    valor: "300",
+    valor: "300,00",
     conta: "Corrente",
     destino: "Visa",
   });

@@ -52,7 +52,7 @@ test("categoria com lançamento não é excluída: orienta arquivar", async ({
   await page.goto("/transacoes/nova");
   await page.getByLabel("Descrição").fill("Feira");
   await escolher(page, "Categoria", "Mercado");
-  await page.getByLabel("Valor").fill("10");
+  await page.getByLabel("Valor").fill("10,00");
   await escolher(page, "Conta ou cartão", "Corrente");
   await page.getByRole("button", { name: "Salvar despesa" }).click();
   await expect(page).toHaveURL(/\/transacoes$/);

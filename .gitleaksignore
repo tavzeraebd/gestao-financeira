@@ -4,3 +4,5 @@
 577e64f5495940e678407cbdd26982707fdea409:src/modules/splits/schemas.test.ts:generic-api-key:10
 # UUID de fixture de teste, não é segredo
 577e64f5495940e678407cbdd26982707fdea409:src/modules/transactions/schemas.test.ts:generic-api-key:14
+# UUID de fixture de teste (chave de idempotência), não é segredo — aceito pelo usuário em 2026-10-31
+72748660dfb556ad8ff22238d26604afe8d875da:src/modules/transactions/service.test.ts:generic-api-key:38

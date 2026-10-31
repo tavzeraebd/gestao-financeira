@@ -93,20 +93,20 @@ describe("SplitForm", () => {
     const ana = screen.getByLabelText("Valor de Ana");
     const bia = screen.getByLabelText("Valor de Bianca");
     await userEvent.clear(ana);
-    await userEvent.type(ana, "60");
+    await userEvent.type(ana, "6000");
     await userEvent.clear(bia);
-    await userEvent.type(bia, "30");
+    await userEvent.type(bia, "3000");
     expect(screen.getByTestId("split-difference")).toHaveTextContent(/Faltam/);
     expect(
       screen.getByRole("button", { name: "Salvar divisão" }),
     ).toBeDisabled();
 
     await userEvent.clear(bia);
-    await userEvent.type(bia, "50");
+    await userEvent.type(bia, "5000");
     expect(screen.getByTestId("split-difference")).toHaveTextContent(/Passou/);
 
     await userEvent.clear(bia);
-    await userEvent.type(bia, "40");
+    await userEvent.type(bia, "4000");
     expect(screen.getByTestId("split-difference")).toHaveTextContent(
       "Fecha com o valor da despesa",
     );

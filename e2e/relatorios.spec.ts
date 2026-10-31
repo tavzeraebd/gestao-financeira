@@ -41,21 +41,21 @@ async function cenarioR1(label: string, page: Page): Promise<Cenario> {
   await lancar(page, {
     tipo: "Receita",
     descricao: "Salário",
-    valor: "500",
+    valor: "500,00",
     conta: "Corrente",
     categoria: "Salário",
   });
   await lancar(page, {
     tipo: "Despesa",
     descricao: "Compras",
-    valor: "200",
+    valor: "200,00",
     conta: "Corrente",
     categoria: "Mercado",
   });
   await lancar(page, {
     tipo: "Transferência",
     descricao: "Reserva",
-    valor: "100",
+    valor: "100,00",
     conta: "Corrente",
     destino: "Poupança",
   });

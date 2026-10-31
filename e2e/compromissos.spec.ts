@@ -28,7 +28,7 @@ test("CA-E5-50: criar conta a pagar, ver na lista e marcar como pago (entra no s
   await page.goto("/compromissos/novo");
   await page.getByLabel("Descrição").fill("Aluguel");
   await escolher(page, "Categoria", "Mercado");
-  await page.getByLabel("Valor previsto").fill("300");
+  await page.getByLabel("Valor previsto").fill("300,00");
   await escolher(page, "Conta ou cartão", "Corrente");
   await page.getByRole("button", { name: "Salvar conta a pagar" }).click();
   await expect(page).toHaveURL(/\/compromissos$/);
@@ -67,7 +67,7 @@ test("CA-E5-51: série com Repetir cria ocorrências e o selo Recorrente", async
   await page.goto("/compromissos/novo");
   await page.getByLabel("Descrição").fill("Internet");
   await escolher(page, "Categoria", "Mercado");
-  await page.getByLabel("Valor previsto").fill("100");
+  await page.getByLabel("Valor previsto").fill("100,00");
   await escolher(page, "Conta ou cartão", "Corrente");
   await page.getByRole("switch", { name: "Repetir" }).click();
   await expect(page.getByLabel("Frequência")).toBeVisible();
@@ -88,7 +88,7 @@ test("CA-E5-52: cancelar pede confirmação e tira o compromisso dos abertos", a
   await page.goto("/compromissos/novo");
   await page.getByLabel("Descrição").fill("Seguro");
   await escolher(page, "Categoria", "Mercado");
-  await page.getByLabel("Valor previsto").fill("50");
+  await page.getByLabel("Valor previsto").fill("50,00");
   await escolher(page, "Conta ou cartão", "Corrente");
   await page.getByRole("button", { name: "Salvar conta a pagar" }).click();
   await expect(page).toHaveURL(/\/compromissos$/);

@@ -48,7 +48,7 @@ test("CA-E6-50: criar meta, aportar e retirar; saldo das contas não muda", asyn
 
   await page.goto("/metas/nova");
   await page.getByLabel("Nome").fill("Viagem");
-  await page.getByLabel("Valor da meta").fill("5000");
+  await page.getByLabel("Valor da meta").fill("5000,00");
   await page.getByRole("button", { name: "Salvar meta" }).click();
   await expect(page).toHaveURL(/\/metas\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { name: "Viagem" })).toBeVisible();
@@ -60,12 +60,12 @@ test("CA-E6-50: criar meta, aportar e retirar; saldo das contas não muda", asyn
   await cartao.getByRole("link", { name: "Viagem" }).click();
 
   await page.getByRole("button", { name: "Registrar aporte" }).click();
-  await page.getByLabel("Valor").fill("400");
+  await page.getByLabel("Valor").fill("400,00");
   await page.getByRole("button", { name: "Salvar aporte" }).click();
   await expect(page.getByLabel("Valor")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Registrar retirada" }).click();
-  await page.getByLabel("Valor").fill("100");
+  await page.getByLabel("Valor").fill("100,00");
   await page.getByRole("button", { name: "Salvar retirada" }).click();
   await expect(page.getByLabel("Valor")).toHaveCount(0);
 
@@ -86,7 +86,7 @@ test("CA-E6-51: retirada maior que o guardado erra no campo Valor e mantém os d
   await entrar(page, c.owner);
   await page.goto(`/metas/${id}`);
   await page.getByRole("button", { name: "Registrar retirada" }).click();
-  await page.getByLabel("Valor").fill("50");
+  await page.getByLabel("Valor").fill("50,00");
   await page.getByRole("button", { name: "Salvar retirada" }).click();
   await expect(
     page.getByText(/O valor guardado não pode ficar negativo/).first(),
@@ -161,7 +161,7 @@ test("CA-E6-53: member vê metas sem ações de gestão e registra aporte no pr�
   );
   await page.getByRole("button", { name: "Registrar aporte" }).click();
   await expect(page.getByLabel("Integrante")).toBeDisabled();
-  await page.getByLabel("Valor").fill("20");
+  await page.getByLabel("Valor").fill("20,00");
   await page.getByRole("button", { name: "Salvar aporte" }).click();
   await expect(page.getByLabel("Valor")).toHaveCount(0);
 

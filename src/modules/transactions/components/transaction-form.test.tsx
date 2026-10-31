@@ -87,7 +87,9 @@ function renderForm(initial: Record<string, string> = {}) {
 }
 
 describe("TransactionForm", () => {
-  it.each(["0", "", "-5", "1,234.56"])(
+  // Com a máscara de centavos o campo só produz texto numérico válido; "-5" e "1,234.56" viram
+  // 0,05 e 1.234,56 (válidos) e deixaram de ser entradas possíveis. Restam o zerado e o vazio.
+  it.each(["0", ""])(
     "recusa o valor %j no campo Valor e não envia",
     async (value) => {
       const user = userEvent.setup();

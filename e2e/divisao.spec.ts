@@ -98,13 +98,13 @@ test("CA-E6-55: por valores mostra Faltam/Passou, bloqueia até fechar e remove 
   await page.getByRole("radio", { name: "Por valores" }).click();
   const salvar = page.getByRole("button", { name: "Salvar divisão" });
   const campos = page.getByRole("textbox", { name: /^Valor de/ });
-  await campos.nth(0).fill("150");
-  await campos.nth(1).fill("30");
+  await campos.nth(0).fill("150,00");
+  await campos.nth(1).fill("30,00");
   await expect(page.getByTestId("split-difference")).toContainText("Faltam");
   await expect(salvar).toBeDisabled();
-  await campos.nth(1).fill("80");
+  await campos.nth(1).fill("80,00");
   await expect(page.getByTestId("split-difference")).toContainText("Passou");
-  await campos.nth(1).fill("50");
+  await campos.nth(1).fill("50,00");
   await expect(page.getByTestId("split-difference")).toContainText(
     "Fecha com o valor da despesa",
   );
@@ -146,7 +146,7 @@ test("CA-E6-59: integrante registra acerto com um lado travado nele e o saldo at
     page.getByRole("combobox", { name: "De (quem pagou)" }),
   ).toBeDisabled();
   await escolher(page, "Para (quem recebeu)", "Ana Souza");
-  await page.getByLabel("Valor", { exact: true }).fill("20");
+  await page.getByLabel("Valor", { exact: true }).fill("20,00");
   await page.getByRole("button", { name: "Salvar acerto" }).click();
   await expect(page).toHaveURL(/\/divisao\/acertos$/);
   await expect(visivel(page, "Ana Souza")).toBeVisible();
@@ -223,7 +223,7 @@ test("CA-E6-57: compromisso dividido pago com valor diferente reescala as parcel
     .first()
     .click();
   const dialogo = page.getByRole("dialog");
-  await dialogo.getByLabel("Valor").fill("300");
+  await dialogo.getByLabel("Valor").fill("300,00");
   await dialogo.getByRole("button", { name: "Confirmar pagamento" }).click();
   await expect(dialogo).toHaveCount(0);
 
@@ -244,8 +244,8 @@ test("CA-E6-62: falha de rede na divisão e no acerto mantém os valores digitad
   await page.goto(`/divisao/${id}`);
   await page.getByRole("radio", { name: "Por valores" }).click();
   const campos = page.getByRole("textbox", { name: /^Valor de/ });
-  await campos.nth(0).fill("150");
-  await campos.nth(1).fill("50");
+  await campos.nth(0).fill("150,00");
+  await campos.nth(1).fill("50,00");
   await page.route("**/*", (route) =>
     route.request().headers()["next-action"] ? route.abort() : route.continue(),
   );
@@ -259,7 +259,7 @@ test("CA-E6-62: falha de rede na divisão e no acerto mantém os valores digitad
   await page.goto("/divisao/acertos/novo");
   await escolher(page, "De (quem pagou)", "Bruno Lima");
   await escolher(page, "Para (quem recebeu)", "Ana Souza");
-  await page.getByLabel("Valor", { exact: true }).fill("20");
+  await page.getByLabel("Valor", { exact: true }).fill("20,00");
   await page.getByRole("button", { name: "Salvar acerto" }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "Não foi possível" }).first(),
@@ -298,7 +298,7 @@ test("CA-E6-62: sessão expirada no acerto leva ao login com retorno à rota", a
   await page.goto("/divisao/acertos/novo");
   await escolher(page, "De (quem pagou)", "Bruno Lima");
   await escolher(page, "Para (quem recebeu)", "Ana Souza");
-  await page.getByLabel("Valor", { exact: true }).fill("20");
+  await page.getByLabel("Valor", { exact: true }).fill("20,00");
   await context.clearCookies();
   await page.getByRole("button", { name: "Salvar acerto" }).click();
   await expect(page).toHaveURL(

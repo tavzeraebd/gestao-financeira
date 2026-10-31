@@ -117,7 +117,7 @@ describe("ContributionDialog", () => {
     addContribution.mockReturnValue(new Promise((r) => (resolve = r)));
     renderDialog({});
     await user.click(screen.getByRole("button", { name: "Registrar aporte" }));
-    await user.type(await screen.findByLabelText("Valor"), "100");
+    await user.type(await screen.findByLabelText("Valor"), "10000");
     await user.click(screen.getByRole("button", { name: "Salvar aporte" }));
     await waitFor(() =>
       expect(
@@ -146,7 +146,7 @@ describe("ContributionDialog", () => {
     await user.click(
       screen.getByRole("button", { name: "Registrar retirada" }),
     );
-    await user.type(await screen.findByLabelText("Valor"), "50");
+    await user.type(await screen.findByLabelText("Valor"), "5000");
     await user.click(screen.getByRole("button", { name: "Salvar retirada" }));
     await waitFor(() => expect(addContribution).toHaveBeenCalledTimes(1));
     expect(addContribution.mock.calls[0]?.[0]).toMatchObject({
@@ -174,7 +174,7 @@ describe("ContributionDialog", () => {
     await user.click(
       screen.getByRole("button", { name: "Registrar retirada" }),
     );
-    await user.type(await screen.findByLabelText("Valor"), "900");
+    await user.type(await screen.findByLabelText("Valor"), "90000");
     await user.click(screen.getByRole("button", { name: "Salvar retirada" }));
     expect(
       await screen.findByText(/O valor guardado não pode ficar negativo/),
@@ -194,7 +194,7 @@ describe("ContributionDialog", () => {
     });
     renderDialog({});
     await user.click(screen.getByRole("button", { name: "Registrar aporte" }));
-    await user.type(await screen.findByLabelText("Valor"), "10");
+    await user.type(await screen.findByLabelText("Valor"), "1000");
     await user.click(screen.getByRole("button", { name: "Salvar aporte" }));
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/situação desta meta mudou/);

@@ -8,7 +8,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
-import { parseBRL, toBRLInput } from "@/lib/money";
+import { maskBRLInput, parseBRL, toBRLInput } from "@/lib/money";
 
 type MoneyInputProps = Omit<
   ComponentProps<"input">,
@@ -21,8 +21,9 @@ type MoneyInputProps = Omit<
 };
 
 /**
- * Campo monetário em texto pt-BR ("1.234,56"). No blur, um valor válido é reescrito no formato
- * canônico; um inválido é mantido para o schema explicar o erro. Funciona com `{...field}`.
+ * Campo monetário em texto pt-BR ("1.234,56") com máscara de centavos: os dígitos digitados entram
+ * como centavos ("3480" -> "34,80"). No blur, um valor inicial fora do formato canônico (ex.: "50")
+ * é reescrito ("50,00"). Funciona com `{...field}`.
  */
 export function MoneyInput({
   value,
@@ -39,11 +40,24 @@ export function MoneyInput({
       <InputGroupInput
         {...props}
         value={value}
-        inputMode="decimal"
+        inputMode="numeric"
         autoComplete="off"
         placeholder={placeholder}
         className={cn("tabular-nums", className)}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          const input = event.target;
+          const inputType = (event.nativeEvent as InputEvent).inputType;
+          const masked = maskBRLInput(input.value, {
+            allowNegative,
+            deleting: inputType?.startsWith("delete") ?? false,
+          });
+          onChange(masked);
+          // Cursor sempre no fim, depois que o React reescreve o valor.
+          requestAnimationFrame(() => {
+            const end = input.value.length;
+            input.setSelectionRange?.(end, end);
+          });
+        }}
         onBlur={(event) => {
           const result = parseBRL(event.target.value, { allowNegative });
           if (result.ok) {

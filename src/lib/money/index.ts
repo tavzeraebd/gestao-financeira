@@ -7,6 +7,7 @@ export {
 } from "./cents";
 export { parseBRL, type MoneyError, type MoneyResult } from "./parse";
 export { formatBRL, toBRLInput } from "./format";
+export { maskBRLInput } from "./mask";
 export { fromDbNumeric, toDbNumeric } from "./db";
 export {
   addCents,
