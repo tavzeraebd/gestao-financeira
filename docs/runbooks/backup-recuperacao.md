@@ -73,6 +73,7 @@ Regras: arquivos **criptografados** em repouso (ex.: `age`/`gpg`) e guardados fo
 
 | Data | Evento | Plano / retenção / PITR **[confirmar no painel]** | Origem → destino | Tempo | Validações (§5.5) | Quem |
 |---|---|---|---|---|---|---|
+| 2026-10-31 | Dump lógico manual antes da migration 20261031100000 (§4) | `supabase backups list`: nenhum backup listado, PITR desligado (plano a confirmar no painel) | produção → `Documents\backups\gestao-financeira\2026-10-31-pre-0040` do usuário (fora do repositório), gpg AES256, senha protegida por DPAPI do Windows (`senha-gpg.dpapi.xml`), decriptação conferida byte a byte | ~3 min | restauração não ensaiada | Claude (pedido do usuário) |
 | — | Plano e backups conferidos | | | — | — | |
 | — | Ensaio de restauração | — | | | | |
 | — | Retenção dos logs do Render e do Supabase (API/Postgres) anotada (SEC-4, SEC-26) | | — | — | — | |
